@@ -1501,3 +1501,61 @@ li[data-schwere="info"] .hinweisart {
     min-width: 110px;
   }
 }
+
+/* ---------------------------------------------------------------- Rahmen ziehen */
+
+.rahmenaufruf {
+  margin: 0 var(--luft-4) var(--luft-3);
+  padding: var(--luft-3);
+  background: var(--offen-tief);
+  border: 1px solid var(--offen);
+  border-radius: var(--rundung);
+  font-size: var(--text-klein);
+  color: var(--schrift);
+  line-height: 1.5;
+}
+
+.rahmenleiste {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  flex-wrap: wrap;
+  padding: 0 var(--luft-4) var(--luft-2);
+}
+
+.rahmeninfo {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  font-family: var(--schriftart-zahl);
+}
+
+.knopf[data-aktiv="true"] {
+  background: var(--betonung);
+  border-color: var(--betonung);
+  color: var(--grund-tief);
+}
+
+.schnittflaeche[data-rahmenmodus="true"] {
+  cursor: crosshair;
+}
+
+.schnittflaeche[data-rahmenmodus="true"] .kartenrahmen,
+.schnittflaeche[data-rahmenmodus="true"] .schnittgriff {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.rahmen {
+  position: absolute;
+  left: var(--links);
+  top: var(--oben);
+  width: var(--breite);
+  height: var(--hoehe);
+  border: 2px solid var(--betonung);
+  background: var(--betonung-tief);
+  pointer-events: none;
+}
+
+.rahmen-neu {
+  border-style: dashed;
+}

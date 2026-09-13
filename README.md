@@ -13,18 +13,42 @@ kuenstliche Intelligenz von aussen aufgerufen und kein Bild hochgeladen.
 Du setzt dieselbe Wette bei vielen Buchmachern, oft zwanzig Mal und mehr. Danach hast du
 zwanzig Bildschirmfotos und keine Uebersicht. Dieses Programm macht daraus eine Zahl.
 
-1. **Bilder hochladen.** Bildschirmfotos deiner Wettuebersicht, gern schon zugeschnitten.
-2. **Schnitte pruefen.** Das Programm erkennt die einzelnen Wettkarten und zeigt die
+1. **Bilder hochladen.** Bildschirmfotos deiner Wettuebersicht. Zugeschnitten geht,
+   ein ganzes Browserfenster geht auch.
+2. **Bei einem ganzen Fenster: Rahmen ziehen.** Ein Klick auf "Rahmen ziehen", dann
+   mit der Maus ein Rechteck um die Wettliste. Das dauert drei Sekunden und ist
+   immer richtig. Der Anbieter und das Konto werden trotzdem aus dem Kopf des
+   ganzen Bildes gelesen, der Rahmen aendert daran nichts.
+3. **Schnitte pruefen.** Das Programm erkennt die einzelnen Wettkarten und zeigt die
    Schnittkanten. Jede Kante laesst sich ziehen, jede Karte laesst sich herausnehmen
    oder teilen. Die Wette ganz unten, die nicht dazugehoert, nimmst du hier weg.
-3. **Lesen.** Aus jeder Karte werden Anbieter, Konto, Scheinnummer, Zeitpunkt, Status,
+4. **Lesen.** Aus jeder Karte werden Anbieter, Konto, Scheinnummer, Zeitpunkt, Status,
    Einsatz, Quote, Auszahlung und alle Auswahlen gelesen.
-4. **Pruefen und berichtigen.** Jedes Feld ist aenderbar. Die Farbe hinter einem Feld sagt,
+5. **Pruefen und berichtigen.** Jedes Feld ist aenderbar. Die Farbe hinter einem Feld sagt,
    wie sicher die Erkennung war. Was von Hand gesetzt wurde, wird nie wieder ueberschrieben.
-5. **Riesenschein.** Gleiche Wetten werden automatisch zu einer Position zusammengefasst,
+6. **Riesenschein.** Gleiche Wetten werden automatisch zu einer Position zusammengefasst,
    auch wenn zwei Anbieter verschieden schreiben.
-6. **Ausgeben.** Ein Blatt mit allen Scheinen untereinander plus Kopfzeile mit den Summen,
+7. **Ausgeben.** Ein Blatt mit allen Scheinen untereinander plus Kopfzeile mit den Summen,
    und dieselbe Sache als Excel-Mappe mit lebenden Formeln zum Nachrechnen.
+
+### Die Rechnung berichtigt die Texterkennung
+
+Auf einem Schein muessen Einsatz, Quote und Auszahlung zusammenpassen. Wenn die
+Texterkennung eine Ziffer verliest, passt es nicht mehr, und dann laesst sich
+ausrechnen, welche Ziffer es gewesen sein muss.
+
+Echter Fall aus dem Durchlauf: gelesen wurden Einsatz 200 und Auszahlung 402 bei
+angezeigter Quote -157. Daraus ergaebe sich Quote 2.01, die angezeigte bedeutet
+aber 1.64. Von allen ueblichen Ziffernverwechslungen passt genau eine Kombination:
+Einsatz 300 und Auszahlung 492. Sie wird uebernommen und als berichtigt markiert.
+
+Zwei Regeln machen das sicher:
+
+- Es werden nur Ziffern getauscht, die eine Texterkennung wirklich verwechselt.
+  Aus einer 2 kann eine 3 werden, aus einer 1 keine 6.
+- Berichtigt wird nur, wenn es GENAU EINE Loesung gibt. Bei mehreren bleibt der
+  Widerspruch als Warnung stehen und du entscheidest. Eine geratene Berichtigung
+  waere schlimmer als eine sichtbare Warnung.
 
 ---
 
@@ -48,6 +72,17 @@ node werkzeug/pruefe.mjs
 
 Der erste Aufruf rechnet die Mathematik durch, der zweite prueft Importpfade,
 Bibliotheken und die Trennung von Design und Funktion.
+
+Die Bildzerlegung braucht eine Leinwand und laesst sich deshalb nicht mit node
+pruefen. Dafuer gibt es eine eigene Seite. Nach jeder Aenderung an
+`bild/segmentierung.js` bitte oeffnen:
+
+```
+http://localhost:4173/werkzeug/probe/
+```
+
+Sie baut zehn Faelle nach, die bei echten Buchmachern vorkommen, und sagt zu
+jedem, ob die Zerlegung stimmt.
 
 ---
 

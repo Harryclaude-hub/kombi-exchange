@@ -31,6 +31,7 @@ import {
   EACHWAY_MUSTER,
 } from './etiketten.js'
 import { geldZeigtPotenzial } from './status.js'
+import { repariereBetraege } from './reparatur.js'
 
 /**
  * @typedef {object} Etikettstelle
@@ -708,7 +709,7 @@ export function leseSchein(rohzeilen, umgebung) {
     }
   }
 
-  const probe = versoehne({
+  let probe = versoehne({
     einsatz: einsatzWert,
     auszahlung: auszahlungWert,
     dezimal: gefunden.quote?.art === 'amerikanisch' ? null : quoteDezimal,
@@ -716,6 +717,48 @@ export function leseSchein(rohzeilen, umgebung) {
     status: status.status,
     einsatzWirdZurueckgezahlt: !gratiswette,
   })
+
+  // Passt die Rechnung nicht, kann die Rechnung selbst den Lesefehler finden.
+  //
+  // Auf einem Schein muessen Einsatz, Quote und Auszahlung zusammenpassen. Wenn
+  // die Texterkennung eine Ziffer verliest, passt es nicht mehr, und dann laesst
+  // sich durchprobieren, welche Ziffer es gewesen sein muss. Berichtigt wird nur,
+  // wenn GENAU EINE der ueblichen Verwechslungen die Zahlen zur Deckung bringt.
+  // Sonst bleibt der Widerspruch als Warnung stehen.
+  const widerspruch = probe.hinweise.some(
+    (h) => h.code === 'quote_widerspruch_us' || h.code === 'quote_widerspruch'
+  )
+  if (widerspruch && geldZeigtPotenzial(status.status) && !gratiswette) {
+    const reparatur = repariereBetraege({
+      einsatz: einsatzWert,
+      auszahlung: auszahlungWert,
+      amerikanisch: gefunden.quote?.amerikanisch ?? null,
+    })
+    if (reparatur.gelungen && reparatur.einsatz !== null && reparatur.auszahlung !== null) {
+      probe = versoehne({
+        einsatz: reparatur.einsatz,
+        auszahlung: reparatur.auszahlung,
+        dezimal: gefunden.quote?.art === 'amerikanisch' ? null : quoteDezimal,
+        amerikanisch: gefunden.quote?.amerikanisch ?? null,
+        status: status.status,
+        einsatzWirdZurueckgezahlt: !gratiswette,
+      })
+      hinweise.push({
+        code: 'ziffern_berichtigt',
+        schwere: 'warnung',
+        feld: 'einsatz',
+        text: `Die Zahlen passten nicht zusammen. ${reparatur.begruendung} Bitte kurz nachsehen.`,
+      })
+    } else if (reparatur.loesungen > 1) {
+      hinweise.push({
+        code: 'reparatur_mehrdeutig',
+        schwere: 'warnung',
+        feld: 'einsatz',
+        text: reparatur.begruendung,
+      })
+    }
+  }
+
   hinweise.push(...probe.hinweise)
 
   // 8. Probe ueber die Beine: passt das Produkt der Einzelquoten zur Gesamtquote?

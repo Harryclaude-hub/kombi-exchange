@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: Probe der Bildzerlegung</title>
+    <link rel="stylesheet" href="../../stil/marken.css" />
+    <link rel="stylesheet" href="../../stil/grund.css" />
+    <link rel="stylesheet" href="../../stil/bauteile.css" />
+    <style>
+      /* Nur fuer diese Pruefseite. Gehoert nicht zum Programm. */
+      body { padding: 1.5rem; }
+      h1 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+      .probe { margin: 1rem 0; padding: 0.75rem; border: 1px solid var(--linie);
+               border-left: 3px solid var(--schrift-still); border-radius: var(--rundung);
+               background: var(--flaeche); }
+      .probe[data-ok="true"] { border-left-color: var(--gut); }
+      .probe[data-ok="false"] { border-left-color: var(--schlecht); }
+      .probename { font-weight: 700; }
+      .probezahl { font-family: var(--schriftart-zahl); font-size: var(--text-klein);
+                   color: var(--schrift-leise); }
+      .probebild { margin-top: 0.5rem; max-height: 260px; width: auto;
+                   border: 1px solid var(--linie); }
+      .ergebnis { padding: 0.75rem 1rem; border-radius: var(--rundung);
+                  font-weight: 700; margin-bottom: 1rem; }
+      .ergebnis[data-ok="true"] { background: var(--gut-tief); color: var(--gut); }
+      .ergebnis[data-ok="false"] { background: var(--schlecht-tief); color: var(--schlecht); }
+    </style>
+  </head>
+  <body>
+    <h1>Probe der Bildzerlegung</h1>
+    <p class="leer-text" style="margin: 0 0 1rem; text-align: left">
+      Diese Faelle lassen sich nicht mit node pruefen, weil sie eine Leinwand brauchen.
+      Nach jeder Aenderung an bild/segmentierung.js diese Seite oeffnen.
+    </p>
+    <div id="ergebnis" class="ergebnis">Laeuft ...</div>
+    <div id="proben"></div>
+
+    <script type="module">
+      import { zerlege } from '../../bild/segmentierung.js'
+      import { ladeBild } from '../../bild/vorverarbeitung.js'
+      import { baueListe, baueVollbild, VOLLBILD_RAHMEN } from './bilder.js'
+
+      /** Macht aus einer Leinwand ein Bildelement, wie beim echten Hochladen. */
+      async function alsBild(leinwand) {
+        const blob = await new Promise((r) => leinwand.toBlob(r, 'image/png'))
+        return ladeBild(blob)
+      }
+
+      const faelle = [
+        {
+          name: 'Graue Luecke, mit innerer Trennlinie',
+          hinweis: 'So sieht BetOnline aus.',
+          bauen: () => baueListe({ lueckenfarbe: '#eceff1', luecke: 12, innenlinie: true }),
+          soll: 3,
+        },
+        {
+          name: 'Graue Luecke, ohne innere Trennlinie',
+          bauen: () => baueListe({ lueckenfarbe: '#eceff1', luecke: 12, innenlinie: false }),
+          soll: 3,
+        },
+        {
+          name: 'Weisse Liste, nur Rahmenlinie',
+          hinweis: 'Karten ohne Abstand, nur durch eine duenne Linie getrennt.',
+          bauen: () => baueListe({ lueckenfarbe: '#ffffff', luecke: 1, innenlinie: false }),
+          soll: 3,
+        },
+        {
+          name: 'Weisse Liste, Rahmen UND innere Trennlinie',
+          hinweis: 'Der schwerste Fall: beide Linien sehen gleich aus.',
+          bauen: () => baueListe({ lueckenfarbe: '#ffffff', luecke: 1, innenlinie: true }),
+          soll: 3,
+        },
+        {
+          name: 'Sehr schmale Luecke',
+          bauen: () => baueListe({ lueckenfarbe: '#eceff1', luecke: 3, innenlinie: false }),
+          soll: 3,
+        },
+        {
+          name: 'Breite Luecke, mit innerer Trennlinie',
+          bauen: () => baueListe({ lueckenfarbe: '#eceff1', luecke: 24, innenlinie: true }),
+          soll: 3,
+        },
+        {
+          name: 'Dunkler Modus',
+          bauen: () => baueListe({ lueckenfarbe: '#05080d', luecke: 12, innenlinie: true, dunkel: true }),
+          soll: 3,
+        },
+        {
+          name: 'Zehn Karten',
+          bauen: () => baueListe({ lueckenfarbe: '#eceff1', luecke: 10, innenlinie: true, anzahl: 10 }),
+          soll: 10,
+        },
+        {
+          name: 'Eine einzige Karte',
+          hinweis: 'Darf NICHT an der inneren Trennlinie geteilt werden.',
+          bauen: () => baueListe({ lueckenfarbe: '#eceff1', luecke: 12, innenlinie: true, anzahl: 1 }),
+          soll: 1,
+        },
+        {
+          name: 'Ganzes Browserfenster, mit gesetztem Rahmen',
+          hinweis: 'Drei zusammengehoerige Wetten plus die vierte, die nicht dazugehoert.',
+          bauen: baueVollbild,
+          bereich: VOLLBILD_RAHMEN,
+          soll: 4,
+          // Die Zeile mit Einsatz und Quote MUSS im Ausschnitt liegen.
+          mindestHoehe: 95,
+        },
+      ]
+
+      const proben = document.getElementById('proben')
+      let gut = 0
+
+      for (const fall of faelle) {
+        const leinwand = fall.bauen()
+        const bild = await alsBild(leinwand)
+        const ergebnis = zerlege(bild, fall.bereich ? { bereich: fall.bereich } : {})
+        const hoehen = ergebnis.karten.map((k) => k.hoehe)
+
+        const anzahlOk = ergebnis.karten.length === fall.soll
+        const hoeheOk =
+          !fall.mindestHoehe ||
+          hoehen.filter((h) => h >= fall.mindestHoehe).length >= fall.soll - 1
+        const ok = anzahlOk && hoeheOk
+        if (ok) gut++
+
+        const kasten = document.createElement('div')
+        kasten.className = 'probe'
+        kasten.dataset.ok = String(ok)
+
+        const titel = document.createElement('div')
+        titel.className = 'probename'
+        titel.textContent = `${ok ? 'OK' : 'FEHLER'}  ${fall.name}`
+        kasten.append(titel)
+
+        if (fall.hinweis) {
+          const hinweis = document.createElement('div')
+          hinweis.className = 'probezahl'
+          hinweis.textContent = fall.hinweis
+          kasten.append(hinweis)
+        }
+
+        const zahlen = document.createElement('div')
+        zahlen.className = 'probezahl'
+        zahlen.textContent =
+          `erkannt ${ergebnis.karten.length}, erwartet ${fall.soll}` +
+          `  |  Hoehen ${hoehen.join(', ')}` +
+          (fall.mindestHoehe ? `  |  Mindesthoehe ${fall.mindestHoehe}` : '') +
+          `  |  Verfahren: ${ergebnis.verfahren}`
+        kasten.append(zahlen)
+
+        leinwand.className = 'probebild'
+        kasten.append(leinwand)
+        proben.append(kasten)
+      }
+
+      const ergebnis = document.getElementById('ergebnis')
+      const allesGut = gut === faelle.length
+      ergebnis.dataset.ok = String(allesGut)
+      ergebnis.textContent = allesGut
+        ? `Alle ${faelle.length} Faelle richtig.`
+        : `${gut} von ${faelle.length} richtig. Bitte die roten Faelle ansehen.`
+    </script>
+  </body>
+</html>

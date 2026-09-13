@@ -29,6 +29,8 @@ import { neueKennung, jetzt } from './werkzeug.js'
  * @property {Blob|null} inhalt
  * @property {import('../kern/typen.js').Rechteck[]} karten
  * @property {string[]} hinweise
+ * @property {import('../kern/typen.js').Rechteck|null} [bereich]
+ *   Der vom Nutzer gezogene Rahmen. null heisst: das ganze Bild.
  */
 
 /**

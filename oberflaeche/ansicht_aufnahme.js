@@ -13,11 +13,14 @@
 
 import { el, fuelle, neueKennung } from './werkzeug.js'
 import * as Zustand from './zustand.js'
-import { nimmAuf, leseBilder, setzeKarten, setzeBuchmacher } from './aufnahme.js'
+import { nimmAuf, leseBilder, setzeKarten, setzeBuchmacher, setzeBereich } from './aufnahme.js'
 import { BUCHMACHER } from '../kern/buchmacher.js'
 
 /** Mindesthoehe einer Karte im Originalbild. */
 const MINDESTHOEHE = 40
+
+/** Bei welchen Bildern der Nutzer gerade einen Rahmen zieht. */
+const imRahmenmodus = new Set()
 
 /**
  * Zeichnet die Ansicht.
@@ -93,6 +96,19 @@ function ablegeflaeche() {
 function bildkarte(eintrag) {
   const anzahl = eintrag.karten.length
 
+  // Ab wann der Rahmen ausdruecklich angeboten wird.
+  //
+  // Das Mass ist bewusst die Bildbreite und NICHT die Zahl der gefundenen Karten.
+  // Bei einem ganzen Browserfenster findet die Zerlegung durchaus mehrere Karten,
+  // aber es sind Querschnitte durch die ganze Seite samt Menueleiste. Das sieht
+  // nach Erfolg aus und ist der gefaehrlichere Fall, weil niemand hinsieht.
+  //
+  // Ein zugeschnittener Ausschnitt einer Wettliste ist selten breiter als tausend
+  // Bildpunkte, ein Browserfenster fast immer. Wer trotzdem breit zuschneidet,
+  // liest hier eine Zeile Text und ignoriert sie.
+  const breitesBild = eintrag.bild.breite >= 1000
+  const nichtsGetrennt = !eintrag.bereich && breitesBild
+
   return el('.bildkarte', { daten: { bild: eintrag.bild.id } }, [
     el('.bildkopf', {}, [
       el('.bildname', { text: eintrag.bild.dateiname }),
@@ -102,10 +118,62 @@ function bildkarte(eintrag) {
       }),
     ]),
     anbieterwahl(eintrag),
+    nichtsGetrennt
+      ? el('.rahmenaufruf', {}, [
+          el('strong', { text: 'Breites Bild: bitte den Rahmen setzen. ' }),
+          'Sieht das nach einem ganzen Browserfenster aus, dann zieh unten einen Rahmen ' +
+            'um die Wettliste. Ohne Rahmen schneidet das Programm quer durch die Seite, ' +
+            'und in den Ausschnitten landet Text aus der Menueleiste. Der Anbieter wird ' +
+            'trotzdem aus dem Kopf des Bildes erkannt, der Rahmen aendert daran nichts.',
+        ])
+      : null,
+    rahmenleiste(eintrag),
     schnittflaeche(eintrag),
     eintrag.hinweise.length > 0
       ? el('ul.bildhinweise', {}, eintrag.hinweise.map((h) => el('li', { text: h })))
       : null,
+  ])
+}
+
+/**
+ * Die Leiste zum Setzen und Aufheben des Rahmens.
+ *
+ * @param {import('./zustand.js').Bildeintrag} eintrag
+ * @returns {HTMLElement}
+ */
+function rahmenleiste(eintrag) {
+  const aktiv = imRahmenmodus.has(eintrag.bild.id)
+  const bereich = eintrag.bereich
+
+  return el('.rahmenleiste', {}, [
+    el('button.knopf.knopf-klein', {
+      type: 'button',
+      daten: { aktiv: String(aktiv) },
+      text: aktiv ? 'Ziehen beenden' : 'Rahmen ziehen',
+      title: 'Einen Bereich festlegen, in dem nach Scheinen gesucht wird',
+      onclick: () => {
+        if (aktiv) imRahmenmodus.delete(eintrag.bild.id)
+        else imRahmenmodus.add(eintrag.bild.id)
+        Zustand.aendere({})
+      },
+    }),
+    bereich
+      ? el('button.knopf.knopf-klein', {
+          type: 'button',
+          text: 'Rahmen aufheben',
+          onclick: () => {
+            imRahmenmodus.delete(eintrag.bild.id)
+            setzeBereich(eintrag.bild.id, null)
+          },
+        })
+      : null,
+    el('span.rahmeninfo', {
+      text: bereich
+        ? `Rahmen: ${bereich.breite} x ${bereich.hoehe} ab ${bereich.x}, ${bereich.y}`
+        : aktiv
+          ? 'Jetzt mit der Maus einen Rahmen um die Wettliste ziehen.'
+          : 'Ohne Rahmen wird das ganze Bild durchsucht.',
+    }),
   ])
 }
 
@@ -164,7 +232,79 @@ function schnittflaeche(eintrag) {
     },
   })
 
-  const flaeche = el('.schnittflaeche', {}, [bild])
+  const breiteOriginal = eintrag.bild.breite || 1
+  const rahmenmodus = imRahmenmodus.has(eintrag.bild.id)
+
+  const flaeche = el('.schnittflaeche', { daten: { rahmenmodus: String(rahmenmodus) } }, [bild])
+
+  // Den bestehenden Rahmen anzeigen.
+  if (eintrag.bereich) {
+    flaeche.append(
+      el('.rahmen', {
+        stil: {
+          '--links': `${(eintrag.bereich.x / breiteOriginal) * 100}%`,
+          '--oben': `${(eintrag.bereich.y / hoehe) * 100}%`,
+          '--breite': `${(eintrag.bereich.breite / breiteOriginal) * 100}%`,
+          '--hoehe': `${(eintrag.bereich.hoehe / hoehe) * 100}%`,
+        },
+      })
+    )
+  }
+
+  // Ziehen eines neuen Rahmens.
+  if (rahmenmodus) {
+    flaeche.addEventListener('pointerdown', (start) => {
+      if (!(start.target === flaeche || start.target === bild)) return
+      start.preventDefault()
+      const kasten = flaeche.getBoundingClientRect()
+      const startX = start.clientX - kasten.left
+      const startY = start.clientY - kasten.top
+
+      const vorschau = el('.rahmen.rahmen-neu')
+      flaeche.append(vorschau)
+      flaeche.setPointerCapture(start.pointerId)
+
+      const setze = (zug) => {
+        const x = Math.min(Math.max(0, zug.clientX - kasten.left), kasten.width)
+        const y = Math.min(Math.max(0, zug.clientY - kasten.top), kasten.height)
+        const links = Math.min(startX, x)
+        const oben = Math.min(startY, y)
+        vorschau.style.setProperty('--links', `${(links / kasten.width) * 100}%`)
+        vorschau.style.setProperty('--oben', `${(oben / kasten.height) * 100}%`)
+        vorschau.style.setProperty('--breite', `${(Math.abs(x - startX) / kasten.width) * 100}%`)
+        vorschau.style.setProperty('--hoehe', `${(Math.abs(y - startY) / kasten.height) * 100}%`)
+        return { links, oben, breite: Math.abs(x - startX), hoehe: Math.abs(y - startY) }
+      }
+      setze(start)
+
+      let letzter = { links: startX, oben: startY, breite: 0, hoehe: 0 }
+      const bewege = (zug) => {
+        letzter = setze(zug)
+      }
+      const ende = () => {
+        flaeche.removeEventListener('pointermove', bewege)
+        flaeche.removeEventListener('pointerup', ende)
+        flaeche.removeEventListener('pointercancel', ende)
+        vorschau.remove()
+
+        // Ein winziger Rahmen war ein Klick, kein Ziehen.
+        if (letzter.breite < 12 || letzter.hoehe < 12) return
+
+        const massstab = breiteOriginal / kasten.width
+        imRahmenmodus.delete(eintrag.bild.id)
+        setzeBereich(eintrag.bild.id, {
+          x: Math.round(letzter.links * massstab),
+          y: Math.round(letzter.oben * massstab),
+          breite: Math.round(letzter.breite * massstab),
+          hoehe: Math.round(letzter.hoehe * massstab),
+        })
+      }
+
+      flaeche.addEventListener('pointermove', bewege)
+      flaeche.addEventListener('pointerup', ende)
+      flaeche.addEventListener('pointercancel', ende)
+    })
+  }
 
   /** Zeichnet die Rahmen und Griffe neu, ohne die ganze Seite anzufassen. */
   const zeichneGrenzen = () => {

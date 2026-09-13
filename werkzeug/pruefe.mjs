@@ -79,7 +79,12 @@ for (const rel of dateien) {
   //           zwingend, sonst liefert ein durchsichtiges PNG unbrauchbare Helligkeiten.
   //   mosaik  bringt eigene Vorgabefarben mit, damit das Blatt auch dann entsteht,
   //           wenn der Ordner stil geloescht wurde.
-  const istBildrechnung = rel.startsWith('stil') || rel.startsWith(`bild${path.sep}`) || rel.includes('mosaik')
+  //   werkzeug/probe  baut Testbilder nach und muss dafuer echte Farben zeichnen.
+  const istBildrechnung =
+    rel.startsWith('stil') ||
+    rel.startsWith(`bild${path.sep}`) ||
+    rel.startsWith(`werkzeug${path.sep}probe`) ||
+    rel.includes('mosaik')
   if (!istBildrechnung) {
     const farbe = inhalt.match(/#[0-9a-fA-F]{6}\b|rgba?\(/)
     if (farbe) {

@@ -16,6 +16,7 @@
 
 import { ladeBild, bereiteVor } from '../bild/vorverarbeitung.js'
 import { zerlege, findeInhaltsspalte, findeSpalten } from '../bild/segmentierung.js'
+// Es gibt bewusst keine automatische Fenstersuche. Warum, steht in bild/segmentierung.js.
 import { starteLeser } from '../lesen/ocr.js'
 import { leseSchein } from '../kern/parser.js'
 import { erkenneBuchmacher, erkenneKonto, erkenneKontostand, BUCHMACHER_NACH_SCHLUESSEL } from '../kern/buchmacher.js'
@@ -401,6 +402,87 @@ export function setzeKarten(bildId, karten) {
   if (!eintrag) return
   bilder.set(bildId, { ...eintrag, karten })
   Zustand.aendere({ bilder })
+}
+
+/**
+ * Setzt den Bereich, in dem gesucht werden soll, und zerlegt ihn neu.
+ *
+ * Dafuer gibt es diesen Weg statt einer automatischen Fenstersuche: auf einem
+ * ganzen Browserfenster gibt es mehrere gleichmaessige Listen, die Menueleiste,
+ * die Marktliste, die Quotenkaesten. Jede automatische Regel hat irgendwann die
+ * falsche gewaehlt, und zwar ohne es zu merken. Ein Rahmen von Hand dauert drei
+ * Sekunden und ist immer richtig.
+ *
+ * @param {string} bildId
+ * @param {import('../kern/typen.js').Rechteck|null} bereich  null hebt den Rahmen auf.
+ */
+export function setzeBereich(bildId, bereich) {
+  const stand = Zustand.hole()
+  const bilder = new Map(stand.bilder)
+  const eintrag = bilder.get(bildId)
+  if (!eintrag || !eintrag.element) return
+
+  const voll = {
+    x: 0,
+    y: 0,
+    breite: eintrag.element.naturalWidth,
+    hoehe: eintrag.element.naturalHeight,
+  }
+
+  let gewaehlt = voll
+  if (bereich) {
+    const x = Math.max(0, Math.min(voll.breite - 10, Math.round(bereich.x)))
+    const y = Math.max(0, Math.min(voll.hoehe - 10, Math.round(bereich.y)))
+    gewaehlt = {
+      x,
+      y,
+      breite: Math.max(20, Math.min(voll.breite - x, Math.round(bereich.breite))),
+      hoehe: Math.max(20, Math.min(voll.hoehe - y, Math.round(bereich.hoehe))),
+    }
+  }
+
+  /** @type {string[]} */
+  const hinweise = []
+  /** @type {import('../kern/typen.js').Rechteck[]} */
+  let karten = []
+
+  try {
+    const spalten = findeSpalten(eintrag.element, gewaehlt)
+    for (const spalte of spalten) {
+      const ergebnis = zerlege(eintrag.element, {
+        bereich: { x: spalte.von, y: gewaehlt.y, breite: spalte.bis - spalte.von, hoehe: gewaehlt.hoehe },
+      })
+      karten.push(...ergebnis.karten)
+      hinweise.push(...ergebnis.hinweise)
+    }
+    if (spalten.length > 1) {
+      hinweise.push(`Die Karten liegen in ${spalten.length} Spalten nebeneinander.`)
+    }
+    karten = karten.sort((a, b) => a.x - b.x || a.y - b.y)
+  } catch (fehler) {
+    hinweise.push(
+      `Der Bereich liess sich nicht zerlegen: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+    )
+  }
+
+  if (karten.length === 0) karten = [gewaehlt]
+
+  bilder.set(bildId, {
+    ...eintrag,
+    karten,
+    hinweise,
+    bereich: bereich ? gewaehlt : null,
+  })
+  Zustand.aendere({ bilder })
+
+  if (bereich) {
+    Zustand.melde(
+      'info',
+      karten.length === 1
+        ? 'Im Rahmen wurde ein Schein erkannt.'
+        : `Im Rahmen wurden ${karten.length} Scheine erkannt.`
+    )
+  }
 }
 
 /**
