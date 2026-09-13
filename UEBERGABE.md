@@ -34,11 +34,19 @@ Datei schreiben. Im Programm gibt es oben rechts "Code wechseln".
 ## Sofort loslegen
 
 ```bash
-npm test                      # 131 Tests
-node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 53 Dateien
-node werkzeug/messe_lesen.mjs # Wie gut wird gelesen: derzeit 100 Prozent
+npm test                      # 148 Tests
+node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 59 Dateien
+node werkzeug/messe_lesen.mjs # Wie gut wird gelesen
 node werkzeug/server.mjs      # Server auf http://localhost:4173
 ```
+
+`npm test` meldet einen uebersprungenen Test, solange es noch keine echten
+Fotos gibt. Das ist richtig so, siehe "Der Auftrag: trainieren".
+
+`messe_lesen` gibt zwei Zahlen aus. Die erste gilt fuer **nachgebaute** Bilder
+und steht bei 100 Prozent. Die zweite gilt fuer **echte Fotos**, und solange
+dort nichts steht, sagt die erste nichts ueber echte Fotos aus. Das steht auch
+so im Ausdruck.
 
 Es gibt **keinen Bauschritt**. Reine ES-Module, Bibliotheken liegen fertig in
 `lib/`. `npm install` wird nicht gebraucht und ist in diesem Container schon
@@ -50,17 +58,64 @@ einmal gescheitert.
 
 ### So laeuft es
 
-1. Server starten, `http://localhost:4173/werkzeug/training/` oeffnen.
-2. Karams Fotos auswaehlen. Zwanzig oder hundert, beides geht.
-3. **Alles lesen.** Rechne mit etwa fuenf Sekunden je Schein.
-4. Durchgehen. Zeilen mit niedriger Sicherheit und Scheine mit Warnung zuerst.
-5. Falsches rechts richtig eintragen.
-6. **Als Pruefaelle sichern** legt `korpus_echt.mjs` ab. Die Datei gehoert nach
-   `test/korpus_echt.mjs`.
-7. Einen Test danebenlegen, der diesen Korpus so abprueft wie
-   `test/korpus.test.mjs` den nachgebauten.
+1. Fotos nach `.arbeit/fotos/` legen. Der Ordner steht in `.gitignore`, die
+   Bilder koennen also nicht ins oeffentliche Repo wandern.
+2. Server starten, `http://localhost:4173/werkzeug/training/` oeffnen.
+3. **Aus dem Ordner holen.** Bei hundert Fotos ist das der bequemere Weg als
+   der Auswahldialog. Der Dialog geht weiter.
+4. **Alles lesen.** Rechne mit etwa fuenf Sekunden je Schein. Ein zweiter
+   Druck liest nur neue Bilder und fragt vorher, wenn doch alles noch einmal
+   soll.
+5. Durchgehen. Scheine mit Fehler oder Warnung zuerst, dann die Zeilen mit
+   niedriger Sicherheit.
+   - Falsches rechts richtig eintragen. Komma und Punkt gehen beide.
+   - Was auf dem Schein gar nicht steht, bekommt den Haken **steht nicht
+     drauf**. Ohne das wird ein erfundener Wert fuer immer zum Sollwert.
+   - Jeden Schein **abhaken**. Nur durchgesehene Faelle werden geprueft.
+6. **Als Pruefaelle sichern** legt `korpus_echt.mjs` ab. Die Datei ersetzt
+   `test/korpus_echt.mjs` (die liegt leer im Repo).
+7. Ab dann prueft `test/korpus_echt.test.mjs` jeden Fall mit, und
+   `messe_lesen` zeigt die Zahl fuer echte Fotos.
 8. Dann die Fehler beheben, die dabei auftauchen. **Jeden Fehler zuerst zu
    einem Test machen, dann reparieren.**
+
+Berichtigungen ueberstehen ein Neuladen der Seite (localStorage) und haengen
+an Bild plus Position, nicht an der Schein-Kennung: ein zweiter Lesedurchgang
+wirft sie deshalb nicht weg.
+
+### Was am Trainingsweg am 13.09. repariert wurde
+
+Der Weg sah fertig aus und war es nicht. Das Wichtigste, damit niemand es
+wieder einbaut:
+
+- **`korpus_echt.mjs` wurde von keinem Test geladen.** `npm test` fuehrt
+  `test/*.test.mjs` aus, die Datei heisst anders, und kein Test hat
+  `KORPUS_ECHT` je importiert. Stunden Handarbeit waeren wirkungslos
+  geblieben, und alles haette nach Erfolg ausgesehen. Jetzt gibt es
+  `test/korpus_echt.test.mjs` und `test/korpus_pruefer.mjs`, den EINEN
+  Rechenweg fuer beide Korpora und die Messlatte.
+- **Die Berichtigungsfelder waren `input type="number"`.** "250,50" kommt dort
+  je nach Spracheinstellung als leere Zeichenkette an: die Korrektur
+  verschwand still, der falsch gelesene Wert wurde als Wahrheit gesichert, und
+  im Feld stand sichtbar 250,50. Jetzt Textfeld mit eigener Umwandlung ueber
+  `kern/zahlen.js`, und was sich nicht deuten laesst, bleibt rot stehen.
+- **Die Umgebung des Laufs wird mitgesichert.** Vorher stand in jedem Pruefall
+  `gebiet: 'en'` (das Feld gibt es am Schein gar nicht) und
+  `quotenformat: 'amerikanisch'` (die amerikanische Quote wird zu JEDER
+  Dezimalquote mitberechnet). Der Fall lief also unter anderen Bedingungen als
+  der Lauf, dessen Ergebnis als Wahrheit bestaetigt wurde.
+- **Berechnete Werte sind keine Wahrheit.** Steht auf dem Foto keine
+  Auszahlung, rechnet der Parser Einsatz mal Quote. Diese Zahl steht auf dem
+  Bild nirgends, erfuellt den Pruefstein immer und kann ihn nie verletzen. Sie
+  wandert nicht mehr in den Korpus, und in der Karte steht "ausgerechnet,
+  steht nicht auf dem Bild".
+- **Warnungen filterten auf `schwere !== 'hinweis'`.** Die Schweregrade heissen
+  `info`, `warnung`, `fehler`. Damit galt JEDER Hinweis als Warnung, und der
+  Zeiger zeigte auf alles, also auf nichts.
+- **Meldungen und Bild-Hinweise stehen jetzt auf der Seite**, und die Bilanz
+  ist vollstaendig: so viele Karten gefunden, so viele gelesen, so viele ohne
+  Text. "0 Fehler" bei fuenf verschwundenen Karten war die falsche gute
+  Nachricht.
 
 ### Was "trainieren" hier heisst
 
@@ -68,6 +123,43 @@ Kein neuronales Netz wird nachtrainiert. Jeder Fehler, den ein echtes Bild
 zeigt, wird zu einem Pruefall, der ab dann fuer immer mitgeprueft wird. Das
 Programm wird dadurch messbar besser und kann nicht unbemerkt schlechter
 werden.
+
+### Bildschirmfoto direkt aufnehmen (Clipping-Tool)
+
+Karams Auftrag vom 13.09.: beim Hinzufuegen einer Wette nicht nur Dateien
+hochladen koennen, sondern das Bildschirmfoto direkt am Rechner machen.
+
+`oberflaeche/bildschirmfoto.js` (neu, loeschbar). Drei Wege, und der dritte
+ist Absicht: `getDisplayMedia` kann der Browser verweigern, und dann stuende
+man sonst ohne alles da.
+
+1. **Bildschirmfoto aufnehmen.** Der Browser fragt, welches Fenster. Danach
+   kommt der Zuschnitt. Braucht https oder localhost. Der Datenstrom wird
+   sofort wieder beendet: ein einziges Bild, nichts wird aufgezeichnet.
+2. **Aus der Zwischenablage**, und **Strg+V** irgendwo auf der Seite. Das ist
+   der Weg, der immer geht, er braucht keine Erlaubnis. Passt zu
+   Windows-Taste + Umschalt + S.
+3. Datei hochladen, wie bisher.
+
+**Der Zuschnitt ist Handarbeit, und das bleibt so.** Eine automatische Suche
+nach dem Wettlisten-Bereich wurde nach vier Anlaeufen wieder entfernt, die
+Begruendung steht in `bild/segmentierung.js`. Der Ausschnitt kommt IMMER aus
+den Originalpunkten, nie aus der verkleinerten Anzeige: unscharfe Ziffern sind
+genau das, woran die Texterkennung scheitert. Danach laeuft alles durch
+dasselbe `nimmAuf` wie eine hochgeladene Datei.
+
+**Zwei Fallen, die dabei aufgetaucht sind und wiederkommen werden:**
+
+- `img.decode()` gibt sein Versprechen in einem verdeckten oder minimierten
+  Fenster nie zurueck. Kein Fehler, keine Meldung, Strg+V tat einfach nichts.
+  Dieselbe Fehlerklasse wie der `requestAnimationFrame`-Fall von frueher.
+  Jetzt `createImageBitmap`, mit Rueckweg ueber `onload` und Zeitgrenze.
+  **Merksatz: nichts an der Sichtbarkeit des Fensters aufhaengen.**
+- Eine Anweisung, die mit einer Klammer beginnt, haengt sich an die Zeile
+  davor, weil der Quelltext ohne Strichpunkte auskommt. Aus
+  `/** @type {X} */ (knopf).disabled = true` nach einer `const`-Zeile wurde
+  `el(...)(knopf)`, und die Fehlermeldung lautete "el(...) is not a function".
+  Immer erst eine eigene `const`-Zeile.
 
 ### Woran es bisher scheitert
 
@@ -82,6 +174,31 @@ Beim ersten echten Durchlauf am 13.09.2026 kamen sofort zwei Dinge heraus:
 Zu erwarten sind ausserdem: Anbieter, die nicht erkannt werden (dann in
 `kern/buchmacher.js` ergaenzen), und Beschriftungen, die noch fehlen (dann in
 `kern/etiketten.js`).
+
+**Am 13.09. abends kamen sechs weitere dazu, alle mit Test und Reparatur**
+(`test/verlesen.test.mjs`). Jeder war nachgerechnet falsch und haette Geld
+falsch gezaehlt:
+
+1. **Wiederholtes Trennzeichen, Faktor hundert.** "1,000.00" wird als
+   "1,000,00" verlesen und war 100000. Besonders boesartig: Einsatz UND
+   Auszahlung sind um denselben Faktor daneben, das Verhaeltnis stimmt weiter,
+   und der Pruefstein schlaegt deshalb NICHT an. Jetzt entscheiden die
+   Gruppenlaengen, und was nicht passt, gilt als mehrdeutig.
+2. **Zweite Buchstabenliste im Parser.** "2QQ" ergab 2 statt 200. Die Liste
+   wird jetzt aus `kern/zahlen.js` gebaut.
+3. **Vorzeichen der amerikanischen Quote.** Der Parser kannte vier
+   Minuszeichen, `zahlen.js` kennt elf. Bei einem anderen Strich wurde aus
+   -157 die Quote 2,57 statt 1,64.
+4. **"amount" allein war ein Einsatz-Etikett** und schluckte "Win Amount".
+5. **Quotenboost.** Dort gilt Einsatz mal Quote gleich Auszahlung nicht, und
+   die Reparatur hat einen richtig gelesenen Einsatz umgeschrieben.
+6. **"Refunded" fehlte in den Statusworten.** Der Schein galt als Gewinn, und
+   es wurde eine Quote von 2,0 erfunden.
+
+Merke fuer Nummer 3: `[+-‐]` ist ein BEREICH von U+002B bis U+2010 und
+enthaelt alle Ziffern. Der Bindestrich gehoert in einer Zeichenklasse
+maskiert, sonst faellt genau das beim Einbauen erst durch einen roten
+Alt-Test auf.
 
 ---
 
@@ -186,19 +303,57 @@ test/          131 Tests.
 
 ## Was offen ist
 
-1. **Karams echte Fotos.** Der eigentliche Auftrag der naechsten Sitzung.
-2. **Werden die Bilder gespeichert?** Derzeit nein: in der Datenbank stehen nur
+1. **Karams echte Fotos.** Der eigentliche Auftrag. Der Weg dahin steht, ist
+   im Browser durchgemessen und wartet nur noch auf die Bilder.
+
+2. **Befunde aus der Gegenpruefung vom 13.09., bestaetigt aber NICHT
+   repariert.** Sie wurden von einem zweiten Pruefer am Quelltext bestaetigt.
+   Reihenfolge nach Schaden:
+
+   - **Doppelaufnahmen werden verschmolzen, und der Pruefall wird dadurch
+     unspielbar.** Zwei Fotos desselben Scheins (etwa einmal offen, einmal
+     entschieden) fuehrt `verschmelzeDoppelte` ohne Rueckfrage zusammen. Der
+     Mischschein traegt die Zeilen der einen Aufnahme und die Werte der
+     anderen. `leseSchein` kann aus diesen Zeilen diese Werte nie liefern: der
+     Fall ist fuer immer rot, und die zweite Aufnahme existiert nirgends mehr.
+     Schlimmer noch: das schlecht gelesene Foto, also der wertvolle Fall,
+     faellt dabei aus dem Korpus. Vorschlag: der Trainingsweg arbeitet auf den
+     Scheinen VOR dem Verschmelzen, oder `sichere()` erkennt den Hinweis
+     `zusammengefuehrt` und meldet ihn sichtbar.
+   - **Bei hundert Bildern laeuft der Speicher voll.** Jede
+     Fortschrittsmeldung der Texterkennung zeichnet die Aufnahmeansicht neu
+     und erzeugt dabei je Bild eine Blob-Adresse, die nie freigegeben wird.
+   - **`leseBilder` sichert erst nach dem letzten Bild und laesst sich nicht
+     abbrechen.** Wer nach achtzig von hundert Bildern abbricht, verliert
+     alles. Bei drei Bildern faellt das nicht auf.
+   - **Nach einem Neuladen kommen die Bilder ohne Kartengrenzen zurueck.**
+     `karten`, `bereich` und `hinweise` werden nicht abgelegt. Danach steht
+     bei jedem Bild "0 Scheine erkannt", und die ganze Handarbeit an den
+     Grenzen ist weg.
+   - **Feste Pixelgrenzen in der Zerlegung.** `KARTE_MINDESTHOEHE = 40` ist
+     eine absolute Zahl. Bei einem Handybild mit dreifacher Pixeldichte ist
+     schon eine einzelne Textzeile hoeher, der Schutz gegen Zerschneiden
+     faellt aus, und aus einer Karte werden zwei halbe Scheine. Dasselbe Foto
+     ueber einen Messenger verkleinert verhaelt sich anders.
+   - **Ein als JPEG weitergereichtes Bildschirmfoto laeuft in den Fotoweg**
+     und wird hart schwellwertbinarisiert. Aus 8 wird B, aus 0 wird O. Der
+     Befund wird nirgends angezeigt, und es gibt keinen Schalter dagegen.
+
+   Diese Punkte gehoeren angefasst, sobald die echten Fotos zeigen, WELCHE
+   davon wirklich zuschlagen. Vorher waere es Bauen ins Blaue, und die Regel
+   dazu steht oben.
+3. **Werden die Bilder gespeichert?** Derzeit nein: in der Datenbank stehen nur
    Dateiname, Groesse, Pruefsumme, Anbieter und Konto. Die Fotos liegen allein
    auf dem Geraet. Damit ist der Riesenschein nach einem Geraetewechsel ohne
    Bilder. Karam wollte "eigene Projekte, in denen alle Fotos drin sind". Das
    waere Supabase Storage, heisst aber, dass die Bilder das Geraet verlassen.
    **Karam muss das entscheiden, nicht der Entwickler.**
-3. **`public.app_pages` und `public.app_chunks`** in derselben Supabase haben
+4. **`public.app_pages` und `public.app_chunks`** in derselben Supabase haben
    den Zeilenschutz aus. Sie sind NICHT Teil dieses Projekts und waren vorher
    da. Nicht eigenmaechtig anfassen.
-4. **Waehrungen werden nicht umgerechnet.** Gemischte Waehrungen erzeugen eine
+5. **Waehrungen werden nicht umgerechnet.** Gemischte Waehrungen erzeugen eine
    Warnung, keine Umrechnung.
-5. **Dauer bei vielen Bildern.** Etwa fuenf Sekunden je Schein. Bei sechzig
+6. **Dauer bei vielen Bildern.** Etwa fuenf Sekunden je Schein. Bei sechzig
    Scheinen sind das mehrere Minuten. Auf einem Handy noch nicht gemessen.
 
 ---
@@ -207,11 +362,13 @@ test/          131 Tests.
 
 | | |
 |---|---|
-| Tests | 131, alle gruen |
-| Lesekorpus | 19 Formate, 73 Felder, 100 Prozent |
+| Tests | 148, davon 147 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
+| Lesekorpus echt | noch leer, das ist der Auftrag |
 | Massstab geprueft | 60 Scheine, 18 Anbieter, 19.812 $, eine Gruppe |
 | Excel | 60 Zeilen, Summe auf den Cent gleich dem Programm |
-| Aufbaupruefung | 53 Dateien, keine Beanstandung |
+| Aufbaupruefung | 59 Dateien, keine Beanstandung |
+| Fassung | 2026-09-13-e |
 
 ---
 
