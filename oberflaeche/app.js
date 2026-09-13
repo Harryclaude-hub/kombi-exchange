@@ -12,7 +12,7 @@ import { rechneProjekt } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
 import * as Datenbank from '../daten/datenbank.js'
 import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL } from '../daten/einstellungen.js'
-import { merkeStand, holeStand, holeBilderZuProjekt } from '../daten/ablage.js'
+import { merkeStand, holeStand, holeBilderZuProjekt, loescheBild } from '../daten/ablage.js'
 import { ladeBild } from '../bild/vorverarbeitung.js'
 
 import * as AnsichtAufnahme from './ansicht_aufnahme.js'
@@ -222,6 +222,8 @@ function zeichneKopf() {
       laufwert('RISIKO', formatiere(gesamt.imRisiko, w, 'de'), 'offen'),
     ]),
 
+    projektwahl(stand),
+
     el('.kopfknoepfe', {}, [
       el('span.verbindung', {
         daten: { an: String(stand.datenbankErreichbar) },
@@ -241,6 +243,160 @@ function zeichneKopf() {
       }),
     ]),
   ])
+}
+
+/**
+ * Projekt waehlen, anlegen, leeren.
+ *
+ * Ein Projekt ist eine Sammlung: alle Bilder, alle Scheine, alle Riesenscheine
+ * einer Runde liegen darin. Wer eine neue Runde beginnt, legt ein neues an und
+ * vermischt nichts mit der alten.
+ *
+ * @param {import('./zustand.js').Stand} stand
+ * @returns {HTMLElement}
+ */
+function projektwahl(stand) {
+  return el('.projektwahl', {}, [
+    el(
+      'select.feldwahl.projektfeld',
+      {
+        title: 'Projekt wechseln',
+        onchange: async (e) => {
+          const id = /** @type {HTMLSelectElement} */ (e.target).value
+          const gewaehlt = stand.projekte.find((p) => p.id === id)
+          if (!gewaehlt || gewaehlt.id === stand.projekt?.id) return
+          Zustand.aendere({ projekt: gewaehlt, scheine: [], riesenscheine: [], bilder: new Map() })
+          await ladeProjektinhalt(gewaehlt.id)
+        },
+      },
+      stand.projekte.map((p) =>
+        el('option', { value: p.id, text: p.name, selected: p.id === stand.projekt?.id ? 'selected' : null })
+      )
+    ),
+    el('button.knopf.knopf-klein', {
+      type: 'button',
+      text: 'Neu',
+      title: 'Neues Projekt anlegen',
+      onclick: async () => {
+        const name = prompt('Wie soll das neue Projekt heissen?', `Runde vom ${new Date().toLocaleDateString('de-DE')}`)
+        if (!name) return
+        await legeProjektAn(name.trim())
+      },
+    }),
+    el('button.knopf.knopf-klein', {
+      type: 'button',
+      text: 'Leeren',
+      title: 'Alle Scheine und Bilder dieses Projekts entfernen',
+      onclick: () => leereAktuellesProjekt(),
+    }),
+  ])
+}
+
+/**
+ * @param {string} name
+ */
+async function legeProjektAn(name) {
+  const stand = Zustand.hole()
+  /** @type {import('../kern/typen.js').Projekt} */
+  const projekt = {
+    id: neueKennung(),
+    name,
+    notiz: '',
+    waehrung: 'UNBEKANNT',
+    angelegtAm: jetzt(),
+    geaendertAm: jetzt(),
+  }
+
+  const antwort = await Datenbank.speichereProjekt(stand.token, projekt)
+  if (antwort.art === 'fehler') {
+    Zustand.melde('warnung', `Das Projekt liess sich nicht anlegen: ${antwort.meldung}`)
+    return
+  }
+
+  Zustand.aendere({
+    projekte: [projekt, ...stand.projekte],
+    projekt,
+    scheine: [],
+    riesenscheine: [],
+    restposten: [],
+    verdacht: [],
+    bilder: new Map(),
+    auswahl: null,
+    ansicht: 'aufnahme',
+  })
+  Zustand.melde('erfolg', `Projekt "${name}" angelegt.`)
+}
+
+async function leereAktuellesProjekt() {
+  const stand = Zustand.hole()
+  if (!stand.projekt) return
+  const anzahl = stand.scheine.length
+  if (
+    !confirm(
+      `Alle ${anzahl} Schein(e) und alle Bilder aus "${stand.projekt.name}" entfernen?\n\n` +
+        'Das Projekt selbst bleibt bestehen. Rueckgaengig machen geht nicht.'
+    )
+  ) {
+    return
+  }
+
+  Zustand.arbeite(true, 'Projekt wird geleert', 0.5)
+  const antwort = await Datenbank.leereProjekt(stand.token, stand.projekt.id)
+  Zustand.arbeite(false)
+
+  if (antwort.art === 'fehler') {
+    Zustand.melde('fehler', `Das Projekt liess sich nicht leeren: ${antwort.meldung}`)
+    return
+  }
+
+  // Auch die Bilder auf diesem Geraet wegraeumen, sonst bleiben sie liegen.
+  for (const eintrag of stand.bilder.values()) {
+    try {
+      await loescheBild(eintrag.bild.id)
+    } catch {
+      // Ein Bild, das sich nicht loeschen laesst, darf den Vorgang nicht stoppen.
+    }
+  }
+  await merkeStand('scheine', [])
+  await merkeStand('riesenscheine', [])
+
+  Zustand.aendere({
+    scheine: [],
+    riesenscheine: [],
+    restposten: [],
+    verdacht: [],
+    bilder: new Map(),
+    auswahl: null,
+    ansicht: 'aufnahme',
+  })
+  Zustand.melde('erfolg', `${antwort.daten ?? anzahl} Schein(e) entfernt.`)
+}
+
+/**
+ * Laedt Scheine, Riesenscheine und Bilder eines Projekts nach.
+ *
+ * @param {string} projektId
+ */
+async function ladeProjektinhalt(projektId) {
+  const stand = Zustand.hole()
+  Zustand.arbeite(true, 'Projekt wird geladen', 0.4)
+
+  const riesenscheine = await Datenbank.holeRiesenscheine(stand.token, projektId)
+  Zustand.aendere({
+    riesenscheine: (Array.isArray(riesenscheine.daten) ? riesenscheine.daten : []).map(
+      ausDatenbankRiesenschein
+    ),
+  })
+
+  const scheine = await Datenbank.holeScheine(stand.token, projektId)
+  if (scheine.art === 'fehler') {
+    Zustand.melde('warnung', `Die Scheine liessen sich nicht laden: ${scheine.meldung}`)
+  } else {
+    Zustand.ordneNeu(scheine.daten)
+  }
+
+  await ladeBilderVomGeraet(projektId)
+  Zustand.arbeite(false)
 }
 
 /**

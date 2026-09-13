@@ -176,6 +176,17 @@ export function loescheProjekt(token, projektId) {
 }
 
 /**
+ * Leert ein Projekt, ohne es zu loeschen. Scheine, Riesenscheine und Bildangaben
+ * gehen weg, das Projekt selbst bleibt bestehen.
+ *
+ * @param {string} token
+ * @param {string} projektId
+ */
+export function leereProjekt(token, projektId) {
+  return rufe('kombi_projekt_leeren', { p_token: token, p_id: projektId })
+}
+
+/**
  * Holt alle Scheine eines Projekts, seitenweise.
  *
  * Die Datenbank liefert hoechstens 1000 Zeilen auf einmal. Bei mehr wird
