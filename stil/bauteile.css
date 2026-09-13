@@ -1626,3 +1626,50 @@ li[data-schwere="info"] .hinweisart {
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+/* ---------------------------------------------------------------------------
+   Die vier wichtigen Zahlen und der Aufklapper fuer den Rest.
+
+   Reine Optik. Ohne diese Regeln stehen dieselben Zahlen da, nur ohne
+   Groessenunterschied, und der Aufklapper sieht aus wie vom Browser gebaut.
+   --------------------------------------------------------------------------- */
+
+.kachelreihe-wichtig .kachelwert {
+  font-size: var(--text-riesig);
+}
+
+.kachelreihe-wichtig .kachel {
+  background: var(--flaeche-hoch);
+  border-color: var(--linie-hell);
+}
+
+.mehr {
+  margin: 1rem 0 0;
+  border-top: 1px solid var(--linie);
+  padding-top: 0.75rem;
+}
+
+.mehr > summary {
+  cursor: pointer;
+  padding: 0.35rem 0;
+  color: var(--schrift-leise);
+  font-size: var(--text-klein);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.mehr > summary:hover {
+  color: var(--schrift);
+}
+
+.mehr[open] > summary {
+  margin-bottom: 0.75rem;
+  color: var(--schrift);
+}
+
+/* Bei nur einem Riesenschein gibt es keine Auswahlliste, also auch keine
+   zweite Spalte. Reine Optik. */
+.positionsspalten[data-einzeln='true'] {
+  grid-template-columns: 1fr;
+}

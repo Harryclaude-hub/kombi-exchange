@@ -117,9 +117,14 @@ export async function baueMappe(posten, einstellungen) {
   baueHinweisBlatt(mappe, posten, einstellungen)
   baueUebersichtBlatt(mappe, posten, einstellungen, scheineBlatt.letzteZeile, gebiet)
 
-  // Die Uebersicht soll vorne stehen.
-  const uebersicht = mappe.getWorksheet('Uebersicht')
-  if (uebersicht) mappe.views = [{ activeTab: uebersicht.id - 1 }]
+  // Beim Oeffnen soll die Uebersicht das aufgeschlagene Blatt sein, nicht die
+  // Liste mit sechzig Zeilen. Wer die Datei bekommt, soll zuerst die Summe sehen.
+  //
+  // activeTab zaehlt die POSITION in der Mappe, nicht die Blattnummer. Die
+  // beiden sind hier zufaellig gleich, aber sobald ein Blatt dazukommt oder
+  // wegfaellt, laufen sie auseinander und es waere das falsche Blatt offen.
+  const stelle = mappe.worksheets.findIndex((b) => b.name === 'Uebersicht')
+  if (stelle >= 0) mappe.views = [{ activeTab: stelle }]
 
   const puffer = await mappe.xlsx.writeBuffer()
   return new Blob([puffer], {

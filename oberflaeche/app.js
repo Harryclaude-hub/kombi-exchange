@@ -223,17 +223,24 @@ function zeichneKopf() {
       el('span.markenzusatz', { text: 'EXCHANGE' }),
     ]),
 
+    // Drei Zahlen, nicht sechs.
+    //
+    // Die Leiste steht immer im Blick, ueber jeder Ansicht. Was hier steht,
+    // sollte man ohne Nachdenken lesen koennen. Bei sechs Zahlen nebeneinander
+    // liest man keine einzige. Scheine, Anbieter und Risiko stehen weiterhin in
+    // der Ansicht Riesenscheine, dort wo man sie braucht.
     el('.laufleiste', {}, [
       laufwert('EINSATZ', formatiere(gesamt.einsatzGesamt, w, 'de'), 'neutral'),
-      laufwert('SCHEINE', String(gesamt.anzahlScheine), 'neutral'),
-      laufwert('ANBIETER', String(gesamt.buchmacher.length), 'neutral'),
       laufwert('MOEGLICH', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut'),
-      laufwert(
-        'ERGEBNIS',
-        formatiere(gesamt.ergebnisRealisiert, w, 'de'),
-        gesamt.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht'
-      ),
-      laufwert('RISIKO', formatiere(gesamt.imRisiko, w, 'de'), 'offen'),
+      // Solange nichts entschieden ist, sagt eine Null nichts. Dann ist
+      // interessanter, was noch auf dem Spiel steht.
+      Math.abs(gesamt.ergebnisRealisiert) > 0.005
+        ? laufwert(
+            'ERGEBNIS',
+            formatiere(gesamt.ergebnisRealisiert, w, 'de'),
+            gesamt.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht'
+          )
+        : laufwert('IM RISIKO', formatiere(gesamt.imRisiko, w, 'de'), 'offen'),
     ]),
 
     projektwahl(stand),

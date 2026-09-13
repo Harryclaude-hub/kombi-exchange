@@ -39,45 +39,62 @@ export function zeichne(ziel) {
   const gesamt = rechneProjekt(rechnungen)
   const gewaehlt = stand.auswahl ?? stand.riesenscheine[0]?.id ?? null
 
+  // Bei genau einem Riesenschein waere der Projektkopf reine Wiederholung:
+  // dieselbe Summe stuende dann dreimal auf dem Bildschirm, oben in der Leiste,
+  // im Projektkopf und im Riesenschein selbst. Dreimal dieselbe Zahl liest sich
+  // nicht dreimal so gut, sie macht nur unsicher, ob es wirklich dieselbe ist.
+  //
+  // Erst ab zwei Riesenscheinen sagt die Gesamtsumme etwas Neues.
+  const mehrereWetten = stand.riesenscheine.length > 1
+
   fuelle(ziel, [
-    projektkopf(gesamt),
-    el('.positionsspalten', {}, [
-      el(
-        '.positionsliste',
-        {},
-        stand.riesenscheine.map((r, i) => listeneintrag(r, rechnungen[i], r.id === gewaehlt))
-      ),
+    mehrereWetten ? projektkopf(gesamt) : null,
+    // Die Liste links waehlt zwischen Riesenscheinen aus. Bei nur einem gibt es
+    // nichts auszuwaehlen.
+    el('.positionsspalten', { daten: { einzeln: String(!mehrereWetten) } }, [
+      mehrereWetten
+        ? el(
+            '.positionsliste',
+            {},
+            stand.riesenscheine.map((r, i) => listeneintrag(r, rechnungen[i], r.id === gewaehlt))
+          )
+        : null,
       gewaehlt ? einzelheit(gewaehlt) : null,
     ]),
   ])
 }
 
 /**
- * Die Laufleiste ganz oben mit den Gesamtzahlen des Projekts.
+ * Der Kopf ueber allen Riesenscheinen.
  *
- * @param {ReturnType<typeof rechneProjekt>} gesamt
+ * Bewusst nur DREI Zahlen. Vorher standen hier sieben, und darunter im
+ * Riesenschein noch einmal acht. Fuenfzehn Zahlen auf einem Bildschirm liest
+ * niemand, und was niemand liest, faellt auch nicht auf, wenn es falsch ist.
+ *
+ * Die drei sind die Fragen, die man wirklich hat:
+ *   Wie viel ist raus?   Wie viel kann zurueckkommen?   Was steht schon fest?
+ *
+ * Alles Weitere steht weiterhin da, einen Klick entfernt. Nichts ist geloescht.
+ *
+ * @param {any} gesamt
  * @returns {HTMLElement}
  */
 function projektkopf(gesamt) {
   const w = gesamt.waehrung
+  const etwasEntschieden = Math.abs(gesamt.ergebnisRealisiert) > 0.005
+
   return el('.projektkopf', {}, [
-    kachel('Gesamteinsatz', formatiere(gesamt.einsatzGesamt, w, 'de'), 'neutral', 'Ueber alle Riesenscheine'),
-    kachel('Riesenscheine', String(gesamt.anzahlRiesenscheine), 'neutral', 'Verschiedene Wetten'),
-    kachel('Scheine', String(gesamt.anzahlScheine), 'neutral', 'Einzelne Wettscheine'),
-    kachel('Anbieter', String(gesamt.buchmacher.length), 'neutral', gesamt.buchmacher.join(', ')),
-    kachel(
-      'Moegliche Auszahlung',
-      formatiere(gesamt.auszahlungMoeglich, w, 'de'),
-      'gut',
-      'Wenn alles Offene gewinnt'
-    ),
-    kachel(
-      'Ergebnis bisher',
-      formatiere(gesamt.ergebnisRealisiert, w, 'de'),
-      gesamt.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht',
-      'Nur entschiedene Scheine'
-    ),
-    kachel('Noch im Risiko', formatiere(gesamt.imRisiko, w, 'de'), 'offen', 'Kann noch verloren gehen'),
+    kachel('Gesamteinsatz', formatiere(gesamt.einsatzGesamt, w, 'de'), 'neutral',
+      `${gesamt.anzahlScheine} Scheine bei ${gesamt.buchmacher.length} Anbietern`),
+    kachel('Moegliche Auszahlung', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut',
+      'Wenn alles Offene gewinnt, einschliesslich Einsatz'),
+    // Solange nichts entschieden ist, waere eine Null hier nur Ablenkung.
+    etwasEntschieden
+      ? kachel('Ergebnis bisher', formatiere(gesamt.ergebnisRealisiert, w, 'de'),
+          gesamt.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht', 'Nur entschiedene Scheine')
+      : kachel('Noch im Risiko', formatiere(gesamt.imRisiko, w, 'de'), 'offen',
+          'Kann noch verloren gehen'),
+
     gesamt.waehrungGemischt
       ? el('.kachel.kachel-fehler', {}, [
           el('.kachelname', { text: 'Achtung' }),
@@ -143,10 +160,6 @@ function listeneintrag(riesenschein, rechnung, gewaehlt) {
   )
 }
 
-/**
- * @param {string} riesenscheinId
- * @returns {HTMLElement}
- */
 function einzelheit(riesenscheinId) {
   const stand = Zustand.hole()
   const riesenschein = stand.riesenscheine.find((r) => r.id === riesenscheinId)
@@ -169,64 +182,49 @@ function einzelheit(riesenscheinId) {
       }),
     ]),
 
-    el('.kachelreihe', {}, [
-      kachel('Gesamteinsatz', formatiere(rechnung.einsatzGesamt, w, 'de'), 'neutral', 'Tatsaechlicher Geldaufwand'),
-      kachel('Scheine', String(rechnung.anzahlScheine), 'neutral', ''),
-      kachel(
-        'Anbieter',
-        String(rechnung.anzahlBuchmacher),
-        'neutral',
-        rechnung.buchmacher.join(', ')
-      ),
-      kachel(
-        'Konten',
-        String(rechnung.anzahlKonten),
-        'neutral',
-        rechnung.konten.length > 0 ? rechnung.konten.join(', ') : 'kein Konto erkannt'
-      ),
-      kachel(
-        'Effektive Quote',
-        formatiereQuote(rechnung.quoteEffektiv, 'dezimal', 'de'),
-        'neutral',
-        'Einsatzgewichtet, nicht der Mittelwert'
-      ),
-      kachel(
-        'Moegliche Auszahlung',
-        formatiere(rechnung.auszahlungMoeglich, w, 'de'),
-        'gut',
-        'Wenn alles Offene gewinnt, einschliesslich Einsatz'
-      ),
-      kachel(
-        'Moeglicher Gewinn',
-        formatiere(rechnung.gewinnMoeglich, w, 'de'),
-        'gut',
-        'Ohne Einsatz'
-      ),
-      kachel(
-        'Noch im Risiko',
-        formatiere(rechnung.imRisiko, w, 'de'),
-        'offen',
-        'Der Einsatz der noch offenen Scheine'
-      ),
-      kachel(
-        'Ergebnis bisher',
-        formatiere(rechnung.ergebnisRealisiert, w, 'de'),
-        rechnung.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht',
-        'Nur entschiedene Scheine, auf beiden Seiten der Rechnung'
-      ),
-      rechnung.gratiswetteNennwert > 0
-        ? kachel(
-            'Gratiswetten',
-            formatiere(rechnung.gratiswetteNennwert, w, 'de'),
-            'neutral',
-            'Nennwert, zaehlt nicht als Aufwand'
-          )
-        : null,
+    // Die vier Zahlen, wegen derer man herschaut. Mehr nicht.
+    //
+    // Frueher standen hier acht Kacheln nebeneinander, alle gleich gross und
+    // gleich laut. Bei acht gleich lauten Zahlen sucht das Auge, statt zu lesen.
+    el('.kachelreihe.kachelreihe-wichtig', {}, [
+      kachel('Gesamteinsatz', formatiere(rechnung.einsatzGesamt, w, 'de'), 'neutral',
+        'Tatsaechlicher Geldaufwand'),
+      kachel('Moegliche Auszahlung', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut',
+        'Wenn alles Offene gewinnt, einschliesslich Einsatz'),
+      kachel('Effektive Quote', formatiereQuote(rechnung.quoteEffektiv, 'dezimal', 'de'), 'neutral',
+        'Einsatzgewichtet, nicht der Mittelwert'),
+      kachel('Verteilung',
+        `${rechnung.anzahlScheine} / ${rechnung.anzahlBuchmacher}`, 'neutral',
+        'Scheine / Anbieter'),
     ]),
 
-    band(rechnung),
-    anbieterbalken(rechnung),
+    // Alles Weitere ist da, aber zugeklappt. Ein <details> braucht kein
+    // Stylesheet und keine Zustandsverwaltung: faellt die Designschicht weg,
+    // klappt es trotzdem auf.
+    el('details.mehr', {}, [
+      el('summary', { text: 'Alle Zahlen und die Aufteilung' }),
+      el('.kachelreihe', {}, [
+        kachel('Moeglicher Gewinn', formatiere(rechnung.gewinnMoeglich, w, 'de'), 'gut', 'Ohne Einsatz'),
+        kachel('Noch im Risiko', formatiere(rechnung.imRisiko, w, 'de'), 'offen',
+          'Der Einsatz der noch offenen Scheine'),
+        kachel('Ergebnis bisher', formatiere(rechnung.ergebnisRealisiert, w, 'de'),
+          rechnung.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht',
+          'Nur entschiedene Scheine, auf beiden Seiten der Rechnung'),
+        kachel('Konten', String(rechnung.anzahlKonten), 'neutral',
+          rechnung.konten.length > 0 ? rechnung.konten.join(', ') : 'kein Konto erkannt'),
+        rechnung.gratiswetteNennwert > 0
+          ? kachel('Gratiswetten', formatiere(rechnung.gratiswetteNennwert, w, 'de'), 'neutral',
+              'Nennwert, zaehlt nicht als Aufwand')
+          : null,
+      ]),
+      band(rechnung),
+      anbieterbalken(rechnung),
+    ]),
+
+    // Hinweise bleiben IMMER sichtbar, nie im Aufklapper. Eine Warnung, die
+    // man erst aufklappen muss, ist keine Warnung.
     rechnung.hinweise.length > 0 ? rechnungshinweise(rechnung) : null,
+
     scheinliste(riesenschein, scheine),
   ])
 }
