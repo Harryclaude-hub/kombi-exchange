@@ -52,6 +52,9 @@ Zwei Regeln machen das sicher:
 
 ---
 
+> **Weiterarbeiten?** Dann zuerst [UEBERGABE.md](UEBERGABE.md) lesen. Dort stehen
+> Zugaenge, Arbeitsregeln, offene Entscheidungen und der naechste Schritt.
+
 ## Loslegen
 
 Es gibt keinen Bauschritt. Die Seite besteht aus Dateien und laeuft direkt.
