@@ -371,6 +371,17 @@ function gelesen(schein, feld) {
 }
 
 /**
+ * Woher ein Wert stammt: 'ocr', 'berechnet', 'hand', 'vorgabe', 'gelernt'.
+ * @param {any} schein
+ * @param {string} feld
+ */
+function quelleVon(schein, feld) {
+  const roh = schein[feld]
+  if (roh && typeof roh === 'object' && 'quelle' in roh) return String(roh.quelle)
+  return ''
+}
+
+/**
  * Holt die Sicherheit, mit der ein Feld gelesen wurde.
  * @param {any} schein
  * @param {string} feld
@@ -650,9 +661,20 @@ function feldzeile(schein, f, e) {
 
   zelle.append(eingabe)
 
+  // Ein berechneter Wert steht auf dem Bild NIRGENDS. Er sieht in der Karte
+  // aus wie ein gelesener, erfuellt den Pruefstein Einsatz mal Quote gleich
+  // Auszahlung immer und kann ihn nie verletzen. Wer das nicht sieht, nickt
+  // ihn ab. Deshalb steht es dran.
+  const berechnet = quelleVon(schein, feld) === 'berechnet'
+
   return el('tr', { daten: { unsicher: String(s < 0.7) } }, [
     el('td', { text: name }),
-    el('td.wert', { text: istNichts(wert) ? '(nichts)' : String(wert) }),
+    el('td.wert', {}, [
+      el('span', { text: istNichts(wert) ? '(nichts)' : String(wert) }),
+      berechnet
+        ? el('span.berechnet', { text: ' ausgerechnet, steht nicht auf dem Bild' })
+        : null,
+    ]),
     el('td.zahl', { text: `${Math.round(s * 100)} %` }),
     zelle,
     fehltZelle,
@@ -781,6 +803,22 @@ function sichere() {
       // 'UNBEKANNT' und leer sind kein Sollwert. Wer sie festschreibt,
       // verlangt fuer immer, dass nichts erkannt wird.
       if (istNichts(wert)) continue
+
+      // Eine Zahl, die das Programm aus zwei anderen Zahlen gebildet hat, ist
+      // kein Lesergebnis und darf nie Sollwert eines LESEtests werden.
+      //
+      // Beispiel: steht auf dem Foto keine Auszahlung, rechnet der Parser
+      // Einsatz mal Quote und liefert 296,29 mit Quelle 'berechnet'. Auf dem
+      // Bild steht diese Zahl nirgends. Sie erfuellt den Pruefstein Einsatz
+      // mal Quote gleich Auszahlung IMMER und kann ihn nie verletzen, sieht
+      // in der Karte aber aus wie ein gelesener Wert. Wer sie als Wahrheit
+      // festschreibt, prueft ab dann, dass das Programm richtig rechnet,
+      // nicht dass es richtig liest.
+      //
+      // Von Hand bestaetigt ist etwas anderes: dann hat ein Mensch auf das
+      // Bild gesehen.
+      if (!vonHand && quelleVon(schein, feld) === 'berechnet') continue
+
       erwartet[feld] = wert
       if (vonHand) berichtigt.push(feld)
     }
@@ -847,7 +885,22 @@ function sichere() {
     'export const KORPUS_ECHT = ',
   ].join('\n')
 
-  const inhalt = kopf + JSON.stringify(faelle, null, 2) + '\n'
+  // Der lange Gedankenstrich wird als Fluchtfolge geschrieben, nicht woertlich.
+  //
+  // Er kommt in echten Scheinen vor ("Bayern - Dortmund" mit langem Strich),
+  // und die Texterkennung gibt ihn so weiter. Im Projekt ist das Zeichen
+  // verboten, werkzeug/pruefe.mjs prueft das ueber ALLE Dateien, also auch
+  // ueber test/. Woertlich geschrieben waere die Gegenprobe des ganzen
+  // Programms dauerhaft rot, und der naheliegende Ausweg waere, das Zeichen
+  // im Rohtext zu ersetzen. Genau das darf nicht passieren: der Rohtext ist
+  // die Aufzeichnung dessen, was die Texterkennung gesehen hat.
+  //
+  // Als Fluchtfolge bleibt der Wert beim Einlesen derselbe, und die Regel
+  // gilt weiter fuer alle Dateien ohne Ausnahme.
+  // Das Zeichen steht hier selbst nur als Fluchtfolge, sonst haette diese
+  // Datei es woertlich enthalten und pruefe.mjs haette sie beanstandet.
+  const inhalt =
+    kopf + JSON.stringify(faelle, null, 2).split(String.fromCharCode(0x2014)).join('\\u2014') + '\n'
   const blob = new Blob([inhalt], { type: 'text/javascript;charset=utf-8' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)

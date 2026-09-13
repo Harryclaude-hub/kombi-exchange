@@ -20,7 +20,15 @@
 
 /** Beschriftungen fuer den Einsatz. */
 export const EINSATZ_ETIKETTEN = [
-  'stake', 'stakes', 'risk', 'risking', 'wager', 'wagered', 'bet amount', 'amount',
+  // "amount" allein steht hier mit Absicht NICHT mehr.
+  //
+  // Es schluckte "Win Amount" und "Payout Amount", also genau die Gegenseite:
+  // aus einem Gewinn von 296,84 wurde der Einsatz, und die aufgedruckte
+  // Auszahlung verschwand ohne einen einzigen Hinweis. Die eindeutigen Formen
+  // stehen jetzt einzeln da, und die Auszahlungsseite hat ihre eigenen.
+  // Siehe test/verlesen.test.mjs.
+  'stake', 'stakes', 'risk', 'risking', 'wager', 'wagered',
+  'bet amount', 'stake amount', 'wager amount', 'risk amount', 'einsatzbetrag',
   'buy in', 'total stake', 'total risk', 'unit risk',
   // Das blosse Wort "bet" steht bewusst NICHT in dieser Liste. Es kommt in
   // "Bet ID" vor und wuerde dort die Scheinnummer als Einsatz lesen.
@@ -40,6 +48,9 @@ export const AUSZAHLUNG_ETIKETTEN = [
   { wort: 'total returns', bedeutung: 'auszahlung' },
   { wort: 'payout', bedeutung: 'auszahlung' },
   { wort: 'total payout', bedeutung: 'auszahlung' },
+  { wort: 'payout amount', bedeutung: 'auszahlung' },
+  { wort: 'return amount', bedeutung: 'auszahlung' },
+  { wort: 'total amount', bedeutung: 'auszahlung' },
   { wort: 'potential payout', bedeutung: 'auszahlung' },
   { wort: 'potential return', bedeutung: 'auszahlung' },
   { wort: 'paid', bedeutung: 'auszahlung' },
@@ -54,6 +65,7 @@ export const AUSZAHLUNG_ETIKETTEN = [
   // Eindeutig reiner Gewinn ohne Einsatz.
   { wort: 'to win', bedeutung: 'gewinn' },
   { wort: 'towin', bedeutung: 'gewinn' },
+  { wort: 'win amount', bedeutung: 'gewinn' },
   { wort: 'profit', bedeutung: 'gewinn' },
   { wort: 'net win', bedeutung: 'gewinn' },
   { wort: 'reingewinn', bedeutung: 'gewinn' },
@@ -108,6 +120,18 @@ export const STATUS_ETIKETTEN = [
   { wort: 'unentschieden', status: 'push' },
   { wort: 'void', status: 'storniert' },
   { wort: 'voided', status: 'storniert' },
+  // Erstattung. Fehlten diese Worte, blieb der Status unbekannt, und dann galt
+  // Einsatz gleich Auszahlung als reiner Gewinn: daraus wurde eine Quote von
+  // 2,0 gerechnet, obwohl auf dem Schein 1,64 stand, und der Schein brachte
+  // 362 in die Summe statt der 181, die wirklich zurueckflossen.
+  // Siehe test/verlesen.test.mjs.
+  { wort: 'refunded', status: 'storniert' },
+  { wort: 'refund', status: 'storniert' },
+  { wort: 'no action', status: 'storniert' },
+  { wort: 'erstattet', status: 'storniert' },
+  { wort: 'erstattung', status: 'storniert' },
+  { wort: 'zurueckerstattet', status: 'storniert' },
+  { wort: 'zurückerstattet', status: 'storniert' },
   { wort: 'cancelled', status: 'storniert' },
   { wort: 'canceled', status: 'storniert' },
   { wort: 'storniert', status: 'storniert' },
@@ -173,6 +197,34 @@ export const GRATIS_MUSTER = [
  * Dort wird der angezeigte Einsatz doppelt abgebucht, einmal auf Sieg und einmal auf Platz.
  * @type {RegExp[]}
  */
+/**
+ * Quotenboost: der Anbieter legt etwas drauf.
+ *
+ * WOZU: bei einem Boost stimmt Einsatz mal Quote gleich Auszahlung NICHT, denn
+ * die Auszahlung liegt hoeher als die angezeigte Quote hergibt. Genau diese
+ * Rechnung ist aber der Pruefstein, mit dem kern/reparatur.js verlesene
+ * Ziffern berichtigen darf.
+ *
+ * Ohne diese Liste hat die Reparatur einen fehlerfrei gelesenen Einsatz von
+ * 200 auf 206 umgeschrieben und dazu behauptet, nur diese eine Kombination
+ * passe zur Quote. Ein Rasterlauf ueber 360 realistische Boost-Kombinationen
+ * ergab 119 solcher falschen Berichtigungen.
+ *
+ * Projektregel 1: wo kein Pruefstein ist, entscheidet der Mensch.
+ * Siehe test/verlesen.test.mjs.
+ */
+export const BOOST_MUSTER = [
+  /\bprofit\s*boost\b/i,
+  /\bodds\s*boost\b/i,
+  /\bboost(ed)?\b/i,
+  /\benhanced\s*(odds|price)\b/i,
+  /\bbonus\s*odds\b/i,
+  /\bquoten\s*boost\b/i,
+  /\berhoehte\s*quote\b/i,
+  /\berhöhte\s*quote\b/i,
+  /\bgebooster[tn]?\b/i,
+]
+
 export const EACHWAY_MUSTER = [
   /\beach\s*way\b/i,
   /\be\/w\b/i,

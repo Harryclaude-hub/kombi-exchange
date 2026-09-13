@@ -27,6 +27,41 @@ const ZIFFERNERSATZ = new Map([
 /** Alle Zeichen, die als Minus durchgehen. Die Texterkennung liefert hier vieles. */
 const MINUSZEICHEN = /[-\u2010\u2011\u2012\u2013\u2014\u2015\u2212~_\u00AD]/g
 
+/**
+ * Die Zeichen, die als verlesene Ziffer gelten, als Zeichenkette.
+ *
+ * WOZU EXPORTIERT: kern/parser.js sucht Zahlen in einem Textabschnitt und
+ * braucht dieselbe Liste. Sie stand dort ein zweites Mal, und die zweite war
+ * kuerzer: T, Q, D, E, A, h und der senkrechte Strich fehlten. Aus "2QQ" wurde
+ * deshalb 2 statt 200, waehrend leseZahl daraus richtig 200 macht.
+ *
+ * Projektregel 8: Logik lebt an genau einer Stelle. Das hier ist die Stelle.
+ */
+export const ZIFFERNZEICHEN = [...ZIFFERNERSATZ.keys()].join('')
+
+/**
+ * Alles, was wie ein Minus aussieht, als Inhalt einer Zeichenklasse.
+ *
+ * Ebenfalls exportiert, weil der Parser das Vorzeichen der amerikanischen
+ * Quote deuten muss. Dort standen nur vier dieser Zeichen, und bei einem
+ * anderen Strich kippte das Vorzeichen: aus der Quote 1,64 wurde 2,57. Das
+ * Vorzeichen entscheidet ueber die halbe Rechnung.
+ */
+// Der Bindestrich steht ABSICHTLICH als \- da. Unmaskiert waere "[+-‐]"
+// ein BEREICH von U+002B bis U+2010, und der enthaelt alle Ziffern und
+// Buchstaben. Genau das ist beim Einbauen passiert: "157" galt ploetzlich als
+// Zahl mit Vorzeichen.
+export const MINUS_KLASSE = '\\-\\u2010\\u2011\\u2012\\u2013\\u2014\\u2015\\u2212~_\\u00AD'
+
+/**
+ * Macht eine Zeichenkette fuer eine Zeichenklasse sicher.
+ *
+ * @param {string} zeichen
+ */
+export function alsKlasse(zeichen) {
+  return zeichen.replace(/[\\\]^-]/g, (c) => '\\' + c)
+}
+
 /** Zeichen, die als Tausendertrenner vorkommen (Schweiz, Frankreich, schmales Leerzeichen). */
 const TAUSENDERRAUM = /['\u00A0\u2009\u202F\u2019 ]/g
 
@@ -112,7 +147,11 @@ function rettenEinenBaustein(teil) {
  *
  * Regeln fuer die Trennzeichen, in dieser Reihenfolge:
  *  1. Kommen Punkt und Komma beide vor, ist das letzte Vorkommen das Dezimaltrennzeichen.
- *  2. Kommt ein Trennzeichen mehrfach vor, ist es ein Tausendertrenner.
+ *  2. Kommt dasselbe Trennzeichen mehrfach vor, entscheiden die Gruppenlaengen:
+ *     lauter Dreiergruppen heisst Tausendertrennung, eine kuerzere Gruppe am
+ *     Ende heisst, dass das LETZTE Zeichen der Dezimaltrenner war. Passt
+ *     keines von beiden, gilt die Zahl als mehrdeutig. Frueher galt hier
+ *     immer Tausendertrennung, und aus "1,000,00" wurde 100000.
  *  3. Kommt genau ein Trennzeichen vor und stehen danach 1 oder 2 Ziffern,
  *     ist es das Dezimaltrennzeichen.
  *  4. Kommt genau ein Trennzeichen vor und stehen danach genau 3 Ziffern, ist der Fall
@@ -248,7 +287,36 @@ export function leseZahl(roh, einstellungen = {}) {
   if (punkte > 0 && kommas > 0) {
     dezimaltrenner = bereinigt.lastIndexOf('.') > bereinigt.lastIndexOf(',') ? '.' : ','
   } else if (punkte > 1 || kommas > 1) {
-    dezimaltrenner = null
+    // Dasselbe Zeichen mehrfach. Frueher hiess das immer Tausendertrennung,
+    // und aus "1,000,00" wurde 100000. Der Faktor hundert.
+    //
+    // Die Gegenregel ist dieselbe wie bei den verschluckten Punkten weiter
+    // oben und ebenso beweisbar: eine Tausendergruppe hat in JEDER Sprache
+    // genau drei Ziffern. Steht am Ende eine Gruppe mit ein oder zwei
+    // Ziffern, kann das keine Tausendergruppe sein, also war das letzte
+    // Zeichen der Dezimaltrenner.
+    //
+    // Passt weder das eine noch das andere, wird NICHT geraten: dann gilt die
+    // Zahl als mehrdeutig, und der Hinweis macht den Fall sichtbar.
+    const trenner = punkte > 1 ? '.' : ','
+    const gruppen = bereinigt.split(trenner)
+    const hintere = gruppen.slice(1)
+    const letzte = hintere[hintere.length - 1] ?? ''
+    const vordere = hintere.slice(0, -1)
+
+    if (hintere.every((g) => g.length === 3)) {
+      dezimaltrenner = null
+    } else if (
+      vordere.length > 0 &&
+      vordere.every((g) => g.length === 3) &&
+      letzte.length >= 1 &&
+      letzte.length <= 2
+    ) {
+      dezimaltrenner = trenner
+    } else {
+      dezimaltrenner = null
+      mehrdeutig = true
+    }
   } else if (punkte === 1 || kommas === 1) {
     const trenner = punkte === 1 ? '.' : ','
     const stelle = bereinigt.indexOf(trenner)
@@ -278,7 +346,12 @@ export function leseZahl(roh, einstellungen = {}) {
     const anderer = dezimaltrenner === '.' ? ',' : '.'
     const ohneAndere = bereinigt.split(anderer).join('')
     const stelle = ohneAndere.lastIndexOf(dezimaltrenner)
-    ziffernText = ohneAndere.slice(0, stelle) + '.' + ohneAndere.slice(stelle + 1)
+    // Vor der letzten Fundstelle koennen weitere gleiche Zeichen stehen, wenn
+    // die Texterkennung den Punkt vor den Cent als Komma gelesen hat:
+    // "1,000,00". Die davor sind dann Tausendertrenner und fallen weg. Ohne
+    // das entstuende "1,000.00", und daraus wird beim Rechnen NaN.
+    const vorne = ohneAndere.slice(0, stelle).split(dezimaltrenner).join('')
+    ziffernText = vorne + '.' + ohneAndere.slice(stelle + 1)
   }
 
   const wert = Number(ziffernText)

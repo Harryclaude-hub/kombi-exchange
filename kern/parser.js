@@ -16,7 +16,14 @@
  * Reine Logik. Keine Anzeige.
  */
 
-import { leseZahl, leseAmerikanischeQuote, erkenneWaehrung } from './zahlen.js'
+import {
+  leseZahl,
+  leseAmerikanischeQuote,
+  erkenneWaehrung,
+  ZIFFERNZEICHEN,
+  MINUS_KLASSE,
+  alsKlasse,
+} from './zahlen.js'
 import { versoehne, amerikanischNachDezimal, dezimalNachAmerikanisch, kombiquote } from './quoten.js'
 import { leseZeitpunkt } from './zeitpunkt.js'
 import {
@@ -29,6 +36,7 @@ import {
   SYSTEM_MUSTER,
   GRATIS_MUSTER,
   EACHWAY_MUSTER,
+  BOOST_MUSTER,
 } from './etiketten.js'
 import { geldZeigtPotenzial } from './status.js'
 import { repariereBetraege } from './reparatur.js'
@@ -108,6 +116,24 @@ export function findeEtikettstellen(zeile) {
 }
 
 /**
+ * Die Muster, mit denen eine Zahl im Fliesstext gefunden wird.
+ *
+ * Sie werden aus kern/zahlen.js gebaut, NICHT hier noch einmal hingeschrieben.
+ * Vorher stand hier eine zweite, kuerzere Liste verlesener Ziffern: T, Q, D,
+ * E, A, h und der senkrechte Strich fehlten. Aus "2QQ" wurde deshalb 2 statt
+ * 200, und zwar mit Sicherheit 0,9, weil nichts als ersetzt vermerkt wurde.
+ * Genau denselben Text las leseZahl richtig. Siehe test/verlesen.test.mjs.
+ */
+const ZIFFERNKLASSE = alsKlasse(ZIFFERNZEICHEN)
+const VORZEICHEN_MUSTER = new RegExp(`[+${MINUS_KLASSE}]\\s?\\d`)
+const ZAHLENSTART = new RegExp(`[0-9${ZIFFERNKLASSE}]`)
+const ZAHLENMUSTER = new RegExp(
+  `[+${MINUS_KLASSE}]?\\s?` +
+    `(?:\\d|[${ZIFFERNKLASSE}](?=[\\d${ZIFFERNKLASSE}]))` +
+    `[\\d${ZIFFERNKLASSE}.,'\\u0020\\u00A0\\u202F]*`
+)
+
+/**
  * Holt die erste Zahl aus einem Textabschnitt.
  *
  * @param {string} abschnitt
@@ -119,13 +145,9 @@ export function ersteZahl(abschnitt, einstellungen = {}) {
   const ohneWaehrung = abschnitt
     .normalize('NFKC')
     .replace(/US\$|\bUSD\b|\bEUR\b|\bGBP\b|\bCHF\b|Fr\.|[$€£]/gi, ' ')
-  if (!/[0-9OolIiSsBbGgZzEeAahTqQD]/.test(ohneWaehrung)) return null
+  if (!ZAHLENSTART.test(ohneWaehrung)) return null
 
-  // Vor dem Suchen die verlesenen Ziffern retten, sonst findet die Suche "l8l" nicht.
-  const gerettet = ohneWaehrung.replace(/[OolIiSsBbGgZzEeAahTqQD]/g, (z) => z)
-  const treffer = gerettet.match(
-    /[+\-\u2212\u2013\u2014]?\s?(?:\d|[OolIiSsBbGgZz](?=[\dOolIiSsBbGgZz]))[\dOolIiSsBbGgZz.,' \u00A0\u202F]*/
-  )
+  const treffer = ohneWaehrung.match(ZAHLENMUSTER)
   if (!treffer || !treffer[0]) return null
   const fund = leseZahl(treffer[0], einstellungen)
   return fund.wert === null ? null : fund
@@ -164,7 +186,11 @@ export function deuteQuote(text, vorgabe = 'dezimal') {
     }
   }
 
-  const hatVorzeichen = /[+\-\u2212\u2013\u2014]\s?\d/.test(t)
+  // Alle Striche, die wie ein Minus aussehen, aus kern/zahlen.js. Hier standen
+  // frueher nur vier davon. Bei einem anderen Strich galt die Quote als ohne
+  // Vorzeichen, und aus -157 wurde +157: Quote 2,57 statt 1,64, also ein
+  // Aufschlag von 57 Prozent. Siehe test/verlesen.test.mjs.
+  const hatVorzeichen = VORZEICHEN_MUSTER.test(t)
   const zahl = ersteZahl(t, { gebiet: 'en' })
   if (!zahl || zahl.wert === null) return leer
   const betrag = Math.abs(zahl.wert)
@@ -724,6 +750,10 @@ export function leseSchein(rohzeilen, umgebung) {
 
   // 6. Sonderformen erkennen, die die Rechnung veraendern.
   const gratiswette = GRATIS_MUSTER.some((m) => m.test(gesamttext))
+  // Quotenboost: dann liegt die Auszahlung hoeher, als die angezeigte Quote
+  // hergibt, und der Pruefstein Einsatz mal Quote gleich Auszahlung gilt dort
+  // nicht. Siehe BOOST_MUSTER in kern/etiketten.js.
+  const quotenboost = BOOST_MUSTER.some((m) => m.test(gesamttext))
   const eachWay = EACHWAY_MUSTER.some((m) => m.test(gesamttext))
   if (gratiswette) {
     hinweise.push({
@@ -808,7 +838,21 @@ export function leseSchein(rohzeilen, umgebung) {
   const widerspruch = probe.hinweise.some(
     (h) => h.code === 'quote_widerspruch_us' || h.code === 'quote_widerspruch'
   )
-  if (widerspruch && geldZeigtPotenzial(status.status) && !gratiswette) {
+  if (quotenboost && widerspruch) {
+    // Nicht berichtigen, sondern sagen warum. Eine Automatik, die hier
+    // entscheidet, schreibt eine richtig gelesene Zahl falsch: gemessen wurde
+    // ein Einsatz von 200, der auf 206 umgeschrieben wurde, mit der Begruendung
+    // "nur diese eine Kombination passt zur angezeigten Quote".
+    hinweise.push({
+      code: 'quotenboost',
+      schwere: 'warnung',
+      feld: 'auszahlung',
+      text:
+        'Auf dem Schein steht ein Quotenboost. Die Auszahlung liegt deshalb ueber dem, ' +
+        'was die angezeigte Quote hergibt. Die Zahlen werden NICHT berichtigt, weil die ' +
+        'Rechnung Einsatz mal Quote gleich Auszahlung bei einem Boost nicht gilt.',
+    })
+  } else if (widerspruch && geldZeigtPotenzial(status.status) && !gratiswette) {
     const reparatur = repariereBetraege({
       einsatz: einsatzWert,
       auszahlung: auszahlungWert,
