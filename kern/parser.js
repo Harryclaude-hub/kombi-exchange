@@ -219,6 +219,33 @@ export function deuteQuote(text, vorgabe = 'dezimal') {
 }
 
 /**
+ * Sieht eine achtstellige Ziffernfolge nach einem Datum aus?
+ *
+ * Nur fuer die Scheinnummernsuche gedacht. Im Zweifel lieber ja sagen: dann
+ * wird die Zahl nicht als Scheinnummer genommen, und das kostet nichts.
+ *
+ * @param {string} ziffern  Genau acht Ziffern.
+ * @returns {boolean}
+ */
+function siehtWieDatumAus(ziffern) {
+  const alsJahrZuerst = Number(ziffern.slice(0, 4))
+  const monatA = Number(ziffern.slice(4, 6))
+  const tagA = Number(ziffern.slice(6, 8))
+  if (alsJahrZuerst >= 1990 && alsJahrZuerst <= 2100 && monatA >= 1 && monatA <= 12 && tagA >= 1 && tagA <= 31) {
+    return true
+  }
+
+  const tagB = Number(ziffern.slice(0, 2))
+  const monatB = Number(ziffern.slice(2, 4))
+  const jahrB = Number(ziffern.slice(4, 8))
+  if (jahrB >= 1990 && jahrB <= 2100 && monatB >= 1 && monatB <= 12 && tagB >= 1 && tagB <= 31) {
+    return true
+  }
+
+  return false
+}
+
+/**
  * Sucht die Scheinnummer.
  *
  * @param {string[]} zeilen
@@ -258,6 +285,53 @@ export function findeScheinnummer(zeilen) {
           ende: start + etikett.length + (nummer.index ?? 0) + nummer[0].length,
         }
       }
+    }
+  }
+
+  // Dritte Wahl: eine nackte lange Ziffernfolge ganz am Zeilenanfang.
+  //
+  // BetOnline schreibt die Scheinnummer ohne jede Beschriftung in die erste
+  // Zeile, direkt vor den Zeitpunkt: "396228612    Sep 10, 10:45 PM".
+  //
+  // Das ist die gefaehrlichste der drei Regeln, weil eine nackte Zahl auch ein
+  // Betrag sein koennte. Deshalb muss ALLES davon zutreffen:
+  //
+  //   - mindestens sieben Ziffern. Selbst 20.000 hat nur fuenf. Ein Betrag mit
+  //     sieben Stellen und ohne jedes Trennzeichen kommt auf einem Schein nicht vor.
+  //   - ganz am Zeilenanfang. Betraege stehen hinter ihrer Beschriftung.
+  //   - nur Ziffern, kein Komma, kein Punkt, kein Waehrungszeichen daneben.
+  //   - in einer der ersten drei Zeilen. Kopfzeilen stehen oben.
+  //   - keine Geldbeschriftung in derselben Zeile.
+  //   - kein Datum in Ziffernform.
+  //
+  // Faellt eine dieser Bedingungen weg, wird lieber gar keine Nummer gefunden.
+  // Eine fehlende Scheinnummer ist aergerlich, ein als Nummer verschluckter
+  // Einsatz waere ein Rechenfehler.
+  for (let i = 0; i < Math.min(3, zeilen.length); i++) {
+    const zeile = zeilen[i] ?? ''
+    const treffer = zeile.match(/^\s*([0-9]{7,20})(?![0-9.,])/)
+    if (!treffer || !treffer[1]) continue
+
+    const kandidat = treffer[1]
+
+    // Steht direkt davor oder dahinter ein Waehrungszeichen, ist es Geld.
+    // Das Fenster muss weit genug reichen, damit auch ein nachgestelltes
+    // "EUR" oder "USD" hineinfaellt, nicht nur ein Zeichen wie $.
+    const umfeld = zeile.slice(0, (treffer.index ?? 0) + treffer[0].length + 6)
+    if (/[$€£¥]|\b(usd|eur|gbp|chf)\b/i.test(umfeld)) continue
+
+    // Eine Geldbeschriftung in derselben Zeile macht die Zahl verdaechtig.
+    if (findeEtikettstellen(zeile).length > 0) continue
+
+    // Acht Ziffern koennen ein Datum sein: 20260913 oder 13092026.
+    if (kandidat.length === 8 && siehtWieDatumAus(kandidat)) continue
+
+    return {
+      wert: kandidat,
+      sicherheit: 0.7,
+      zeile: i,
+      start: treffer.index ?? 0,
+      ende: (treffer.index ?? 0) + treffer[0].length,
     }
   }
 
