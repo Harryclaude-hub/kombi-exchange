@@ -15,6 +15,15 @@ import { el, fuelle, neueKennung } from './werkzeug.js'
 import * as Zustand from './zustand.js'
 import { nimmAuf, leseBilder, setzeKarten, setzeBuchmacher, setzeBereich } from './aufnahme.js'
 import { BUCHMACHER } from '../kern/buchmacher.js'
+import {
+  kannBildschirmAufnehmen,
+  kannZwischenablageLesen,
+  nimmBildschirmAuf,
+  ausZwischenablage,
+  ausBlob,
+  zeigeZuschnitt,
+  alsDatei,
+} from './bildschirmfoto.js'
 
 /** Mindesthoehe einer Karte im Originalbild. */
 const MINDESTHOEHE = 40
@@ -28,6 +37,9 @@ const imRahmenmodus = new Set()
  * @param {HTMLElement} ziel
  */
 export function zeichne(ziel) {
+  // Einmalig, der Waechter in der Funktion sorgt dafuer.
+  horcheAufEinfuegen()
+
   const stand = Zustand.hole()
   const bilder = [...stand.bilder.values()]
 
@@ -77,16 +89,161 @@ function ablegeflaeche() {
         const dateien = /** @type {DragEvent} */ (e).dataTransfer?.files
         if (dateien) await nimmAuf(dateien)
       },
-      onclick: () => eingabe.click(),
+      onclick: (e) => {
+        // Ein Klick auf einen der Knoepfe darf nicht zusaetzlich den
+        // Dateidialog aufreissen.
+        if (/** @type {HTMLElement} */ (e.target).closest('.aufnahmeknopf')) return
+        eingabe.click()
+      },
     },
     [
       el('.ablage-zeichen', { text: '+' }),
       el('.ablage-titel', { text: 'Bildschirmfotos hierher ziehen' }),
       el('.ablage-text', { text: 'oder klicken zum Auswaehlen. Die Bilder bleiben auf diesem Geraet.' }),
+      aufnahmeknoepfe(),
       eingabe,
     ]
   )
   return flaeche
+}
+
+/**
+ * Die zwei Wege, die ohne Dateiexplorer auskommen.
+ *
+ * Beide enden im selben nimmAuf wie eine hochgeladene Datei. Ab da kennt der
+ * Weg keinen Unterschied mehr, und es gibt deshalb auch keine zweite Fassung
+ * der Auswertung, die auseinanderdriften koennte.
+ *
+ * @returns {HTMLElement}
+ */
+function aufnahmeknoepfe() {
+  const knoepfe = []
+
+  if (kannBildschirmAufnehmen()) {
+    knoepfe.push(
+      el('button.aufnahmeknopf', {
+        type: 'button',
+        text: 'Bildschirmfoto aufnehmen',
+        title: 'Fenster aussuchen, Rahmen um die Wettliste ziehen, fertig.',
+        onclick: async (e) => {
+          e.stopPropagation()
+          await bildschirmfotoMachen()
+        },
+      })
+    )
+  }
+
+  if (kannZwischenablageLesen()) {
+    knoepfe.push(
+      el('button.aufnahmeknopf', {
+        type: 'button',
+        text: 'Aus der Zwischenablage',
+        title: 'Erst mit Windows-Taste + Umschalt + S ausschneiden, dann hier druecken.',
+        onclick: async (e) => {
+          e.stopPropagation()
+          await ausZwischenablageHolen()
+        },
+      })
+    )
+  }
+
+  if (knoepfe.length === 0) {
+    return el('.ablage-text', {
+      text:
+        'Bildschirmfoto direkt aufnehmen geht hier nicht (der Browser erlaubt es nur ueber https). ' +
+        'Mach es mit Windows-Taste + Umschalt + S und druecke dann Strg+V.',
+    })
+  }
+
+  return el('.aufnahmeknoepfe', {}, [
+    ...knoepfe,
+    el('.ablage-text', { text: 'Oder mit Windows-Taste + Umschalt + S ausschneiden und hier Strg+V druecken.' }),
+  ])
+}
+
+/** Bildschirm aufnehmen, zuschneiden, aufnehmen lassen. */
+async function bildschirmfotoMachen() {
+  try {
+    const voll = await nimmBildschirmAuf()
+    const ausschnitt = await zeigeZuschnitt(voll)
+    if (!ausschnitt) {
+      Zustand.melde('info', 'Bildschirmfoto verworfen.')
+      return
+    }
+    await nimmAuf([await alsDatei(ausschnitt, 'bildschirm')])
+  } catch (fehler) {
+    // Ein Abbruch im Auswahlfenster des Browsers ist kein Fehler.
+    const text = fehler instanceof Error ? fehler.message : String(fehler)
+    const abgebrochen =
+      fehler instanceof DOMException &&
+      (fehler.name === 'NotAllowedError' || fehler.name === 'AbortError')
+    if (abgebrochen) Zustand.melde('info', 'Kein Bildschirmfoto gemacht.')
+    else Zustand.melde('fehler', `Bildschirmfoto misslungen: ${text}`)
+  }
+}
+
+/** Aus der Zwischenablage holen, zuschneiden, aufnehmen lassen. */
+async function ausZwischenablageHolen() {
+  try {
+    const bild = await ausZwischenablage()
+    if (!bild) {
+      Zustand.melde('warnung', 'In der Zwischenablage liegt kein Bild.')
+      return
+    }
+    const ausschnitt = await zeigeZuschnitt(bild)
+    if (!ausschnitt) {
+      Zustand.melde('info', 'Bild verworfen.')
+      return
+    }
+    await nimmAuf([await alsDatei(ausschnitt, 'zwischenablage')])
+  } catch (fehler) {
+    Zustand.melde(
+      'fehler',
+      `Zwischenablage: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+    )
+  }
+}
+
+/**
+ * Strg+V irgendwo auf der Seite nimmt ein Bild auf.
+ *
+ * Das ist der Weg, der IMMER geht: er braucht keine Erlaubnis und keine
+ * sichere Verbindung. Wer unter Windows mit Windows-Taste + Umschalt + S
+ * ausschneidet, hat das Bild danach in der Zwischenablage.
+ *
+ * Nur in der Aufnahmeansicht, und nie waehrend in ein Feld getippt wird: sonst
+ * wuerde ein Einfuegen in ein Textfeld nebenbei ein Bild aufnehmen.
+ */
+let horchtSchon = false
+export function horcheAufEinfuegen() {
+  if (horchtSchon) return
+  horchtSchon = true
+  window.addEventListener('paste', async (e) => {
+    if (Zustand.hole().ansicht !== 'aufnahme') return
+    const ziel = /** @type {HTMLElement|null} */ (e.target)
+    if (ziel && ziel.closest('input, textarea, [contenteditable="true"]')) return
+
+    const stuecke = [...(e.clipboardData?.items ?? [])]
+    const bildStueck = stuecke.find((s) => s.type.startsWith('image/'))
+    if (!bildStueck) return
+    e.preventDefault()
+
+    const blob = bildStueck.getAsFile()
+    if (!blob) return
+    try {
+      const ausschnitt = await zeigeZuschnitt(await ausBlob(blob))
+      if (!ausschnitt) {
+        Zustand.melde('info', 'Eingefuegtes Bild verworfen.')
+        return
+      }
+      await nimmAuf([await alsDatei(ausschnitt, 'eingefuegt')])
+    } catch (fehler) {
+      Zustand.melde(
+        'fehler',
+        `Eingefuegtes Bild: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+      )
+    }
+  })
 }
 
 /**

@@ -46,6 +46,42 @@ export function aufLeinwand(quelle, breite, hoehe) {
 }
 
 /**
+ * Schneidet einen Bereich heraus, in Originalgroesse und mit Weiss darunter.
+ *
+ * WOZU: der Zuschnitt eines Bildschirmfotos (oberflaeche/bildschirmfoto.js).
+ * Der Ausschnitt wird IMMER aus den Originalpunkten geschnitten, nie aus der
+ * verkleinerten Anzeige: unscharfe Ziffern sind genau das, woran die
+ * Texterkennung scheitert.
+ *
+ * Das Weiss darunter aus demselben Grund wie in bereiteVor: ein Fensterfoto
+ * mit runden Ecken hat durchsichtige Stellen, und die liest getImageData
+ * sonst als Schwarz.
+ *
+ * @param {HTMLImageElement|HTMLCanvasElement|ImageBitmap} quelle
+ * @param {{x: number, y: number, breite: number, hoehe: number}} ausschnitt
+ * @returns {HTMLCanvasElement}
+ */
+export function schneideAus(quelle, ausschnitt) {
+  const vollBreite = 'naturalWidth' in quelle ? quelle.naturalWidth : quelle.width
+  const vollHoehe = 'naturalHeight' in quelle ? quelle.naturalHeight : quelle.height
+
+  const x = Math.max(0, Math.min(vollBreite - 1, Math.round(ausschnitt.x)))
+  const y = Math.max(0, Math.min(vollHoehe - 1, Math.round(ausschnitt.y)))
+  const b = Math.max(1, Math.min(vollBreite - x, Math.round(ausschnitt.breite)))
+  const h = Math.max(1, Math.min(vollHoehe - y, Math.round(ausschnitt.hoehe)))
+
+  const leinwand = document.createElement('canvas')
+  leinwand.width = b
+  leinwand.height = h
+  const kontext = leinwand.getContext('2d')
+  if (!kontext) throw new Error('Der Browser stellt keinen 2D-Zeichenkontext bereit.')
+  kontext.fillStyle = '#ffffff'
+  kontext.fillRect(0, 0, b, h)
+  kontext.drawImage(quelle, x, y, b, h, 0, 0, b, h)
+  return leinwand
+}
+
+/**
  * Liest eine Datei als Bild ein.
  *
  * @param {File|Blob} datei
@@ -366,6 +402,15 @@ export function bereiteVor(quelle, ausschnitt, einstellungen = {}) {
   roh.height = h
   const rohKontext = roh.getContext('2d', { willReadFrequently: true })
   if (!rohKontext) throw new Error('Der Browser stellt keinen 2D-Zeichenkontext bereit.')
+  // Das Weiss darunter ist wichtig, dieselbe Regel wie im Messpuffer der
+  // Zerlegung: bei einem PNG mit Transparenz liefert getImageData in den
+  // durchsichtigen Bereichen sonst r=g=b=0. untersuche zaehlt die als schwarz,
+  // das kippt die Entscheidung dunkelModus, und kontrastSpreizen bekommt einen
+  // Block reiner Nullen ins Histogramm und tut danach gar nichts mehr. Solche
+  // Bilder entstehen beim Abfotografieren eines einzelnen Fensters: runde
+  // Ecken und Schattenrand bleiben durchsichtig.
+  rohKontext.fillStyle = '#ffffff'
+  rohKontext.fillRect(0, 0, b, h)
   rohKontext.drawImage(quelle, x, y, b, h, 0, 0, b, h)
 
   const befund = untersuche(rohKontext.getImageData(0, 0, b, h))

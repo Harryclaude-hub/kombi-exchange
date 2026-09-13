@@ -211,18 +211,46 @@ export async function nimmAuf(dateien) {
  */
 export async function erkenneKopf(element, derLeser, eigenesKontomuster = '') {
   const kopfhoehe = Math.max(60, Math.round(element.naturalHeight * 0.16))
-  const { leinwand } = bereiteVor(element, {
-    x: 0,
-    y: 0,
-    breite: element.naturalWidth,
-    hoehe: kopfhoehe,
-  })
+  const bereich = { x: 0, y: 0, breite: element.naturalWidth, hoehe: kopfhoehe }
 
-  const lesung = await derLeser.leseKarte(leinwand)
-  const kopftext = lesung.text
+  const lesung = await derLeser.leseKarte(bereiteVor(element, bereich).leinwand)
+  let kopftext = lesung.text
+  let fund = erkenneBuchmacher(kopftext, kopftext)
+
+  // Zweiter Blick mit vergroessertem Kopf, wenn der erste nichts gefunden hat.
+  //
+  // WARUM: waehleFaktor richtet sich nach der BREITE (Ziel 1800). Der
+  // Kopfstreifen ist aber immer so breit wie das ganze Bild. Bei einem
+  // Browser-Vollbild mit 2560 Bildpunkten kommt daraus Faktor 1, der Kopf wird
+  // also gar nicht vergroessert, und die Anbieterzeile steht dort in 13 bis 16
+  // Bildpunkten. Genau die Groesse, die vorverarbeitung.js im eigenen
+  // Kommentar als zu klein bezeichnet. Bei einem Handybild mit dreifacher
+  // Pixeldichte ist die Schrift dagegen schon gross genug. Die Regel ist also
+  // je nach Bild richtig oder verkehrt herum.
+  //
+  // Statt eine feste Zahl zu raten, wird gemessen: der erste Versuch laeuft
+  // wie bisher, und nur wenn KEIN Anbieter herauskam, kostet der zweite etwas.
+  // Das ist genau der Fall, in dem heute alles Weitere verlorengeht, denn am
+  // Anbieterprofil haengen Gebiet, Waehrung und Quotenformat.
+  if (!fund.profil) {
+    const flaeche = bereich.breite * bereich.hoehe
+    // Dieselbe Obergrenze wie in waehleFaktor. Ein flacher Streifen bleibt
+    // auch bei Faktor 3 weit darunter, ein sehr hoher Kopf nicht.
+    const faktor = Math.min(3, Math.max(1, Math.sqrt(40e6 / Math.max(1, flaeche))))
+    if (faktor > 1.1) {
+      const zweite = await derLeser.leseKarte(bereiteVor(element, bereich, { faktor }).leinwand)
+      const zweiterFund = erkenneBuchmacher(zweite.text, zweite.text)
+      // Uebernommen wird nur, was WIRKLICH besser ist. Ein zweiter Durchgang,
+      // der auch nichts findet, darf den ersten Text nicht verdraengen.
+      if (zweiterFund.profil || zweiterFund.sicherheit > fund.sicherheit) {
+        kopftext = zweite.text
+        fund = zweiterFund
+      }
+    }
+  }
 
   return {
-    buchmacher: erkenneBuchmacher(kopftext, kopftext),
+    buchmacher: fund,
     konto: erkenneKonto(kopftext, eigenesKontomuster),
     kontostand: erkenneKontostand(kopftext),
     kopftext,
@@ -323,6 +351,27 @@ export async function leseBilder(bildIds, einstellungen = {}) {
           continue
         }
 
+        // Die Bedingungen, unter denen gelesen wird. Sie stehen hier als
+        // eigener Wert, weil sie danach AM SCHEIN vermerkt werden.
+        //
+        // WARUM AM SCHEIN: aus diesen Zeilen wird in werkzeug/training/ ein
+        // dauerhafter Pruefall. Wer ihn spaeter ohne dieselbe Umgebung
+        // nachspielt, liest dieselben Zeilen anders als der Lauf, dessen
+        // Ergebnis als Wahrheit bestaetigt wurde: derselbe Betrag mit anderem
+        // Trennzeichen, dieselbe Quote in anderem Format. Der Fall waere dann
+        // grundlos rot oder, schlimmer, gruen mit einer anderen Zahl.
+        const leseumgebung = {
+          // Ohne erkannten Anbieter gibt es kein Gebiet, und dann wird nicht
+          // geraten: 'en' haette aus deutschen 1.250 Euro stillschweigend
+          // 1,25 gemacht. null laesst die Frage offen und erzeugt einen
+          // sichtbaren Hinweis. Siehe test/gebiet.test.mjs.
+          gebiet: profil?.gebiet ?? null,
+          waehrung: profil?.waehrung ?? 'UNBEKANNT',
+          quotenformat: profil?.quotenformat ?? 'dezimal',
+          bezugsjahr: heute.getFullYear(),
+          bezugsmonat: heute.getMonth() + 1,
+        }
+
         const schein = leseSchein(lesung.zeilentexte, {
           id: neueKennung(),
           projektId,
@@ -333,14 +382,16 @@ export async function leseBilder(bildIds, einstellungen = {}) {
           buchmacherSicherheit: kopf.buchmacher.sicherheit,
           konto: kontoWert,
           kontoSicherheit: kopf.konto.sicherheit,
-          gebiet: profil?.gebiet ?? 'en',
-          waehrung: profil?.waehrung ?? 'UNBEKANNT',
-          quotenformat: profil?.quotenformat ?? 'dezimal',
-          bezugsjahr: heute.getFullYear(),
-          bezugsmonat: heute.getMonth() + 1,
+          ...leseumgebung,
           zeitstempel: jetzt(),
           ocrSicherheit: lesung.sicherheit,
         })
+
+        schein.leseumgebung = leseumgebung
+        // Die Zeilen, die leseSchein wirklich bekommen hat. rohtext ist fuer
+        // Menschen gedacht und kann anders zusammengesetzt sein; ein Pruefall
+        // braucht genau die Eingabe, nicht eine Fassung davon.
+        schein.lesezeilen = lesung.zeilentexte
 
         // Was der zweite Durchgang geaendert hat, wird vermerkt. So bleibt
         // nachvollziehbar, warum eine Zahl anders aussieht als im Bild.

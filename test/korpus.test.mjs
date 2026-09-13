@@ -3,42 +3,21 @@ import assert from 'node:assert/strict'
 
 import { KORPUS } from './scheinkorpus.mjs'
 import { leseSchein, findeScheinnummer } from '../kern/parser.js'
+import { alsTests } from './korpus_pruefer.mjs'
 
 /**
- * Der Korpus als Test.
+ * Der nachgebaute Korpus als Test.
  *
  * werkzeug/messe_lesen.mjs zeigt die Zahl, dieser Test haelt sie fest. Sobald
  * eine Aenderung am Leseprogramm einen Fall verschlechtert, wird es hier rot,
  * und zwar mit Name des Scheins und Name des Feldes.
+ *
+ * Der Vergleich selbst steht in korpus_pruefer.mjs, weil der echte Korpus aus
+ * Karams Fotos (korpus_echt.test.mjs) und die Messlatte denselben brauchen.
+ * Drei Fassungen desselben Vergleichs waren vorher der Weg in die Drift.
  */
 
-const CENT = 0.005
-const QUOTE = 0.0015
-
-function wert(ergebnis, feld) {
-  const roh = ergebnis[feld]
-  if (roh && typeof roh === 'object' && 'wert' in roh) return roh.wert
-  return roh
-}
-
-for (const fall of KORPUS) {
-  test(`liest: ${fall.name}`, () => {
-    const ergebnis = leseSchein(fall.zeilen, fall.umgebung)
-
-    for (const [feld, soll] of Object.entries(fall.erwartet)) {
-      const ist = wert(ergebnis, feld)
-      if (typeof soll === 'number') {
-        const spielraum = feld === 'quoteDezimal' ? QUOTE : CENT
-        assert.ok(
-          typeof ist === 'number' && Math.abs(ist - soll) <= spielraum,
-          `${feld}: erwartet ${soll}, gelesen ${JSON.stringify(ist)}`
-        )
-      } else {
-        assert.equal(ist, soll, `${feld}: erwartet ${soll}, gelesen ${JSON.stringify(ist)}`)
-      }
-    }
-  })
-}
+alsTests(test, assert, KORPUS)
 
 // ---------------------------------------------------------------------------
 // Fallen fuer die nackte Scheinnummer

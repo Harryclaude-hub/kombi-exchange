@@ -1673,3 +1673,136 @@ li[data-schwere="info"] .hinweisart {
 .positionsspalten[data-einzeln='true'] {
   grid-template-columns: 1fr;
 }
+
+/* ---------------------------------------------- Bildschirmfoto und Zuschnitt
+
+   Die zwei Wege, die ohne Dateiexplorer auskommen, und das Fenster, in dem
+   der Rahmen um die Wettliste gezogen wird. Logik steht in
+   oberflaeche/bildschirmfoto.js, hier stehen nur Farben und Groessen.
+                                                                            */
+
+.aufnahmeknoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--luft-2);
+  margin-top: var(--luft-2);
+}
+
+.aufnahmeknopf {
+  padding: var(--luft-2) var(--luft-4);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  background: var(--flaeche-hoch);
+  color: var(--schrift);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--takt), background var(--takt);
+}
+
+.aufnahmeknopf:hover {
+  border-color: var(--gut);
+  background: var(--flaeche-heiss);
+}
+
+.zuschnittschicht {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--luft-3);
+  padding: var(--luft-4);
+  background: var(--grund-tief);
+}
+
+.zuschnitt-titel {
+  font-size: var(--text-gross);
+  font-weight: 600;
+}
+
+.zuschnitt-text {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  max-width: 80ch;
+}
+
+.zuschnitt-buehne {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  min-height: 0;
+  background: var(--grund);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+}
+
+.zuschnitt-bild {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.zuschnitt-rahmen {
+  position: absolute;
+  display: none;
+  left: var(--links);
+  top: var(--oben);
+  width: var(--breit);
+  height: var(--hoch);
+  border: 2px solid var(--gut);
+  background: var(--gut-tief);
+  pointer-events: none;
+}
+
+.zuschnitt-rahmen.sichtbar {
+  display: block;
+}
+
+.zuschnitt-masse {
+  position: absolute;
+  display: none;
+  right: var(--luft-3);
+  bottom: var(--luft-3);
+  padding: var(--luft-1) var(--luft-2);
+  border-radius: var(--rundung);
+  background: var(--flaeche-hoch);
+  color: var(--schrift-leise);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+}
+
+.zuschnitt-masse.sichtbar {
+  display: block;
+}
+
+.zuschnitt-leiste {
+  display: flex;
+  gap: var(--luft-2);
+  justify-content: flex-end;
+}
+
+.zuschnitt-leiste button {
+  padding: var(--luft-2) var(--luft-4);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  background: var(--flaeche-hoch);
+  color: var(--schrift);
+  font: inherit;
+  cursor: pointer;
+}
+
+.zuschnitt-leiste button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zuschnitt-nehmen:not(:disabled) {
+  border-color: var(--gut);
+  background: var(--gut-tief);
+  color: var(--gut);
+}

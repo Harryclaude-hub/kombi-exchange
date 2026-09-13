@@ -135,6 +135,15 @@ export const DATENFASSUNG = 1
  * @property {number} positionImBild   Reihenfolge im Quellbild, von oben nach unten.
  *
  * @property {string} rohtext
+ * @property {string[]} [lesezeilen]
+ *   Die Zeilen, die leseSchein wirklich bekommen hat. rohtext ist fuer Menschen
+ *   gedacht, das hier ist die genaue Eingabe. Nur gesetzt, wenn der Schein aus
+ *   einem Bild stammt.
+ * @property {object} [leseumgebung]
+ *   Unter welchen Bedingungen gelesen wurde: Gebiet, Waehrung, Quotenformat,
+ *   Bezugsmonat. Wird in werkzeug/training/ gebraucht, damit ein Pruefall
+ *   spaeter unter genau denselben Bedingungen laeuft wie der Lauf, aus dem
+ *   seine Wahrheit stammt. Sonst prueft er etwas anderes.
  * @property {number} ocrSicherheit
  * @property {Hinweis[]} hinweise
  * @property {boolean} vonHand         true, sobald ein Feld von Hand gesetzt wurde.

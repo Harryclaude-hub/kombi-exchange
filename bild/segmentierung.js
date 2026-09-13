@@ -519,19 +519,37 @@ export function zerlege(quelle, einstellungen = {}) {
   // aufgerundet. Andersherum faellt bei jeder Karte die oberste Textzeile ab.
   /** @type {import('../kern/typen.js').Rechteck[]} */
   const karten = []
+  /** @type {number[]} */
+  const verworfen = []
   for (let i = 0; i < fund.kanten.length - 1; i++) {
     const vonMess = fund.kanten[i] ?? 0
     const bisMess = fund.kanten[i + 1] ?? 0
     const y0 = Math.floor(bereich.y + vonMess * massstabY)
     const y1 = Math.ceil(bereich.y + bisMess * massstabY)
     const hoehe = y1 - y0
-    if (hoehe < mindestHoehe) continue
+    if (hoehe < mindestHoehe) {
+      // NICHT wortlos ueberspringen. Ein unten abgeschnittener Schein oder eine
+      // flache Zusammenfassungszeile faellt hier heraus, und danach sagt nichts
+      // mehr, dass es sie gab. Bei zwei Karten faengt der Notweg weiter unten
+      // das noch ab, bei drei verschwindet die flache lautlos zwischen zwei
+      // erfolgreichen. Aussortiertes bleibt sichtbar.
+      verworfen.push(hoehe)
+      continue
+    }
     karten.push({
       x: Math.floor(bereich.x),
       y: Math.max(0, y0),
       breite: Math.ceil(bereich.breite),
       hoehe: Math.min(vollHoehe - Math.max(0, y0), hoehe),
     })
+  }
+
+  if (verworfen.length > 0) {
+    hinweise.push(
+      `${verworfen.length} Stueck(e) waren flacher als ${mindestHoehe} Bildpunkte ` +
+        `(${verworfen.join(', ')}) und wurden nicht als Karte genommen. ` +
+        'Wenn dort ein Schein stand, fehlt er jetzt.'
+    )
   }
 
   let verfahren = fund.verfahren

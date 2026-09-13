@@ -49,6 +49,25 @@
         background: var(--flaeche); border: 1px solid var(--linie); border-radius: 8px;
       }
       section.schein[data-warnung='true'] { border-color: var(--warn); }
+      section.schein[data-fertig='true'] { border-left: 4px solid var(--gut); opacity: 0.72; }
+      .herkunft { color: var(--leise); font-weight: 400; font-size: 0.75rem; }
+      label.durchgesehen {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        margin-bottom: 0.5rem; cursor: pointer; color: var(--leise);
+      }
+      section.schein[data-fertig='true'] label.durchgesehen { color: var(--gut); }
+      td.leise { color: var(--leise); font-size: 0.75rem; }
+      .eingabefehler { color: var(--schlecht); font-size: 0.75rem; margin-top: 0.25rem; max-width: 14rem; }
+      input.berichtigung.falsch { border-color: var(--schlecht); }
+      select.berichtigung {
+        width: 12rem; padding: 0.3rem 0.5rem; font: inherit;
+        background: var(--grund); color: var(--schrift);
+        border: 1px solid var(--linie); border-radius: 4px;
+      }
+      .meldungen ul { margin: 0; padding-left: 1.25rem; }
+      .meldungen li { color: var(--leise); }
+      .meldungen li.m-warnung { color: var(--warn); }
+      .meldungen li.m-fehler { color: var(--schlecht); }
       table { border-collapse: collapse; width: 100%; max-width: 60rem; }
       th, td { padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--linie); text-align: left; }
       th { color: var(--leise); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; }
@@ -83,30 +102,46 @@
         Anwendung, nichts nachgebaut.
       </p>
       <ol>
-        <li>Bilder auswaehlen. Zwanzig oder hundert, beides geht.</li>
-        <li><strong>Alles lesen</strong>. Rechne mit ein paar Sekunden je Bild.</li>
+        <li>Bilder holen. Zwanzig oder hundert, beides geht.</li>
+        <li><strong>Alles lesen</strong>. Rechne mit etwa fuenf Sekunden je Schein.</li>
         <li>
-          Durchgehen. Zeilen mit niedriger Sicherheit und Scheine mit Warnung zuerst, das sind
-          die verdaechtigen. Was falsch ist, rechts richtig eintragen.
+          Durchgehen. Scheine mit Fehler oder Warnung zuerst, dann die Zeilen mit niedriger
+          Sicherheit. Was falsch ist, rechts richtig eintragen. Was auf dem Schein gar nicht
+          steht, bekommt den Haken <strong>steht nicht drauf</strong>: sonst wird ein
+          erfundener Wert fuer immer zum Sollwert.
+        </li>
+        <li>
+          Jeden Schein <strong>abhaken</strong>. Nur durchgesehene Scheine werden spaeter
+          geprueft. Was niemand angesehen hat, ist keine Wahrheit, sondern ein Maschinenergebnis.
         </li>
         <li>
           <strong>Als Pruefaelle sichern</strong>. Die Datei gehoert nach
           <code>test/korpus_echt.mjs</code>. Ab dann wird jeder dieser Faelle bei jeder
-          Aenderung mitgeprueft.
+          Aenderung mitgeprueft, durch <code>test/korpus_echt.test.mjs</code>.
         </li>
       </ol>
       <p>
         Gesichert wird <strong>nicht das Bild</strong>, sondern die Textzeilen, die die
-        Texterkennung daraus gemacht hat, samt berichtigter Wahrheit. Kein Bild verlaesst das
-        Geraet, und die Datenbank wird nicht angefasst.
+        Texterkennung daraus gemacht hat, samt berichtigter Wahrheit und der Umgebung, unter
+        der gelesen wurde. Kein Bild verlaesst das Geraet, und die Datenbank wird nicht
+        angefasst. Berichtigungen ueberstehen ein Neuladen der Seite.
       </p>
     </div>
 
     <div class="steuerung">
+      <button id="ausordner">Aus dem Ordner holen</button>
       <input type="file" id="dateien" accept="image/*" multiple />
       <button id="lesen" disabled>Alles lesen</button>
       <button id="sichern" disabled>Als Pruefaelle sichern</button>
     </div>
+
+    <p class="hinweis">
+      <strong>Aus dem Ordner holen</strong> nimmt alles, was in
+      <code>.arbeit/fotos/</code> liegt. Bei hundert Fotos ist das der bequemere Weg, und
+      der Ordner steht in <code>.gitignore</code>: die Bilder koennen nicht versehentlich
+      ins oeffentliche Repo wandern. Der Weg braucht den Server aus
+      <code>werkzeug/server.mjs</code>.
+    </p>
 
     <p id="lage"></p>
     <div id="inhalt"></div>

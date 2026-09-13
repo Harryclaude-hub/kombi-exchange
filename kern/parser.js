@@ -577,7 +577,10 @@ export function leseLinie(markt) {
  * @property {number} [buchmacherSicherheit]
  * @property {string|null} [konto]
  * @property {number} [kontoSicherheit]
- * @property {'de'|'en'} [gebiet]
+ * @property {'de'|'en'|'us'|null} [gebiet]
+ *   Fehlt es oder ist es null, wird NICHT geraten: ein einzelner Punkt oder ein
+ *   einzelnes Komma mit drei Ziffern dahinter gilt dann als mehrdeutig und
+ *   erzeugt einen sichtbaren Hinweis. Siehe test/gebiet.test.mjs.
  * @property {import('./typen.js').Waehrung} [waehrung]
  * @property {'amerikanisch'|'dezimal'|'bruch'} [quotenformat]
  * @property {number} [bezugsjahr]
@@ -600,7 +603,10 @@ export function leseSchein(rohzeilen, umgebung) {
   const zeilen = (rohzeilen || []).map((z) => (typeof z === 'string' ? z.replace(/\s+/g, ' ').trim() : ''))
   const gesamttext = zeilen.filter((z) => z !== '').join('\n')
 
-  const gebiet = umgebung.gebiet ?? 'en'
+  // Kein Rateschluss auf 'en'. "1.250" heisst deutsch 1250 und englisch 1,25,
+  // das ist der Faktor tausend. Ohne bekanntes Gebiet gilt der Betrag als
+  // mehrdeutig, und der Mensch entscheidet. Siehe test/gebiet.test.mjs.
+  const gebiet = umgebung.gebiet ?? null
   const quotenformat = umgebung.quotenformat ?? 'dezimal'
   const waehrungAusText = erkenneWaehrung(gesamttext)
   const waehrung = waehrungAusText !== 'UNBEKANNT' ? waehrungAusText : (umgebung.waehrung ?? 'UNBEKANNT')
