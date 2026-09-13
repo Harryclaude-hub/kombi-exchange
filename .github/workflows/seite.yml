@@ -1,0 +1,54 @@
+# Veroeffentlicht den Ordner so wie er ist auf GitHub Pages.
+#
+# Warum ueberhaupt ein Workflow und nicht die eingebaute Pages-Automatik:
+# Am 13.09.2026 blieb die eingebaute Automatik vier Stunden auf "building"
+# stehen und hat den naechsten Stand gar nicht mehr angenommen. Ein Workflow
+# laeuft in der normalen Actions-Warteschlange und zeigt jeden Fehlschlag an,
+# statt still zu haengen.
+#
+# Es wird nichts gebaut. Das Projekt hat bewusst keinen Bauschritt, die Dateien
+# gehen unveraendert online.
+name: Seite veroeffentlichen
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Laeuft ein Durchgang noch, wird er nicht abgebrochen, sondern der neue wartet.
+# So kann keine halb veroeffentlichte Fassung entstehen.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Nichts geht online, was die Tests nicht besteht.
+      - run: node --test "test/*.test.mjs"
+      - run: node werkzeug/pruefe.mjs
+
+  veroeffentlichen:
+    needs: pruefen
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.ablage.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: ablage
+        uses: actions/deploy-pages@v4
