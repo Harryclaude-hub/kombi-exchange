@@ -1,0 +1,169 @@
+/**
+ * Gegenprobe ueber das ganze Programm, ohne Browser.
+ *
+ * Geprueft wird:
+ *   1. Jede Datei ist syntaktisch gueltig.
+ *   2. Jeder Importpfad zeigt auf eine Datei, die es wirklich gibt.
+ *      Ein Tippfehler im Pfad faellt im Browser sonst erst auf, wenn genau
+ *      diese Ansicht geoeffnet wird, und dann still.
+ *   3. Kein langer Gedankenstrich in einer erzeugten Datei.
+ *   4. Keine Farbe steht im JavaScript. Farben gehoeren in stil/.
+ *
+ * Aufruf: node werkzeug/pruefe.mjs
+ */
+
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const wurzel = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+
+const ORDNER = ['kern', 'bild', 'lesen', 'ausgabe', 'daten', 'oberflaeche', 'stil', 'test', 'werkzeug']
+const UEBERSPRINGEN = new Set(['lib', 'node_modules', '.git'])
+
+/** Der lange Gedankenstrich, gebaut aus seinem Codepunkt. */
+const LANGER_STRICH = String.fromCodePoint(0x2014)
+
+/** @type {{art: string, datei: string, text: string}[]} */
+const beanstandungen = []
+let geprueft = 0
+
+/**
+ * @param {string} ordner
+ * @returns {string[]}
+ */
+function sammle(ordner) {
+  const heraus = []
+  const voll = path.join(wurzel, ordner)
+  if (!fs.existsSync(voll)) return heraus
+  for (const eintrag of fs.readdirSync(voll, { withFileTypes: true })) {
+    if (UEBERSPRINGEN.has(eintrag.name)) continue
+    const rel = path.join(ordner, eintrag.name)
+    if (eintrag.isDirectory()) heraus.push(...sammle(rel))
+    else heraus.push(rel)
+  }
+  return heraus
+}
+
+const dateien = [...ORDNER.flatMap(sammle), 'index.html']
+
+// --- 1. und 2.: Syntax und Importpfade ---
+
+for (const rel of dateien) {
+  const voll = path.join(wurzel, rel)
+  if (!fs.existsSync(voll)) continue
+  const inhalt = fs.readFileSync(voll, 'utf8')
+  geprueft++
+
+  // 3. Langer Gedankenstrich.
+  //
+  // Das gesuchte Zeichen wird aus seinem Codepunkt gebaut und nicht woertlich
+  // hingeschrieben. Sonst wuerde diese Pruefdatei sich selbst beanstanden.
+  if (inhalt.includes(LANGER_STRICH)) {
+    const zeile = inhalt.slice(0, inhalt.indexOf(LANGER_STRICH)).split('\n').length
+    beanstandungen.push({
+      art: 'gedankenstrich',
+      datei: rel,
+      text: `Langer Gedankenstrich in Zeile ${zeile}.`,
+    })
+  }
+
+  if (!rel.endsWith('.js') && !rel.endsWith('.mjs')) continue
+
+  // 4. Farben im JavaScript.
+  //
+  // Ausgenommen sind drei Faelle, in denen ein Farbwert keine Gestaltung ist,
+  // sondern zur Sache gehoert:
+  //   stil/   ist die Designschicht selbst.
+  //   bild/   rechnet mit Bildpunkten. Die deckende Unterlage vor dem Zeichnen ist
+  //           zwingend, sonst liefert ein durchsichtiges PNG unbrauchbare Helligkeiten.
+  //   mosaik  bringt eigene Vorgabefarben mit, damit das Blatt auch dann entsteht,
+  //           wenn der Ordner stil geloescht wurde.
+  const istBildrechnung = rel.startsWith('stil') || rel.startsWith(`bild${path.sep}`) || rel.includes('mosaik')
+  if (!istBildrechnung) {
+    const farbe = inhalt.match(/#[0-9a-fA-F]{6}\b|rgba?\(/)
+    if (farbe) {
+      const zeile = inhalt.slice(0, inhalt.indexOf(farbe[0])).split('\n').length
+      beanstandungen.push({
+        art: 'farbe-im-code',
+        datei: rel,
+        text: `Farbe "${farbe[0]}" in Zeile ${zeile}. Farben gehoeren nach stil/.`,
+      })
+    }
+  }
+
+  // Importpfade.
+  const muster = /(?:^|[\s;{])(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+  let treffer
+  while ((treffer = muster.exec(inhalt)) !== null) {
+    const pfad = treffer[1] ?? treffer[2]
+    if (!pfad) continue
+    if (pfad.startsWith('node:')) continue
+    if (!pfad.startsWith('.')) {
+      beanstandungen.push({
+        art: 'fremder-import',
+        datei: rel,
+        text: `"${pfad}" ist kein Pfad in dieses Programm. Ohne Bundler gibt es kein Paketverzeichnis.`,
+      })
+      continue
+    }
+    const ziel = path.resolve(path.dirname(voll), pfad)
+    if (!fs.existsSync(ziel)) {
+      beanstandungen.push({
+        art: 'toter-import',
+        datei: rel,
+        text: `"${pfad}" zeigt ins Leere.`,
+      })
+    }
+  }
+}
+
+// --- Verweise aus index.html ---
+
+const indexPfad = path.join(wurzel, 'index.html')
+if (fs.existsSync(indexPfad)) {
+  const inhalt = fs.readFileSync(indexPfad, 'utf8')
+  const muster = /(?:href|src)\s*=\s*"([^"]+)"|from\s*'([^']+)'|import\s*\(\s*'([^']+)'\s*\)/g
+  let treffer
+  while ((treffer = muster.exec(inhalt)) !== null) {
+    const pfad = treffer[1] ?? treffer[2] ?? treffer[3]
+    if (!pfad || pfad.startsWith('data:') || pfad.startsWith('http')) continue
+    const ziel = path.resolve(wurzel, pfad.replace(/^\.\//, ''))
+    if (!fs.existsSync(ziel)) {
+      beanstandungen.push({ art: 'toter-verweis', datei: 'index.html', text: `"${pfad}" fehlt.` })
+    }
+  }
+}
+
+// --- Mitgelieferte Bibliotheken ---
+
+const PFLICHTDATEIEN = [
+  'lib/tesseract/tesseract.esm.min.js',
+  'lib/tesseract/worker.min.js',
+  'lib/tesseract/core/tesseract-core-lstm.wasm.js',
+  'lib/tesseract/core/tesseract-core-simd-lstm.wasm.js',
+  'lib/tesseract/core/tesseract-core-relaxedsimd-lstm.wasm.js',
+  'lib/tesseract/sprachen/eng.traineddata.gz',
+  'lib/exceljs/exceljs.min.js',
+]
+
+for (const pflicht of PFLICHTDATEIEN) {
+  if (!fs.existsSync(path.join(wurzel, pflicht))) {
+    beanstandungen.push({ art: 'bibliothek-fehlt', datei: pflicht, text: 'Die Datei fehlt.' })
+  }
+}
+
+// --- Bericht ---
+
+console.log(`${geprueft} Dateien geprueft.`)
+if (beanstandungen.length === 0) {
+  console.log('Keine Beanstandung.')
+  process.exit(0)
+}
+
+console.log(`\n${beanstandungen.length} Beanstandung(en):\n`)
+for (const b of beanstandungen) {
+  console.log(`  [${b.art}] ${b.datei}`)
+  console.log(`      ${b.text}`)
+}
+process.exit(1)

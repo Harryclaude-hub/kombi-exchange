@@ -1,0 +1,115 @@
+/*
+  Designschicht, Teil 1 von 4: die Merkmale.
+
+  Hier stehen ALLE Farben, Abstaende und Schriftgroessen des Programms.
+  Wer das Aussehen aendern will, aendert nur diese Datei.
+  Im JavaScript steht keine einzige Farbe.
+
+  Vorbild ist ein Handelsplatz: dunkler Grund, Zahlen in fester Zeichenbreite,
+  Gruen fuer das, was hereinkommt, Rot fuer das, was weg ist, Bernstein fuer das,
+  was noch offen ist.
+*/
+
+:root {
+  /* ---- Grundflaechen ---- */
+  --grund: #070a10;
+  --grund-tief: #04060a;
+  --flaeche: #0d131e;
+  --flaeche-hoch: #121a29;
+  --flaeche-heiss: #17202f;
+  --linie: #1e2a3d;
+  --linie-hell: #2b3b54;
+
+  /* ---- Schrift ---- */
+  --schrift: #e6edf8;
+  --schrift-leise: #8598b4;
+  --schrift-still: #5c6e89;
+
+  /* ---- Bedeutungen ---- */
+  --gut: #18c98a;
+  --gut-tief: rgba(24, 201, 138, 0.12);
+  --schlecht: #ff5f6d;
+  --schlecht-tief: rgba(255, 95, 109, 0.12);
+  --offen: #f5a524;
+  --offen-tief: rgba(245, 165, 36, 0.12);
+  --betonung: #4da3ff;
+  --betonung-tief: rgba(77, 163, 255, 0.14);
+
+  /* ---- Sicherheit der Texterkennung ---- */
+  --stufe-hoch: transparent;
+  --stufe-mittel: rgba(245, 165, 36, 0.16);
+  --stufe-niedrig: rgba(255, 95, 109, 0.18);
+  --stufe-keine: rgba(133, 152, 180, 0.14);
+
+  /* ---- Schriftarten ---- */
+  --schriftart: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --schriftart-zahl: "JetBrains Mono", "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  /* ---- Groessen ---- */
+  --text-winzig: 0.6875rem;
+  --text-klein: 0.75rem;
+  --text-normal: 0.875rem;
+  --text-gross: 1.0625rem;
+  --text-zahl: 1.375rem;
+  --text-riesig: 1.75rem;
+
+  /* ---- Abstaende ---- */
+  --luft-1: 0.25rem;
+  --luft-2: 0.5rem;
+  --luft-3: 0.75rem;
+  --luft-4: 1rem;
+  --luft-5: 1.5rem;
+  --luft-6: 2rem;
+  --luft-7: 3rem;
+
+  /* ---- Kanten ---- */
+  --rundung: 6px;
+  --rundung-gross: 10px;
+  --schatten: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  --schatten-flach: 0 1px 2px rgba(0, 0, 0, 0.35);
+
+  /* ---- Takt fuer Uebergaenge. Die Buehne setzt das auf 0, wenn Stufe 1 gewaehlt ist. ---- */
+  --takt: 140ms;
+  --takt-lang: 260ms;
+
+  /* ---- Masse der Huelle ---- */
+  --kopfhoehe: 56px;
+  --reiterhoehe: 44px;
+}
+
+/*
+  Wer das System auf hell gestellt hat, bekommt eine helle Fassung.
+  Die Bedeutungen bleiben gleich, nur die Flaechen drehen sich um.
+*/
+@media (prefers-color-scheme: light) {
+  :root:not([data-farbe="dunkel"]) {
+    --grund: #f4f6fa;
+    --grund-tief: #e8ecf3;
+    --flaeche: #ffffff;
+    --flaeche-hoch: #f7f9fc;
+    --flaeche-heiss: #eef2f8;
+    --linie: #dbe2ec;
+    --linie-hell: #c3cddb;
+
+    --schrift: #0e1522;
+    --schrift-leise: #4c5a6f;
+    --schrift-still: #77869b;
+
+    --gut: #00875a;
+    --gut-tief: rgba(0, 135, 90, 0.1);
+    --schlecht: #d03547;
+    --schlecht-tief: rgba(208, 53, 71, 0.1);
+    --offen: #b26a00;
+    --offen-tief: rgba(178, 106, 0, 0.1);
+    --betonung: #1667c7;
+    --betonung-tief: rgba(22, 103, 199, 0.1);
+
+    --stufe-mittel: rgba(178, 106, 0, 0.14);
+    --stufe-niedrig: rgba(208, 53, 71, 0.14);
+    --stufe-keine: rgba(119, 134, 155, 0.12);
+
+    --schatten: 0 1px 2px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.08);
+    --schatten-flach: 0 1px 2px rgba(16, 24, 40, 0.08);
+  }
+}

@@ -1,0 +1,179 @@
+/*
+  Designschicht, Teil 2 von 4: Grundlage und Huelle.
+
+  Zuruecksetzen der Browservorgaben und das grobe Raster.
+  Keine Farbe steht hier fest, alles kommt aus marken.css.
+*/
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--grund);
+  color: var(--schrift);
+  font-family: var(--schriftart);
+  font-size: var(--text-normal);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+#wurzel {
+  min-height: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+p {
+  margin: 0 0 var(--luft-3);
+}
+
+pre {
+  margin: 0;
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+canvas,
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.versteckt {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Huelle */
+
+.huelle {
+  display: grid;
+  grid-template-rows: var(--kopfhoehe) var(--reiterhoehe) 1fr;
+  min-height: 100vh;
+}
+
+.kopfleiste {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-4);
+  padding: 0 var(--luft-4);
+  background: var(--grund-tief);
+  border-bottom: 1px solid var(--linie);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.reiterleiste {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 0 var(--luft-4);
+  background: var(--flaeche);
+  border-bottom: 1px solid var(--linie);
+  position: sticky;
+  top: var(--kopfhoehe);
+  z-index: 19;
+  overflow-x: auto;
+}
+
+.inhalt {
+  padding: var(--luft-5) var(--luft-4) var(--luft-7);
+  max-width: 1800px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ---------------------------------------------------------------- Tor */
+
+.tor {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--luft-5);
+  background:
+    radial-gradient(1200px 600px at 50% -10%, var(--betonung-tief), transparent 70%),
+    var(--grund);
+}
+
+.torkasten {
+  width: min(420px, 100%);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  box-shadow: var(--schatten);
+  padding: var(--luft-6);
+  display: grid;
+  gap: var(--luft-3);
+}
+
+/* ---------------------------------------------------------------- Raster */
+
+.positionsspalten {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: var(--luft-4);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .positionsspalten {
+    grid-template-columns: 1fr;
+  }
+}
+
+.aufklapp-spalten {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--luft-4);
+}
+
+.bildliste {
+  display: grid;
+  gap: var(--luft-4);
+  margin-top: var(--luft-4);
+}
+
+@media (max-width: 720px) {
+  .inhalt {
+    padding: var(--luft-3) var(--luft-2) var(--luft-6);
+  }
+  .kopfleiste {
+    gap: var(--luft-2);
+    padding: 0 var(--luft-2);
+  }
+}

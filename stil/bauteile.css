@@ -1,0 +1,1482 @@
+/*
+  Designschicht, Teil 3 von 4: die Bauteile.
+
+  Jede Klasse, die das JavaScript setzt, bekommt hier ihr Aussehen.
+  Keine Zahl, die gerechnet wird, entsteht hier. Breiten von Balken kommen
+  als Merkmal --breite von aussen herein, damit die Rechnung im Kern bleibt.
+*/
+
+/* ---------------------------------------------------------------- Marke */
+
+.marke {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+  letter-spacing: 0.08em;
+  flex: 0 0 auto;
+}
+
+.markenname {
+  font-weight: 800;
+  font-size: var(--text-gross);
+  color: var(--schrift);
+}
+
+.markenzusatz {
+  font-weight: 600;
+  font-size: var(--text-klein);
+  color: var(--gut);
+}
+
+/* ---------------------------------------------------------------- Laufleiste */
+
+.laufleiste {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-5);
+  flex: 1 1 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 var(--luft-2);
+}
+
+.laufleiste::-webkit-scrollbar {
+  display: none;
+}
+
+.laufwert {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 0 0 auto;
+  border-left: 2px solid var(--linie);
+  padding-left: var(--luft-3);
+}
+
+.laufname {
+  font-size: var(--text-winzig);
+  letter-spacing: 0.1em;
+  color: var(--schrift-still);
+}
+
+.laufzahl {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-normal);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.laufwert[data-art="gut"] .laufzahl {
+  color: var(--gut);
+}
+.laufwert[data-art="schlecht"] .laufzahl {
+  color: var(--schlecht);
+}
+.laufwert[data-art="offen"] .laufzahl {
+  color: var(--offen);
+}
+.laufwert[data-art="gut"] {
+  border-left-color: var(--gut);
+}
+.laufwert[data-art="schlecht"] {
+  border-left-color: var(--schlecht);
+}
+.laufwert[data-art="offen"] {
+  border-left-color: var(--offen);
+}
+
+.kopfknoepfe {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  flex: 0 0 auto;
+}
+
+.verbindung {
+  font-size: var(--text-winzig);
+  letter-spacing: 0.06em;
+  padding: 2px var(--luft-2);
+  border-radius: 999px;
+  border: 1px solid var(--linie-hell);
+  color: var(--schrift-leise);
+}
+
+.verbindung[data-an="true"] {
+  color: var(--gut);
+  border-color: var(--gut);
+  background: var(--gut-tief);
+}
+
+.verbindung[data-an="false"] {
+  color: var(--offen);
+  border-color: var(--offen);
+  background: var(--offen-tief);
+}
+
+/* ---------------------------------------------------------------- Reiter */
+
+.reiter {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  padding: 0 var(--luft-4);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--schrift-leise);
+  font-size: var(--text-normal);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color var(--takt), border-color var(--takt), background var(--takt);
+}
+
+.reiter:hover {
+  color: var(--schrift);
+  background: var(--flaeche-hoch);
+}
+
+.reiter[data-aktiv="true"] {
+  color: var(--schrift);
+  border-bottom-color: var(--gut);
+}
+
+.reiterzahl {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--flaeche-heiss);
+  color: var(--schrift-leise);
+}
+
+/* ---------------------------------------------------------------- Knoepfe */
+
+.knopf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--luft-2);
+  padding: var(--luft-2) var(--luft-4);
+  background: var(--flaeche-hoch);
+  color: var(--schrift);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  font-size: var(--text-normal);
+  font-weight: 600;
+  transition: background var(--takt), border-color var(--takt), transform var(--takt);
+}
+
+.knopf:hover:not(:disabled) {
+  background: var(--flaeche-heiss);
+  border-color: var(--schrift-still);
+}
+
+.knopf:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.knopf:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.knopf-haupt {
+  background: var(--gut);
+  border-color: var(--gut);
+  color: #03150e;
+}
+
+.knopf-haupt:hover:not(:disabled) {
+  background: var(--gut);
+  filter: brightness(1.1);
+}
+
+.knopf-klein {
+  padding: 2px var(--luft-2);
+  font-size: var(--text-klein);
+  font-weight: 500;
+}
+
+.knopf-winzig {
+  padding: 0 5px;
+  font-size: var(--text-klein);
+  line-height: 1.6;
+}
+
+/* ---------------------------------------------------------------- Tor */
+
+.tormarke {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  justify-content: center;
+  font-size: var(--text-riesig);
+  letter-spacing: 0.1em;
+}
+
+.tormarke .markenname {
+  font-size: inherit;
+}
+
+.tormarke .markenzusatz {
+  font-size: var(--text-normal);
+}
+
+.torunterzeile {
+  text-align: center;
+  color: var(--schrift-leise);
+  font-size: var(--text-klein);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: var(--luft-4);
+}
+
+.torbeschriftung {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.torfeld {
+  width: 100%;
+  padding: var(--luft-3);
+  background: var(--grund-tief);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-gross);
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+
+.torfeld:focus {
+  outline: 2px solid var(--gut);
+  outline-offset: 1px;
+}
+
+.torknopf {
+  width: 100%;
+  padding: var(--luft-3);
+}
+
+.tormeldung {
+  min-height: 1.4em;
+  text-align: center;
+  font-size: var(--text-klein);
+}
+
+.tormeldung[data-art="fehler"] {
+  color: var(--schlecht);
+}
+.tormeldung[data-art="info"] {
+  color: var(--schrift-leise);
+}
+
+.torfuss {
+  margin: var(--luft-3) 0 0;
+  text-align: center;
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- Ablage */
+
+.ablage {
+  display: grid;
+  place-items: center;
+  gap: var(--luft-2);
+  padding: var(--luft-6);
+  background: var(--flaeche);
+  border: 2px dashed var(--linie-hell);
+  border-radius: var(--rundung-gross);
+  text-align: center;
+  transition: border-color var(--takt), background var(--takt);
+}
+
+.ablage:hover,
+.ablage-bereit {
+  border-color: var(--gut);
+  background: var(--flaeche-hoch);
+}
+
+.ablage-zeichen {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gut-tief);
+  color: var(--gut);
+  font-size: var(--text-riesig);
+  line-height: 1;
+}
+
+.ablage-titel {
+  font-size: var(--text-gross);
+  font-weight: 600;
+}
+
+.ablage-text {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  max-width: 46ch;
+}
+
+/* ---------------------------------------------------------------- Leerhinweis */
+
+.leerhinweis {
+  padding: var(--luft-7) var(--luft-4);
+  text-align: center;
+  color: var(--schrift-leise);
+}
+
+.leer-titel {
+  font-size: var(--text-gross);
+  font-weight: 600;
+  color: var(--schrift);
+}
+
+.leer-text {
+  font-size: var(--text-klein);
+  max-width: 60ch;
+  margin: 0 auto;
+}
+
+/* ---------------------------------------------------------------- Bildkarte */
+
+.bildkarte {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  overflow: hidden;
+}
+
+.bildkopf {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-3);
+  padding: var(--luft-3) var(--luft-4);
+  border-bottom: 1px solid var(--linie);
+  background: var(--flaeche-hoch);
+}
+
+.bildname {
+  font-weight: 600;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bildmasse,
+.bildzahl {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  white-space: nowrap;
+}
+
+.bildzahl {
+  color: var(--gut);
+}
+
+.bildanbieter {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  flex-wrap: wrap;
+  padding: var(--luft-3) var(--luft-4);
+  border-bottom: 1px solid var(--linie);
+}
+
+.feldname {
+  font-size: var(--text-winzig);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+.merkmal {
+  font-size: var(--text-winzig);
+  padding: 1px var(--luft-2);
+  border-radius: 999px;
+  border: 1px solid var(--linie-hell);
+  color: var(--schrift-leise);
+}
+
+.merkmal[data-stufe="hoch"] {
+  color: var(--gut);
+  border-color: var(--gut);
+}
+.merkmal[data-stufe="mittel"] {
+  color: var(--offen);
+  border-color: var(--offen);
+}
+.merkmal[data-stufe="niedrig"],
+.merkmal[data-stufe="keine"] {
+  color: var(--schlecht);
+  border-color: var(--schlecht);
+}
+
+.bildhinweise {
+  padding: var(--luft-2) var(--luft-4) var(--luft-3);
+  font-size: var(--text-klein);
+  color: var(--offen);
+}
+
+.bildhinweise li::before {
+  content: "! ";
+}
+
+/* ---------------------------------------------------------------- Schnittflaeche */
+
+.schnittbereich {
+  padding: var(--luft-4);
+}
+
+.schnittflaeche {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+  background: var(--grund-tief);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  overflow: hidden;
+}
+
+.schnittbild {
+  width: 100%;
+  height: auto;
+}
+
+.kartenrahmen {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--oben);
+  height: var(--hoehe);
+  border: 2px solid var(--gut);
+  background: var(--gut-tief);
+  pointer-events: none;
+}
+
+.kartennummer {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  min-width: 20px;
+  padding: 0 5px;
+  background: var(--gut);
+  color: #03150e;
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+
+.kartenweg,
+.kartenteilen,
+.kartenverbinden {
+  position: absolute;
+  top: 2px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--linie-hell);
+  border-radius: 3px;
+  background: var(--flaeche);
+  color: var(--schrift);
+  font-size: var(--text-winzig);
+  line-height: 1;
+  pointer-events: auto;
+}
+
+.kartenweg {
+  right: 2px;
+  color: var(--schlecht);
+  border-color: var(--schlecht);
+}
+
+.kartenteilen {
+  right: 28px;
+}
+
+.kartenverbinden {
+  right: 54px;
+}
+
+.kartenweg:hover,
+.kartenteilen:hover,
+.kartenverbinden:hover {
+  background: var(--flaeche-heiss);
+}
+
+.schnittgriff {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--oben);
+  height: 12px;
+  margin-top: -6px;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.schnittgriff::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 5px;
+  height: 2px;
+  background: var(--betonung);
+  opacity: 0.7;
+}
+
+.schnittgriff:hover::after {
+  opacity: 1;
+  height: 3px;
+}
+
+.schnitthilfe {
+  margin-top: var(--luft-2);
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+/* ---------------------------------------------------------------- Leiste */
+
+.leseleiste,
+.werkzeugleiste,
+.ausgabekopf,
+.ausgabeknoepfe {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-3);
+  flex-wrap: wrap;
+  padding: var(--luft-3) var(--luft-4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  margin-top: var(--luft-4);
+}
+
+.werkzeugleiste,
+.ausgabekopf {
+  margin-top: 0;
+  margin-bottom: var(--luft-4);
+}
+
+.leseinfo {
+  flex: 1 1 auto;
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.leistenzahlen {
+  display: flex;
+  gap: var(--luft-2);
+  flex-wrap: wrap;
+}
+
+.zahlchip {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  padding: 2px var(--luft-2);
+  border-radius: var(--rundung);
+  background: var(--flaeche-heiss);
+  color: var(--schrift-leise);
+}
+
+.chip-gut {
+  color: var(--gut);
+  background: var(--gut-tief);
+}
+.chip-warnung {
+  color: var(--offen);
+  background: var(--offen-tief);
+}
+.chip-fehler {
+  color: var(--schlecht);
+  background: var(--schlecht-tief);
+}
+
+.suchfeld {
+  flex: 1 1 240px;
+  min-width: 180px;
+  padding: var(--luft-2) var(--luft-3);
+  background: var(--grund-tief);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+}
+
+.schalter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--luft-2);
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  cursor: pointer;
+}
+
+.schalter input {
+  accent-color: var(--gut);
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------------------------------------------------------------- Hinweisblock */
+
+.hinweisblock {
+  padding: var(--luft-3) var(--luft-4);
+  border: 1px solid var(--linie);
+  border-left: 3px solid var(--schrift-still);
+  border-radius: var(--rundung);
+  background: var(--flaeche);
+  margin-bottom: var(--luft-4);
+}
+
+.hinweisblock[data-schwere="fehler"],
+.block-fehler {
+  border-left-color: var(--schlecht);
+}
+.hinweisblock[data-schwere="warnung"],
+.block-warnung {
+  border-left-color: var(--offen);
+}
+.block-rest {
+  border-left-color: var(--betonung);
+}
+
+.blocktitel {
+  font-weight: 700;
+  font-size: var(--text-klein);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--schrift-leise);
+  margin-bottom: var(--luft-2);
+}
+
+.blockliste li,
+.hinweisliste li {
+  display: flex;
+  gap: var(--luft-2);
+  align-items: baseline;
+  padding: 3px 0;
+  font-size: var(--text-klein);
+  border-bottom: 1px solid var(--linie);
+}
+
+.blockliste li:last-child,
+.hinweisliste li:last-child {
+  border-bottom: 0;
+}
+
+.hinweisart {
+  flex: 0 0 auto;
+  font-size: var(--text-winzig);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--flaeche-heiss);
+  color: var(--schrift-leise);
+}
+
+li[data-schwere="fehler"] .hinweisart {
+  background: var(--schlecht-tief);
+  color: var(--schlecht);
+}
+li[data-schwere="warnung"] .hinweisart {
+  background: var(--offen-tief);
+  color: var(--offen);
+}
+li[data-schwere="info"] .hinweisart {
+  background: var(--betonung-tief);
+  color: var(--betonung);
+}
+
+.hinweistext {
+  color: var(--schrift-leise);
+}
+
+/* ---------------------------------------------------------------- Scheintabelle */
+
+.scheintabelle {
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  overflow: hidden;
+  background: var(--flaeche);
+}
+
+.tabellenkopf,
+.tabellenzeile {
+  display: grid;
+  grid-template-columns:
+    44px minmax(140px, 1.4fr) minmax(110px, 1fr) minmax(90px, 0.9fr) minmax(100px, 0.9fr)
+    minmax(130px, 1fr) minmax(110px, 0.9fr) 110px 96px 110px 96px 88px;
+  align-items: center;
+  gap: 0;
+}
+
+.tabellenkopf {
+  background: var(--flaeche-heiss);
+  border-bottom: 1px solid var(--linie);
+  position: sticky;
+  top: calc(var(--kopfhoehe) + var(--reiterhoehe));
+  z-index: 5;
+}
+
+.kopfzelle {
+  padding: var(--luft-2) var(--luft-2);
+  font-size: var(--text-winzig);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+  font-weight: 700;
+}
+
+.tabellenzeile {
+  border-bottom: 1px solid var(--linie);
+  transition: background var(--takt);
+}
+
+.tabellenzeile:hover {
+  background: var(--flaeche-hoch);
+}
+
+.tabellenzeile[data-schwere="fehler"] {
+  box-shadow: inset 3px 0 0 var(--schlecht);
+}
+.tabellenzeile[data-schwere="warnung"] {
+  box-shadow: inset 3px 0 0 var(--offen);
+}
+.tabellenzeile[data-ausgeschlossen="true"] {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.zelle {
+  padding: var(--luft-1) var(--luft-2);
+  min-width: 0;
+}
+
+.zelle-nummer {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  color: var(--schrift-still);
+  text-align: right;
+  padding-right: var(--luft-3);
+}
+
+.zelle-zahl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  font-family: var(--schriftart-zahl);
+  font-variant-numeric: tabular-nums;
+}
+
+.zelle-knoepfe {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-1);
+  justify-content: flex-end;
+}
+
+.feldeingabe,
+.feldwahl {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  background: var(--stufe-hoch);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: var(--text-klein);
+  transition: border-color var(--takt), background var(--takt);
+}
+
+.feldeingabe:hover,
+.feldwahl:hover {
+  border-color: var(--linie-hell);
+}
+
+.feldeingabe:focus,
+.feldwahl:focus {
+  outline: none;
+  border-color: var(--gut);
+  background: var(--grund-tief);
+}
+
+.feldwahl {
+  background: var(--grund-tief);
+  border-color: var(--linie);
+}
+
+.feldwahl-breit {
+  min-width: 180px;
+}
+
+.eingabe-zahl {
+  text-align: right;
+  font-family: var(--schriftart-zahl);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Die Farbe hinter einem Feld sagt, wie sicher die Texterkennung war. */
+.feldeingabe[data-stufe="mittel"] {
+  background: var(--stufe-mittel);
+}
+.feldeingabe[data-stufe="niedrig"] {
+  background: var(--stufe-niedrig);
+}
+.feldeingabe[data-stufe="keine"] {
+  background: var(--stufe-keine);
+}
+.feldeingabe[data-quelle="berechnet"] {
+  font-style: italic;
+  color: var(--betonung);
+}
+.feldeingabe[data-quelle="hand"] {
+  background: var(--betonung-tief);
+}
+
+.waehrungszeichen,
+.quoteUS {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  flex: 0 0 auto;
+}
+
+.anmerkung {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  background: var(--flaeche-heiss);
+  color: var(--schrift-leise);
+}
+
+.anmerkung[data-schwere="fehler"] {
+  background: var(--schlecht);
+  color: #1a0206;
+}
+.anmerkung[data-schwere="warnung"] {
+  background: var(--offen);
+  color: #1a1000;
+}
+
+.feldwahl[data-status="gewonnen"] {
+  color: var(--gut);
+}
+.feldwahl[data-status="verloren"] {
+  color: var(--schlecht);
+}
+.feldwahl[data-status="offen"] {
+  color: var(--offen);
+}
+
+/* ---------------------------------------------------------------- Aufklappung */
+
+.aufklappung {
+  padding: var(--luft-4);
+  background: var(--grund-tief);
+  border-bottom: 1px solid var(--linie);
+}
+
+.teiltitel {
+  font-size: var(--text-winzig);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+  font-weight: 700;
+  margin: var(--luft-3) 0 var(--luft-2);
+}
+
+.aufklapp-teil > .teiltitel:first-child {
+  margin-top: 0;
+}
+
+.auswahlliste li {
+  display: flex;
+  gap: var(--luft-2);
+  align-items: flex-start;
+  padding: var(--luft-2) 0;
+  border-bottom: 1px solid var(--linie);
+}
+
+.beinnummer {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--flaeche-heiss);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+}
+
+.beininhalt {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.beintipp {
+  font-weight: 600;
+}
+
+.beinereignis,
+.beinmarkt,
+.beinergebnis {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.beinmarkt {
+  color: var(--schrift);
+}
+
+.beinquote {
+  font-family: var(--schriftart-zahl);
+  color: var(--betonung);
+}
+
+.schalterreihe {
+  display: grid;
+  gap: var(--luft-2);
+}
+
+.feldreihe {
+  display: grid;
+  gap: var(--luft-2);
+}
+
+.feldhilfe {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+.rohtext {
+  padding: var(--luft-2);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  max-height: 220px;
+  overflow: auto;
+  color: var(--schrift-leise);
+}
+
+.ausschnitt {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  background: #fff;
+}
+
+/* ---------------------------------------------------------------- Kacheln */
+
+.projektkopf,
+.kachelreihe {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--luft-3);
+  margin-bottom: var(--luft-4);
+}
+
+.kachel {
+  padding: var(--luft-3);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-top: 2px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  min-width: 0;
+}
+
+.kachel[data-art="gut"] {
+  border-top-color: var(--gut);
+}
+.kachel[data-art="schlecht"] {
+  border-top-color: var(--schlecht);
+}
+.kachel[data-art="offen"] {
+  border-top-color: var(--offen);
+}
+
+.kachel-fehler {
+  border-color: var(--schlecht);
+  background: var(--schlecht-tief);
+}
+
+.kachelname {
+  font-size: var(--text-winzig);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+.kachelwert {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-zahl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 2px 0;
+  overflow-wrap: anywhere;
+}
+
+.kachel[data-art="gut"] .kachelwert {
+  color: var(--gut);
+}
+.kachel[data-art="schlecht"] .kachelwert {
+  color: var(--schlecht);
+}
+.kachel[data-art="offen"] .kachelwert {
+  color: var(--offen);
+}
+
+.kachelhilfe {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Positionen */
+
+.positionsliste {
+  display: grid;
+  gap: var(--luft-2);
+  align-content: start;
+}
+
+.positionskarte {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--luft-2);
+  padding: var(--luft-3);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 3px solid transparent;
+  border-radius: var(--rundung);
+  cursor: pointer;
+  transition: border-color var(--takt), background var(--takt);
+}
+
+.positionskarte:hover {
+  background: var(--flaeche-hoch);
+}
+
+.positionskarte[data-gewaehlt="true"] {
+  border-left-color: var(--gut);
+  background: var(--flaeche-hoch);
+}
+
+.positionsname {
+  grid-column: 1 / -1;
+  font-weight: 600;
+  font-size: var(--text-klein);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.positionszahlen {
+  display: flex;
+  flex-direction: column;
+}
+
+.positionswert {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-gross);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.positionsunterzeile {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+.positionsquote {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-normal);
+  color: var(--betonung);
+  align-self: center;
+}
+
+.positionsergebnis {
+  grid-column: 1 / -1;
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+}
+
+.positionsergebnis[data-art="gut"] {
+  color: var(--gut);
+}
+.positionsergebnis[data-art="schlecht"] {
+  color: var(--schlecht);
+}
+.positionsergebnis[data-art="offen"] {
+  color: var(--offen);
+}
+
+.positionsdetail {
+  min-width: 0;
+}
+
+.detailkopf {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-3);
+  margin-bottom: var(--luft-4);
+  flex-wrap: wrap;
+}
+
+.namenfeld {
+  flex: 1 1 320px;
+  padding: var(--luft-2) var(--luft-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom-color: var(--linie);
+  border-radius: var(--rundung);
+  font-size: var(--text-gross);
+  font-weight: 700;
+}
+
+.namenfeld:hover {
+  border-color: var(--linie-hell);
+}
+
+.namenfeld:focus {
+  outline: none;
+  border-color: var(--gut);
+  background: var(--flaeche);
+}
+
+.detailzeit {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  color: var(--schrift-still);
+}
+
+/* ---------------------------------------------------------------- Band */
+
+.bandbereich {
+  margin-bottom: var(--luft-4);
+}
+
+.band {
+  position: relative;
+  height: 26px;
+  background: linear-gradient(to right, var(--schlecht-tief), var(--flaeche-heiss), var(--gut-tief));
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  overflow: hidden;
+}
+
+.bandflaeche {
+  position: absolute;
+  inset: 0;
+}
+
+.bandmarke {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--stelle);
+  width: 2px;
+  margin-left: -1px;
+}
+
+.marke-jetzt {
+  background: var(--schrift);
+  box-shadow: 0 0 0 1px var(--grund);
+}
+
+.marke-null {
+  background: var(--schrift-still);
+  width: 1px;
+}
+
+.bandzahlen {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--luft-2);
+  margin-top: var(--luft-1);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  color: var(--schrift-leise);
+}
+
+.bandunten[data-art="schlecht"],
+.bandoben[data-art="schlecht"] {
+  color: var(--schlecht);
+}
+.bandunten[data-art="gut"],
+.bandoben[data-art="gut"] {
+  color: var(--gut);
+}
+
+/* ---------------------------------------------------------------- Anbieter */
+
+.anbieterbereich {
+  margin-bottom: var(--luft-4);
+}
+
+.anbieterliste {
+  display: grid;
+  gap: 2px;
+}
+
+.anbieterzeile {
+  display: grid;
+  grid-template-columns: minmax(110px, 1.1fr) minmax(80px, 2fr) 100px 70px 48px 64px;
+  align-items: center;
+  gap: var(--luft-2);
+  padding: var(--luft-2);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+}
+
+.anbietername {
+  font-weight: 600;
+  font-size: var(--text-klein);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anbieterbalken {
+  height: 14px;
+  background: var(--flaeche-heiss);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.balkenfuellung {
+  height: 100%;
+  width: var(--breite, 0%);
+  background: var(--gut);
+  transition: width var(--takt-lang);
+}
+
+.anbieterzahl,
+.anbieteranteil {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.zahl-leise {
+  color: var(--schrift-still);
+}
+
+.anbieterkonten {
+  grid-column: 1 / -1;
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Scheinkaertchen */
+
+.scheinreihe {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--luft-2);
+}
+
+.scheinkaertchen {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--luft-2);
+  align-items: start;
+  padding: var(--luft-2);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 3px solid var(--schrift-still);
+  border-radius: var(--rundung);
+}
+
+.scheinkaertchen[data-status="gewonnen"] {
+  border-left-color: var(--gut);
+}
+.scheinkaertchen[data-status="verloren"] {
+  border-left-color: var(--schlecht);
+}
+.scheinkaertchen[data-status="offen"] {
+  border-left-color: var(--offen);
+}
+
+.kaertchennummer {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+.kaertcheninhalt {
+  min-width: 0;
+}
+
+.kaertchenanbieter {
+  font-weight: 600;
+  font-size: var(--text-klein);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kaertchenkonto,
+.kaertchenstatus,
+.kaertchenrueckfluss {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+.kaertchenzahlen {
+  display: flex;
+  gap: var(--luft-2);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+}
+
+.kaertchenquote {
+  color: var(--betonung);
+}
+
+.kaertchenknoepfe {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ---------------------------------------------------------------- Ausgabe */
+
+.vorschaubereich {
+  margin-top: var(--luft-4);
+  padding: var(--luft-4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  overflow: auto;
+  max-height: 80vh;
+}
+
+.blattvorschau {
+  width: 100%;
+  height: auto;
+  border-radius: var(--rundung);
+}
+
+/* ---------------------------------------------------------------- Meldungen */
+
+.meldungsecke {
+  position: fixed;
+  right: var(--luft-4);
+  bottom: var(--luft-4);
+  z-index: 40;
+  display: grid;
+  gap: var(--luft-2);
+  max-width: min(420px, calc(100vw - 2rem));
+}
+
+.meldung {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--luft-2);
+  padding: var(--luft-2) var(--luft-3);
+  background: var(--flaeche-hoch);
+  border: 1px solid var(--linie-hell);
+  border-left: 3px solid var(--schrift-still);
+  border-radius: var(--rundung);
+  box-shadow: var(--schatten);
+  font-size: var(--text-klein);
+}
+
+.meldung[data-art="erfolg"] {
+  border-left-color: var(--gut);
+}
+.meldung[data-art="warnung"] {
+  border-left-color: var(--offen);
+}
+.meldung[data-art="fehler"] {
+  border-left-color: var(--schlecht);
+}
+.meldung[data-art="info"] {
+  border-left-color: var(--betonung);
+}
+
+.meldungstext {
+  flex: 1 1 auto;
+}
+
+.meldungszeit {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+.meldungweg {
+  border: 0;
+  background: transparent;
+  color: var(--schrift-still);
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.meldungweg:hover {
+  color: var(--schrift);
+}
+
+/* ---------------------------------------------------------------- Arbeitsleiste */
+
+.arbeitsleiste {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: none;
+  gap: var(--luft-3);
+  align-items: center;
+  padding: var(--luft-2) var(--luft-4);
+  background: var(--grund-tief);
+  border-top: 1px solid var(--gut);
+}
+
+.arbeitsleiste[data-an="true"] {
+  display: flex;
+}
+
+.arbeitstext {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  flex: 0 0 auto;
+}
+
+.balken {
+  flex: 1 1 auto;
+  height: 6px;
+  background: var(--flaeche-heiss);
+  border-radius: 999px;
+  overflow: hidden;
+}

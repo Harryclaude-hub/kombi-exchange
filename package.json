@@ -1,0 +1,11 @@
+{
+  "name": "kombi-exchange",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Riesenschein-Terminal. Wettscheine aus Bildern lesen, zu einer Grosskombi zusammenfuehren, als Bild und Excel ausgeben.",
+  "scripts": {
+    "test": "node --test test/",
+    "start": "node werkzeug/server.mjs"
+  }
+}
