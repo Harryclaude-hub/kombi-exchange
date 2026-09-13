@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: Leseprogramm trainieren</title>
+    <style>
+      /* Diese Seite ist ein Werkzeug, kein Teil der Anwendung. Sie bringt
+         ihre paar Regeln selbst mit und haengt nicht an der Designschicht. */
+      :root {
+        color-scheme: dark;
+        --grund: #070a10;
+        --flaeche: #0d131e;
+        --flaeche-hoch: #121a29;
+        --linie: #1e2a3d;
+        --schrift: #e6edf8;
+        --leise: #8598b4;
+        --gut: #18c98a;
+        --warn: #f5a524;
+        --schlecht: #ff5f6d;
+      }
+      body {
+        margin: 0;
+        padding: 1.5rem;
+        background: var(--grund);
+        color: var(--schrift);
+        font: 14px/1.5 "Inter", "Segoe UI", system-ui, sans-serif;
+      }
+      h1 { margin: 0 0 0.25rem; font-size: 1.25rem; }
+      h2 { font-size: 1rem; margin: 0 0 0.75rem; }
+      h3 { font-size: 0.875rem; margin: 0 0 0.5rem; color: var(--leise); }
+      .anleitung { color: var(--leise); max-width: 60rem; margin: 0 0 1.25rem; }
+      .anleitung ol { padding-left: 1.25rem; }
+      .steuerung {
+        display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
+        padding: 1rem; margin-bottom: 1rem;
+        background: var(--flaeche); border: 1px solid var(--linie); border-radius: 8px;
+      }
+      button {
+        padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;
+        border: 1px solid var(--linie); background: var(--flaeche-hoch); color: var(--schrift);
+        font: inherit;
+      }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button:hover:not(:disabled) { border-color: var(--gut); }
+      #lage { color: var(--leise); min-height: 1.5rem; margin-bottom: 1rem; }
+      section {
+        padding: 1rem; margin-bottom: 1rem;
+        background: var(--flaeche); border: 1px solid var(--linie); border-radius: 8px;
+      }
+      section.schein[data-warnung='true'] { border-color: var(--warn); }
+      table { border-collapse: collapse; width: 100%; max-width: 60rem; }
+      th, td { padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--linie); text-align: left; }
+      th { color: var(--leise); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; }
+      td.zahl { text-align: right; font-variant-numeric: tabular-nums; }
+      td.wert { font-family: "JetBrains Mono", Consolas, monospace; }
+      tr[data-unsicher='true'] td.zahl { color: var(--warn); }
+      input.berichtigung {
+        width: 12rem; padding: 0.3rem 0.5rem; font: inherit;
+        background: var(--grund); color: var(--schrift);
+        border: 1px solid var(--linie); border-radius: 4px;
+      }
+      input.berichtigung:focus { outline: none; border-color: var(--gut); }
+      .warnungen { color: var(--warn); margin: 0.75rem 0 0; padding-left: 1.25rem; }
+      .warnung { color: var(--warn); }
+      .gut { color: var(--gut); }
+      .hinweis { color: var(--leise); }
+      details.rohtext { margin-top: 0.75rem; }
+      details.rohtext > summary { cursor: pointer; color: var(--leise); font-size: 0.8125rem; }
+      pre {
+        background: var(--grund); border: 1px solid var(--linie); border-radius: 4px;
+        padding: 0.75rem; overflow-x: auto; font-size: 0.8125rem; margin: 0.5rem 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Leseprogramm trainieren</h1>
+
+    <div class="anleitung">
+      <p>
+        Hier laeuft der <strong>echte</strong> Weg ueber echte Bildschirmfotos: Zerlegung in
+        Karten, Anbietererkennung, Texterkennung, Auswertung. Dieselben Bausteine wie in der
+        Anwendung, nichts nachgebaut.
+      </p>
+      <ol>
+        <li>Bilder auswaehlen. Zwanzig oder hundert, beides geht.</li>
+        <li><strong>Alles lesen</strong>. Rechne mit ein paar Sekunden je Bild.</li>
+        <li>
+          Durchgehen. Zeilen mit niedriger Sicherheit und Scheine mit Warnung zuerst, das sind
+          die verdaechtigen. Was falsch ist, rechts richtig eintragen.
+        </li>
+        <li>
+          <strong>Als Pruefaelle sichern</strong>. Die Datei gehoert nach
+          <code>test/korpus_echt.mjs</code>. Ab dann wird jeder dieser Faelle bei jeder
+          Aenderung mitgeprueft.
+        </li>
+      </ol>
+      <p>
+        Gesichert wird <strong>nicht das Bild</strong>, sondern die Textzeilen, die die
+        Texterkennung daraus gemacht hat, samt berichtigter Wahrheit. Kein Bild verlaesst das
+        Geraet, und die Datenbank wird nicht angefasst.
+      </p>
+    </div>
+
+    <div class="steuerung">
+      <input type="file" id="dateien" accept="image/*" multiple />
+      <button id="lesen" disabled>Alles lesen</button>
+      <button id="sichern" disabled>Als Pruefaelle sichern</button>
+    </div>
+
+    <p id="lage"></p>
+    <div id="inhalt"></div>
+
+    <script type="module" src="./training.js"></script>
+  </body>
+</html>

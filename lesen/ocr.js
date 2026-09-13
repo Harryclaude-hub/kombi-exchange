@@ -25,7 +25,16 @@ import { findeEtikettstellen } from '../kern/parser.js'
 
 /** Wo die mitgelieferten Dateien liegen, immer als vollstaendige Adresse. */
 function pfade() {
-  const basis = new URL('./', document.baseURI)
+  // Die Pfade gehen vom MODUL aus, nicht von der Seite.
+  //
+  // Vorher stand hier document.baseURI. Das funktioniert, solange die Seite im
+  // Wurzelverzeichnis liegt. Sobald eine Seite in einem Unterordner dieses
+  // Modul benutzt, etwa werkzeug/training/, sucht sie die Texterkennung unter
+  // werkzeug/training/lib/ und findet nichts.
+  //
+  // import.meta.url zeigt immer auf diese Datei, ganz gleich wer sie laedt.
+  // Von lesen/ocr.js aus ist die Wurzel genau eine Ebene hoeher.
+  const basis = new URL('../', import.meta.url)
   return {
     workerPath: new URL('lib/tesseract/worker.min.js', basis).href,
     // Muss ein Ordner sein, ohne Dateinamen und ohne Schraegstrich am Ende.

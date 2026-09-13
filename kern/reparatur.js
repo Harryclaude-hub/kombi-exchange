@@ -107,6 +107,49 @@ export function ziffernvarianten(wert, hoechstens = 1) {
 }
 
 /**
+ * Schreibweisen derselben Zahl mit verschobenem Komma.
+ *
+ * WARUM DAS NOETIG IST
+ *
+ * Bei echten Bildschirmfotos verschluckt die Texterkennung regelmaessig den
+ * Dezimalpunkt. Aus "296.84" wird "296 84", und daraus liest das Programm
+ * 29684. Ein Fehler um den Faktor hundert, und zwar einer, der NICHT auffaellt,
+ * weil er in Einsatz, Quote und Auszahlung gleichzeitig passieren kann und die
+ * Rechnung dann in sich stimmig bleibt.
+ *
+ * WARUM NICHT FRUEHER REPARIEREN
+ *
+ * Beim Zahlenlesen selbst darf man das nicht: im Franzoesischen ist das
+ * Leerzeichen ein echtes Tausendertrennzeichen, "296 84" koennte also gewollt
+ * 29684 heissen. Ohne Prüfstein waere jede Entscheidung geraten.
+ *
+ * An dieser Stelle gibt es den Prüfstein: Einsatz mal Quote muss die Auszahlung
+ * ergeben, und die angezeigte Quote sagt, welche es sein muss.
+ *
+ * Probiert werden nur die Verschiebungen, die wirklich vorkommen: zwei Stellen
+ * (verschluckter Punkt vor den Cent) und eine Stelle. In beide Richtungen, denn
+ * die Texterkennung setzt auch mal einen Punkt zu viel.
+ *
+ * @param {number} wert
+ * @returns {{wert: number, aenderungen: number}[]}
+ */
+export function kommavarianten(wert) {
+  if (!Number.isFinite(wert) || wert <= 0) return []
+
+  /** @type {{wert: number, aenderungen: number}[]} */
+  const heraus = []
+  for (const faktor of [100, 10, 0.1, 0.01]) {
+    const neu = runde(wert / faktor, 2)
+    if (!Number.isFinite(neu) || neu <= 0) continue
+    // Muss sich wirklich unterscheiden und darf nicht in Centbruchteile laufen.
+    if (Math.abs(neu - wert) < 0.005) continue
+    if (Math.abs(runde(neu, 2) - neu) > 1e-9) continue
+    heraus.push({ wert: neu, aenderungen: 1 })
+  }
+  return heraus
+}
+
+/**
  * @typedef {object} Reparatur
  * @property {boolean} gelungen
  * @property {number|null} einsatz
@@ -151,9 +194,18 @@ export function repariereBetraege(eingabe) {
   }
 
   const hoechstens = eingabe.hoechstensJeZahl ?? 1
-  const einsatzVarianten = [{ wert: einsatz, aenderungen: 0 }, ...ziffernvarianten(einsatz, hoechstens)]
+  // Kandidaten sind: der gelesene Wert, Ziffernverwechslungen und ein
+  // verschobenes Komma. Das Komma zuerst, weil ein verschlucktes Komma bei
+  // echten Bildern haeufiger ist als eine verlesene Ziffer und den groesseren
+  // Schaden anrichtet.
+  const einsatzVarianten = [
+    { wert: einsatz, aenderungen: 0 },
+    ...kommavarianten(einsatz),
+    ...ziffernvarianten(einsatz, hoechstens),
+  ]
   const auszahlungVarianten = [
     { wert: auszahlung, aenderungen: 0 },
+    ...kommavarianten(auszahlung),
     ...ziffernvarianten(auszahlung, hoechstens),
   ]
 

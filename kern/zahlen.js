@@ -30,6 +30,13 @@ const MINUSZEICHEN = /[-\u2010\u2011\u2012\u2013\u2014\u2015\u2212~_\u00AD]/g
 /** Zeichen, die als Tausendertrenner vorkommen (Schweiz, Frankreich, schmales Leerzeichen). */
 const TAUSENDERRAUM = /['\u00A0\u2009\u202F\u2019 ]/g
 
+/** Zeichen, die als Luecke zwischen Ziffergruppen auftreten koennen. */
+const LUECKENZEICHEN = /[    ']/
+
+/** Ein Baustein, der nur aus Ziffergruppen mit Luecken besteht. */
+const NUR_ZIFFERNGRUPPEN = /^[0-9]+(?:[    '][0-9]+)+$/
+
+
 /**
  * Ergebnis eines Leseversuchs.
  * @typedef {object} Zahlenfund
@@ -176,6 +183,50 @@ export function leseZahl(roh, einstellungen = {}) {
     const gerettet = ziffernRetten(text)
     text = gerettet.text
     ersetzt = gerettet.ersetzt
+  }
+
+  // Eine Luecke zwischen Ziffern ist entweder ein Tausendertrenner oder ein
+  // verschlucktes Dezimaltrennzeichen.
+  //
+  // Das laesst sich ENTSCHEIDEN, nicht nur raten: eine Tausendergruppe hat in
+  // jeder Sprache immer genau drei Ziffern. "1 234 567" ist eine Million.
+  // "296 84" dagegen kann nirgendwo 29684 heissen, weil keine Sprache
+  // zweistellige Tausendergruppen kennt. Dort wurde ein Punkt verschluckt.
+  //
+  // Warum das wichtig ist: die Texterkennung verliert den Punkt vor den Cent
+  // regelmaessig, und aus 296.84 wird dann 29684. Ein Fehler um den Faktor
+  // hundert, der sich in Einsatz UND Auszahlung gleichzeitig einschleichen und
+  // dadurch rechnerisch stimmig bleiben kann. Beobachtet an einem echten Bild
+  // am 13.09.2026.
+  //
+  // Angewendet wird die Regel nur, wenn der ganze Baustein aus Ziffergruppen
+  // mit Luecken besteht. Steht noch etwas anderes darin, ist die Zuordnung der
+  // Luecken nicht sicher, und dann wird nichts entschieden.
+  const gruppentext = text.trim()
+  if (NUR_ZIFFERNGRUPPEN.test(gruppentext)) {
+    const gruppen = gruppentext.split(LUECKENZEICHEN)
+    const hintere = gruppen.slice(1)
+    const erste = gruppen[0] ?? ''
+    const letzte = hintere[hintere.length - 1] ?? ''
+
+    const vordere = hintere.slice(0, -1)
+
+    if (hintere.every((g) => g.length === 3)) {
+      // Lauter Dreiergruppen: echte Tausendertrennung.
+      text = gruppen.join('')
+    } else if (vordere.length > 0 && vordere.every((g) => g.length === 3) &&
+               letzte.length >= 1 && letzte.length <= 2) {
+      // Dreiergruppen und am Ende eine kuerzere: die vorderen Luecken trennen
+      // Tausender, die letzte war der Dezimalpunkt. So wird aus "5 000 00"
+      // richtig 5000.00 und nicht 500000.
+      text = [erste, ...vordere].join('') + '.' + letzte
+    } else if (hintere.length === 1 && letzte.length <= 2 && letzte.length >= 1) {
+      // Genau eine Luecke, danach hoechstens zwei Ziffern: das war der
+      // Dezimalpunkt. Bei mehreren Luecken mit unpassenden Gruppen waere die
+      // Zuordnung geraten, und dann bleibt der Text lieber ungewoehnlich
+      // stehen als still falsch gelesen zu werden.
+      text = `${erste}.${letzte}`
+    }
   }
 
   // Tausenderraeume entfernen (Apostroph, geschuetztes Leerzeichen, schmales Leerzeichen).
