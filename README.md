@@ -208,10 +208,19 @@ Zahlen. Wer das Blatt auf einem anderen Geraet bauen will, laedt die Bilder dort
 
 ### Code wechseln
 
+Im Kopf der Seite auf **Code wechseln**. Das Programm wuerfelt einen neuen Code,
+verlangt zur Sicherheit den bisherigen und meldet danach alle anderen Fenster ab.
+Das eigene bleibt offen.
+
+Der neue Code wird nur dieses eine Mal angezeigt. In der Datenbank steht auch von
+ihm nur ein Fingerabdruck.
+
+Von Hand geht es weiterhin:
+
 ```sql
-update kombi.zugangscodes set aktiv = false;
-insert into kombi.zugangscodes (code_hash, name)
-values (extensions.crypt('DEIN-NEUER-CODE', extensions.gen_salt('bf', 12)), 'Hauptcode');
+update kombi.zugangscodes
+   set code_hash = extensions.crypt('DEIN-NEUER-CODE', extensions.gen_salt('bf', 12))
+ where aktiv;
 
 -- Ohne diese Zeile laufen alle bestehenden Zugaenge noch dreissig Tage weiter.
 delete from kombi.sitzungen;
@@ -219,10 +228,39 @@ delete from kombi.sitzungen;
 
 ---
 
+## Zwei Leute am selben Projekt
+
+Alle teilen sich einen Code, also koennen zwei Leute dasselbe Projekt offen haben.
+Frueher gewann dabei der Letzte, und der andere hat es nie erfahren.
+
+Jedes Projekt hat jetzt eine Fassungsnummer. Wer speichert, sagt dazu, welche Fassung
+er gelesen hat. Stimmt sie nicht mehr, wird **nichts geschrieben**, und das Fenster
+sagt es.
+
+Was dabei absichtlich NICHT passiert: es wird nicht von selbst neu geladen. Das wuerde
+genau die Arbeit wegwerfen, die der Schutz retten soll. Die Arbeit liegt weiterhin auf
+dem Geraet, und der Mensch entscheidet, was damit geschieht.
+
+---
+
+## Wenn der Browser alte Dateien festhaelt
+
+Das Programm besteht aus vielen einzelnen Dateien, die der Browser einzeln
+zwischenspeichert. Nach einer Aktualisierung kann er deshalb neue und alte mischen,
+und die Seite laeuft mit einer Kombination, die es nie gegeben hat.
+
+Deshalb steht dieselbe Fassungskennung an zwei Stellen: in `daten/einstellungen.js`,
+fest in den Programmdateien, und in `fassung.json` daneben. Beim Start wird
+`fassung.json` ohne Zwischenspeicher geholt und verglichen. Weichen sie ab, laedt die
+Seite sich **einmal** neu. Hilft das nicht, sagt sie es, statt sich weiter neu zu laden.
+
+**Beim Aendern des Programms beide Werte hochsetzen.** `node werkzeug/pruefe.mjs`
+beanstandet es, wenn sie auseinanderlaufen.
+
 ## Eigene Datenbank
 
-Nur `daten/einstellungen.js` anpassen und `supabase/migrations/0001_kombi_grundgeruest.sql`
-einspielen. Danach einen Code setzen, siehe oben.
+Nur `daten/einstellungen.js` anpassen und die Dateien in `supabase/migrations/` der
+Reihe nach einspielen. Danach einen Code setzen, siehe oben.
 
 ---
 

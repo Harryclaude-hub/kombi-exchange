@@ -47,6 +47,7 @@ import { neueKennung, jetzt } from './werkzeug.js'
  * @property {import('../kern/gruppierung.js').Doppelfund[]} verdacht
  * @property {'aufnahme'|'scheine'|'positionen'|'ausgabe'} ansicht
  * @property {string|null} auswahl
+ * @property {number|null} fassung
  * @property {{laeuft: boolean, text: string, anteil: number}} arbeit
  * @property {Meldung[]} meldungen
  * @property {{gruendlich: boolean, sprachen: 'eng'|'deu'|'eng+deu', bewegung: 0|1|2}} einstellungen
@@ -59,6 +60,10 @@ const stand = {
   datenbankErreichbar: true,
   projekt: null,
   projekte: [],
+  // Fassung des offenen Projekts, so wie sie zuletzt gelesen wurde. Sie wandert
+  // bei jedem Speichern mit und verhindert, dass ein zweites Fenster mit altem
+  // Stand diese Arbeit ueberschreibt. null heisst: noch nichts gelesen.
+  fassung: null,
   bilder: new Map(),
   scheine: [],
   riesenscheine: [],

@@ -158,6 +158,44 @@ for (const pflicht of PFLICHTDATEIEN) {
   }
 }
 
+// --- Fassungskennung ---
+//
+// Dieselbe Kennung steht an zwei Stellen: in daten/einstellungen.js, fest in den
+// Programmdateien, und in fassung.json daneben. Der Browser vergleicht beim Start,
+// ob er eine alte Mischung geladen hat.
+//
+// Genau deshalb muss hier geprueft werden, dass die beiden gleich sind. Liefen sie
+// auseinander, wuerde jeder Browser bei jedem Start denken, er sei veraltet, und
+// sich endlos neu laden. Eine Vorsichtsmassnahme, die zum Fehler wird.
+
+const einstellungenText = fs.readFileSync(path.join(wurzel, 'daten/einstellungen.js'), 'utf8')
+const imProgramm = einstellungenText.match(/PROGRAMM_FASSUNG\s*=\s*'([^']+)'/)?.[1] ?? ''
+
+let inDatei = ''
+try {
+  inDatei = String(JSON.parse(fs.readFileSync(path.join(wurzel, 'fassung.json'), 'utf8')).fassung ?? '')
+} catch (fehler) {
+  beanstandungen.push({
+    art: 'fassung',
+    datei: 'fassung.json',
+    text: `laesst sich nicht lesen: ${fehler instanceof Error ? fehler.message : String(fehler)}`,
+  })
+}
+
+if (!imProgramm) {
+  beanstandungen.push({
+    art: 'fassung',
+    datei: 'daten/einstellungen.js',
+    text: 'PROGRAMM_FASSUNG wurde nicht gefunden.',
+  })
+} else if (inDatei && imProgramm !== inDatei) {
+  beanstandungen.push({
+    art: 'fassung',
+    datei: 'fassung.json',
+    text: `steht auf "${inDatei}", in daten/einstellungen.js steht "${imProgramm}". Beide muessen gleich sein.`,
+  })
+}
+
 // --- Bericht ---
 
 console.log(`${geprueft} Dateien geprueft.`)

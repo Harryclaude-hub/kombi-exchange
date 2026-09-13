@@ -24,3 +24,21 @@ export const SITZUNG_SCHLUESSEL = 'kombi.sitzung'
 
 /** Name, unter dem die Einstellungen im Browser liegen. */
 export const EINSTELLUNG_SCHLUESSEL = 'kombi.einstellungen'
+
+/**
+ * Fassung dieses Programms.
+ *
+ * Wozu: der Browser laedt jede Datei einzeln und merkt sie sich einzeln. Nach
+ * einer Aktualisierung kann er deshalb neue und alte Dateien mischen. Das
+ * erzeugt Fehler, die sich nicht nachstellen lassen, weil sie nur bei genau
+ * dieser Mischung auftreten.
+ *
+ * Deshalb liegt dieselbe Kennung zweimal: hier, fest in den Programmdateien,
+ * und in fassung.json daneben. Beim Start wird fassung.json ohne Zwischenspeicher
+ * geholt und verglichen. Weichen sie ab, sind die geladenen Dateien alt, und die
+ * Seite laedt sich einmal neu.
+ *
+ * WICHTIG: dieser Wert und fassung.json muessen uebereinstimmen. werkzeug/pruefe.mjs
+ * prueft das bei jedem Durchlauf, damit die beiden nicht auseinanderlaufen.
+ */
+export const PROGRAMM_FASSUNG = '2026-09-13-b'

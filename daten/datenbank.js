@@ -26,6 +26,28 @@ import { DATENBANK } from './einstellungen.js'
 const WARTEZEIT = 20000
 
 /**
+ * Fehlercode der Datenbank, wenn jemand anderes schneller war.
+ *
+ * Das ist KEIN Fehler im Sinne von kaputt. Es heisst: dieses Fenster arbeitet
+ * mit einem veralteten Stand, und die Datenbank hat deshalb nichts
+ * ueberschrieben. Die Oberflaeche muss das anders behandeln als einen Ausfall,
+ * sonst wirkt ein bewusst verhinderter Datenverlust wie eine Stoerung.
+ */
+export const WIDERSPRUCH = 'K0409'
+
+/** Fehlercode, wenn das Projekt inzwischen geloescht wurde. */
+export const PROJEKT_WEG = 'K0404'
+
+/**
+ * @param {unknown} wert
+ * @returns {number|null}
+ */
+function zahlOderNull(wert) {
+  const zahl = Number(wert)
+  return Number.isFinite(zahl) ? zahl : null
+}
+
+/**
  * Ruft eine Datenbankfunktion auf.
  *
  * @param {string} name
@@ -106,7 +128,17 @@ export async function loeseCodeEin(code) {
   if (antwort.art === 'fehler') {
     return { gelungen: false, token: '', laeuftAb: '', meldung: antwort.meldung }
   }
+
   const erste = Array.isArray(antwort.daten) ? antwort.daten[0] : antwort.daten
+
+  // Die Datenbank meldet einen abgelehnten Code als Ergebnis, nicht als Fehler.
+  // Das ist Absicht: eine Ausnahme wuerde den Zaehler der Fehlversuche wieder
+  // zurueckrollen, und dann griffe die Bremse gegen Durchprobieren nie.
+  // Siehe supabase/migrations/0006.
+  if (erste?.fehler) {
+    return { gelungen: false, token: '', laeuftAb: '', meldung: String(erste.fehler) }
+  }
+
   if (!erste || !erste.token) {
     return {
       gelungen: false,
@@ -115,6 +147,7 @@ export async function loeseCodeEin(code) {
       meldung: 'Die Datenbank hat keinen Zugang zurueckgegeben.',
     }
   }
+
   return {
     gelungen: true,
     token: String(erste.token),
@@ -154,9 +187,10 @@ export function holeProjekte(token) {
  * @param {string} token
  * @param {import('../kern/typen.js').Projekt} projekt
  */
-export function speichereProjekt(token, projekt) {
+export function speichereProjekt(token, projekt, fassung = null) {
   return rufe('kombi_projekt_speichern', {
     p_token: token,
+    p_fassung: fassung,
     p_projekt: {
       id: projekt.id,
       name: projekt.name,
@@ -239,9 +273,10 @@ export async function holeScheine(token, projektId) {
  * @param {import('../kern/typen.js').Schein[]} scheine
  * @returns {Promise<{gelungen: boolean, anzahl: number, meldung: string}>}
  */
-export async function speichereScheine(token, projektId, scheine) {
+export async function speichereScheine(token, projektId, scheine, fassung = null) {
   const haeppchen = 200
   let gesamt = 0
+  let stand = fassung
 
   for (let i = 0; i < scheine.length; i += haeppchen) {
     const teil = scheine.slice(i, i + haeppchen)
@@ -249,18 +284,24 @@ export async function speichereScheine(token, projektId, scheine) {
       p_token: token,
       p_projekt: projektId,
       p_scheine: teil,
+      p_fassung: stand,
     })
     if (antwort.art === 'fehler') {
       return {
         gelungen: false,
         anzahl: gesamt,
+        fassung: stand,
+        widerspruch: antwort.code === WIDERSPRUCH,
         meldung: `${antwort.meldung} (${gesamt} von ${scheine.length} waren schon gespeichert)`,
       }
     }
-    gesamt += Number(antwort.daten ?? teil.length)
+    // Jedes Haeppchen zaehlt die Fassung hoch. Die neue muss ins naechste,
+    // sonst laeuft der eigene Speichervorgang gegen sich selbst.
+    stand = zahlOderNull(antwort.daten?.fassung)
+    gesamt += Number(antwort.daten?.anzahl ?? teil.length)
   }
 
-  return { gelungen: true, anzahl: gesamt, meldung: '' }
+  return { gelungen: true, anzahl: gesamt, fassung: stand, widerspruch: false, meldung: '' }
 }
 
 /**
@@ -284,11 +325,12 @@ export function holeRiesenscheine(token, projektId) {
  * @param {string} projektId
  * @param {import('../kern/typen.js').Riesenschein[]} liste
  */
-export function speichereRiesenscheine(token, projektId, liste) {
+export function speichereRiesenscheine(token, projektId, liste, fassung = null) {
   return rufe('kombi_riesenscheine_speichern', {
     p_token: token,
     p_projekt: projektId,
     p_liste: liste,
+    p_fassung: fassung,
   })
 }
 
@@ -305,7 +347,7 @@ export function holeBilder(token, projektId) {
  * @param {string} projektId
  * @param {import('../kern/typen.js').Bild[]} liste
  */
-export function speichereBilder(token, projektId, liste) {
+export function speichereBilder(token, projektId, liste, fassung = null) {
   // Das Bild selbst bleibt im Browser. Hier gehen nur die Angaben dazu hinaus.
   const ohneInhalt = liste.map((b) => ({
     id: b.id,
@@ -321,5 +363,75 @@ export function speichereBilder(token, projektId, liste) {
     p_token: token,
     p_projekt: projektId,
     p_liste: ohneInhalt,
+    p_fassung: fassung,
   })
+}
+
+/**
+ * Wechselt den Zugangscode.
+ *
+ * Verlangt ausdruecklich den bisherigen Code, nicht nur eine gueltige Sitzung.
+ * Sonst koennte jemand, der einmal an einem offenen Fenster sass, den Code
+ * aendern und alle anderen aussperren.
+ *
+ * Alle anderen Sitzungen werden dabei geschlossen. Genau dafuer wechselt man:
+ * der alte Code ist irgendwo gelandet, wo er nicht hingehoert.
+ *
+ * @param {string} token
+ * @param {string} alt
+ * @param {string} neu
+ * @returns {Promise<{gelungen: boolean, hinausgeworfen: number, meldung: string}>}
+ */
+export async function wechsleCode(token, alt, neu) {
+  const antwort = await rufe('kombi_code_wechseln', {
+    p_token: token,
+    p_alt: alt,
+    p_neu: neu,
+  })
+
+  if (antwort.art === 'fehler') {
+    return { gelungen: false, hinausgeworfen: 0, meldung: antwort.meldung }
+  }
+
+  // Auch hier meldet die Datenbank ein Scheitern als Ergebnis, damit der
+  // Zaehler der Fehlversuche stehenbleibt. Siehe supabase/migrations/0006.
+  if (!antwort.daten?.gelungen) {
+    return {
+      gelungen: false,
+      hinausgeworfen: 0,
+      meldung: String(antwort.daten?.fehler ?? 'Der Wechsel hat nicht geklappt.'),
+    }
+  }
+
+  return {
+    gelungen: true,
+    hinausgeworfen: Number(antwort.daten?.hinausgeworfen ?? 0),
+    meldung: '',
+  }
+}
+
+/**
+ * Erzeugt einen neuen Zugangscode.
+ *
+ * Gezogen wird aus dem Zufallsgenerator des Browsers, nicht aus Math.random.
+ * Weggelassen sind Zeichen, die man sich beim Vorlesen oder Abtippen verhaut:
+ * 0 und O, 1 und I und L.
+ *
+ * @returns {string}
+ */
+export function wuerfleCode() {
+  const zeichen = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  const roh = new Uint32Array(12)
+  crypto.getRandomValues(roh)
+
+  const teile = []
+  for (let gruppe = 0; gruppe < 3; gruppe++) {
+    let block = ''
+    for (let i = 0; i < 4; i++) {
+      const wert = roh[gruppe * 4 + i] ?? 0
+      block += zeichen[wert % zeichen.length]
+    }
+    teile.push(block)
+  }
+  return `KMB-${teile.join('-')}`
 }

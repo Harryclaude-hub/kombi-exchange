@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Riesenschein-Terminal. Wettscheine aus Bildern lesen, zu einer Grosskombi zusammenfuehren, als Bild und Excel ausgeben.",
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test \"test/*.test.mjs\"",
     "start": "node werkzeug/server.mjs"
   }
 }

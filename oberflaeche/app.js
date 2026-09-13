@@ -13,6 +13,7 @@ import * as Zustand from './zustand.js'
 import * as Datenbank from '../daten/datenbank.js'
 import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL } from '../daten/einstellungen.js'
 import { merkeStand, holeStand, holeBilderZuProjekt, loescheBild } from '../daten/ablage.js'
+import { sorgeFuerAktuelleDateien } from '../daten/fassung.js'
 import { ladeBild } from '../bild/vorverarbeitung.js'
 
 import * as AnsichtAufnahme from './ansicht_aufnahme.js'
@@ -38,6 +39,19 @@ let wurzel = null
 export async function starte(ziel) {
   wurzel = ziel
   ladeEinstellungen()
+
+  // Zuerst pruefen, ob dieser Browser eine veraltete Mischung aus alten und
+  // neuen Programmdateien geladen hat. Passiert das, wird einmal neu geladen
+  // und dieser Start bricht hier ab, weil gleich ein neuer folgt.
+  //
+  // Das steht ganz vorne mit Absicht: nach dem Laden von Daten neu zu laden
+  // waere verschwendete Arbeit, und mitten in einer Bearbeitung waere es
+  // Datenverlust.
+  const aktualitaet = await sorgeFuerAktuelleDateien()
+  if (aktualitaet.neugeladen) return
+  if (aktualitaet.meldung && aktualitaet.art === 'veraltet') {
+    Zustand.melde('warnung', aktualitaet.meldung)
+  }
 
   Zustand.hoerZu(zeichneAlles)
 
@@ -234,6 +248,12 @@ function zeichneKopf() {
       }),
       el('button.knopf.knopf-klein', {
         type: 'button',
+        text: 'Code wechseln',
+        title: 'Einen neuen Zugangscode erzeugen und alle anderen Fenster abmelden.',
+        onclick: zeigeCodewechsel,
+      }),
+      el('button.knopf.knopf-klein', {
+        type: 'button',
         text: 'Abmelden',
         onclick: () => {
           if (!confirm('Abmelden? Der Code wird beim naechsten Mal wieder gebraucht.')) return
@@ -243,6 +263,122 @@ function zeichneKopf() {
       }),
     ]),
   ])
+}
+
+/**
+ * Den Zugangscode wechseln.
+ *
+ * Warum es das gibt: es gibt genau einen Code fuer alle. Wird er einmal
+ * weitergegeben, kommt jeder herein, der ihn hat. Ohne Wechselmoeglichkeit
+ * gaebe es dagegen kein Mittel.
+ *
+ * Zwei Dinge sind bewusst so gebaut:
+ *
+ * 1. Der bisherige Code muss eingegeben werden. Ein offenes Fenster allein
+ *    reicht nicht. Sonst koennte jemand, der kurz am Rechner sass, den Code
+ *    aendern und alle anderen aussperren.
+ *
+ * 2. Der neue Code wird HIER gewuerfelt, nicht selbst ausgedacht. Selbst
+ *    ausgedachte Codes sind erratbar. Die Datenbank bekommt ihn nur als
+ *    Einwegwert zu sehen, im Klartext steht er nirgends.
+ */
+function zeigeCodewechsel() {
+  const stand = Zustand.hole()
+  const neuerCode = Datenbank.wuerfleCode()
+
+  const altFeld = el('input.feldeingabe', {
+    type: 'password',
+    placeholder: 'bisheriger Code',
+    autocomplete: 'off',
+  })
+  const anzeige = el('input.feldeingabe.feldeingabe-code', {
+    type: 'text',
+    value: neuerCode,
+    readonly: true,
+    spellcheck: false,
+  })
+  const hinweis = el('p.hinweiszeile', { text: '' })
+
+  const dialog = /** @type {HTMLDialogElement} */ (el('dialog.dialog', {}, [
+    el('h2', { text: 'Zugangscode wechseln' }),
+    el('p', {
+      text:
+        'Der neue Code steht unten. Bitte zuerst sichern, danach ist er nicht ' +
+        'mehr abrufbar. Alle anderen offenen Fenster werden abgemeldet.',
+    }),
+    el('label.feldzeile', {}, [el('span', { text: 'Bisheriger Code' }), altFeld]),
+    el('label.feldzeile', {}, [el('span', { text: 'Neuer Code' }), anzeige]),
+    hinweis,
+    el('.dialogknoepfe', {}, [
+      el('button.knopf.knopf-klein', {
+        type: 'button',
+        text: 'Neu wuerfeln',
+        onclick: () => {
+          anzeige.value = Datenbank.wuerfleCode()
+        },
+      }),
+      el('button.knopf.knopf-klein', {
+        type: 'button',
+        text: 'Kopieren',
+        onclick: async () => {
+          try {
+            await navigator.clipboard.writeText(anzeige.value)
+            hinweis.textContent = 'In die Zwischenablage gelegt.'
+          } catch {
+            // Ohne Erlaubnis zur Zwischenablage: markieren, dann kann der
+            // Nutzer selbst kopieren. Nicht einfach schweigen.
+            anzeige.select()
+            hinweis.textContent = 'Kopieren ging nicht. Der Code ist markiert, bitte von Hand kopieren.'
+          }
+        },
+      }),
+      el('button.knopf.knopf-klein', {
+        type: 'button',
+        text: 'Abbrechen',
+        onclick: () => dialog.close(),
+      }),
+      el('button.knopf.knopf-haupt', {
+        type: 'button',
+        text: 'Wechseln',
+        onclick: async () => {
+          const alt = altFeld.value.trim()
+          const neu = anzeige.value.trim()
+          if (!alt) {
+            hinweis.textContent = 'Bitte den bisherigen Code eingeben.'
+            return
+          }
+          if (
+            !confirm(
+              `Code wirklich wechseln?\n\nNeuer Code:\n${neu}\n\n` +
+                'Bitte vorher sichern. Danach ist er nicht mehr abrufbar, und ' +
+                'alle anderen Fenster werden abgemeldet.'
+            )
+          ) {
+            return
+          }
+
+          hinweis.textContent = 'Wird gewechselt ...'
+          const ergebnis = await Datenbank.wechsleCode(stand.token, alt, neu)
+
+          if (!ergebnis.gelungen) {
+            hinweis.textContent = ergebnis.meldung
+            return
+          }
+
+          dialog.close()
+          Zustand.melde(
+            'erfolg',
+            `Code gewechselt. ${ergebnis.hinausgeworfen} andere Sitzung(en) wurden abgemeldet. ` +
+              'Dieses Fenster bleibt offen.'
+          )
+        },
+      }),
+    ]),
+  ]))
+
+  document.body.append(dialog)
+  dialog.addEventListener('close', () => dialog.remove())
+  dialog.showModal()
 }
 
 /**
@@ -265,7 +401,15 @@ function projektwahl(stand) {
           const id = /** @type {HTMLSelectElement} */ (e.target).value
           const gewaehlt = stand.projekte.find((p) => p.id === id)
           if (!gewaehlt || gewaehlt.id === stand.projekt?.id) return
-          Zustand.aendere({ projekt: gewaehlt, scheine: [], riesenscheine: [], bilder: new Map() })
+          // Die Fassung des gewaehlten Projekts wird mitgenommen. Ohne sie
+          // wuesste das naechste Speichern nicht, auf welchem Stand es aufsetzt.
+          Zustand.aendere({
+            projekt: gewaehlt,
+            fassung: fassungVon(gewaehlt),
+            scheine: [],
+            riesenscheine: [],
+            bilder: new Map(),
+          })
           await ladeProjektinhalt(gewaehlt.id)
         },
       },
@@ -313,9 +457,12 @@ async function legeProjektAn(name) {
     return
   }
 
+  const angelegt = Array.isArray(antwort.daten) ? antwort.daten[0] : antwort.daten
+
   Zustand.aendere({
     projekte: [projekt, ...stand.projekte],
     projekt,
+    fassung: Number(angelegt?.fassung ?? 1),
     scheine: [],
     riesenscheine: [],
     restposten: [],
@@ -361,6 +508,9 @@ async function leereAktuellesProjekt() {
   await merkeStand('riesenscheine', [])
 
   Zustand.aendere({
+    // Leeren zaehlt die Fassung hoch. Wer sie hier nicht nachzieht, bekommt
+    // beim naechsten Speichern einen Widerspruch, den er selbst verursacht hat.
+    fassung: Number(antwort.daten?.fassung ?? null) || null,
     scheine: [],
     riesenscheine: [],
     restposten: [],
@@ -520,10 +670,13 @@ async function ladeAlles() {
     if (angelegt.art === 'fehler') {
       Zustand.melde('warnung', `Das Projekt liess sich nicht anlegen: ${angelegt.meldung}`)
     }
+    // Was die Datenbank zurueckmeldet, ist massgeblich, nicht was hier gedacht wird.
+    const zeileAngelegt = Array.isArray(angelegt.daten) ? angelegt.daten[0] : angelegt.daten
+    projekt = { ...projekt, fassung: Number(zeileAngelegt?.fassung ?? 1) }
     projekte.push(projekt)
   }
 
-  Zustand.aendere({ projekte, projekt, datenbankErreichbar: true })
+  Zustand.aendere({ projekte, projekt, fassung: fassungVon(projekt), datenbankErreichbar: true })
 
   const scheine = await Datenbank.holeScheine(stand.token, projekt.id)
   if (scheine.art === 'fehler') {
@@ -634,28 +787,74 @@ const speichereVerzoegert = verzoegert(async () => {
 
   if (!stand.token) return
 
-  const scheine = await Datenbank.speichereScheine(stand.token, stand.projekt.id, stand.scheine)
+  // Die Fassung wandert durch den ganzen Speichervorgang. Jeder Schritt zaehlt
+  // sie hoch und gibt die neue zurueck, der naechste Schritt nimmt sie mit.
+  // Ohne diese Weitergabe liefe der zweite Schritt gegen den ersten.
+  let fassung = stand.fassung
+
+  const scheine = await Datenbank.speichereScheine(
+    stand.token,
+    stand.projekt.id,
+    stand.scheine,
+    fassung
+  )
   if (!scheine.gelungen) {
+    if (scheine.widerspruch) {
+      meldeWiderspruch(scheine.meldung)
+      return
+    }
     Zustand.aendere({ datenbankErreichbar: false })
     Zustand.melde('warnung', `Nicht alles konnte gesichert werden: ${scheine.meldung}`)
     return
   }
+  fassung = scheine.fassung
 
   const riesenscheine = await Datenbank.speichereRiesenscheine(
     stand.token,
     stand.projekt.id,
-    stand.riesenscheine
+    stand.riesenscheine,
+    fassung
   )
   if (riesenscheine.art === 'fehler') {
+    if (riesenscheine.code === Datenbank.WIDERSPRUCH) {
+      meldeWiderspruch(riesenscheine.meldung)
+      return
+    }
     Zustand.aendere({ datenbankErreichbar: false })
     Zustand.melde('warnung', `Die Riesenscheine liessen sich nicht sichern: ${riesenscheine.meldung}`)
     return
   }
+  fassung = Number(riesenscheine.daten?.fassung ?? fassung)
+
+  Zustand.aendere({ fassung })
 
   if (!stand.datenbankErreichbar) {
     Zustand.aendere({ datenbankErreichbar: true })
   }
 }, 2500)
+
+/**
+ * Jemand anderes hat dasselbe Projekt geaendert, waehrend hier gearbeitet wurde.
+ *
+ * Wichtig ist, was hier NICHT passiert: es wird nicht automatisch neu geladen.
+ * Das wuerde die ungesicherte Arbeit in diesem Fenster wegwerfen, und zwar
+ * genau die Arbeit, die der Schutz retten sollte. Der Mensch entscheidet.
+ *
+ * Die Arbeit liegt weiterhin auf dem Geraet, das Speichern dorthin ist oben
+ * schon passiert. Es geht also nichts verloren, solange das Fenster offen bleibt.
+ *
+ * @param {string} grund
+ */
+function meldeWiderspruch(grund) {
+  Zustand.melde(
+    'warnung',
+    'Dieses Projekt wurde an anderer Stelle geaendert, etwa in einem zweiten ' +
+      'Fenster. Es wurde deshalb nichts ueberschrieben. Deine Arbeit liegt hier ' +
+      'auf dem Geraet. Am besten diese Angaben notieren und die Seite neu laden, ' +
+      `dann sind beide Staende zusammen sichtbar. (${grund})`
+  )
+  Zustand.aendere({ datenbankErreichbar: true })
+}
 
 // Bei jeder Aenderung an den Daten wird gesichert.
 let letzterStempel = ''
@@ -671,6 +870,21 @@ Zustand.hoerZu((stand) => {
 // ---------------------------------------------------------------------------
 
 /**
+ * Liest die Fassung, die an einem Projekt haengt.
+ *
+ * Fehlt sie, wird null geliefert und nicht etwa 1. Eine geratene 1 waere
+ * schlimmer als gar keine: sie wuerde bei jedem Speichern einen Widerspruch
+ * ausloesen, obwohl gar keiner vorliegt.
+ *
+ * @param {any} projekt
+ * @returns {number|null}
+ */
+function fassungVon(projekt) {
+  const wert = Number(projekt?.fassung)
+  return Number.isFinite(wert) ? wert : null
+}
+
+/**
  * @param {any} zeile
  * @returns {import('../kern/typen.js').Projekt}
  */
@@ -682,6 +896,8 @@ function ausDatenbankProjekt(zeile) {
     waehrung: /** @type {any} */ (zeile.waehrung ?? 'UNBEKANNT'),
     angelegtAm: String(zeile.angelegt_am ?? ''),
     geaendertAm: String(zeile.geaendert_am ?? ''),
+    // Haengt am Projekt, damit beim Umschalten die richtige mitkommt.
+    fassung: fassungVon(zeile),
   }
 }
 

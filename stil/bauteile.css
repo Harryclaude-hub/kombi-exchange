@@ -1559,3 +1559,70 @@ li[data-schwere="info"] .hinweisart {
 .rahmen-neu {
   border-style: dashed;
 }
+
+/* ---------------------------------------------------------------------------
+   Dialog (Codewechsel)
+
+   Reine Optik. Ohne diese Regeln zeigt der Browser den Dialog in seiner
+   eigenen schlichten Darstellung, und alles funktioniert unveraendert weiter.
+   --------------------------------------------------------------------------- */
+
+.dialog {
+  max-width: 32rem;
+  width: calc(100vw - 2rem);
+  padding: var(--abstand-gross, 1.25rem);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung, 10px);
+  background: var(--flaeche-hoch);
+  color: var(--schrift);
+  font-family: var(--schriftart);
+  font-size: var(--text-normal);
+}
+
+.dialog::backdrop {
+  background: rgba(4, 6, 10, 0.72);
+}
+
+.dialog h2 {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-gross);
+}
+
+.dialog p {
+  margin: 0 0 0.75rem;
+  color: var(--schrift-leise);
+  line-height: 1.5;
+}
+
+.feldzeile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.feldzeile > span {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.feldeingabe-code {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-gross);
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.hinweiszeile {
+  min-height: 1.25rem;
+  margin: 0 0 0.75rem;
+  font-size: var(--text-klein);
+  color: var(--offen);
+}
+
+.dialogknoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
