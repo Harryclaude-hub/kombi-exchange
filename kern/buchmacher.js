@@ -41,6 +41,12 @@ export const BUCHMACHER = [
   { schluessel: 'heritage', name: 'Heritage Sports', domains: ['heritagesports.eu'], schriftzug: [/heritage\s*sports/i], gebiet: 'en', waehrung: 'USD', quotenformat: 'amerikanisch' },
   { schluessel: 'betanysports', name: 'BetAnySports', domains: ['betanysports.eu'], schriftzug: [/bet\s*any\s*sports/i, /\bbas\b/], gebiet: 'en', waehrung: 'USD', quotenformat: 'amerikanisch' },
   { schluessel: 'pinnacle', name: 'Pinnacle', domains: ['pinnacle.com', 'pinnaclesports'], schriftzug: [/pinnacle/i], gebiet: 'en', waehrung: 'EUR', quotenformat: 'dezimal' },
+  // PS3838 ist Pinnacles Zweitmarke. Karam setzt dort (echtes Foto 13.09.2026).
+  // Die Ansicht ist eine TABELLE: der Einsatz traegt "Risk:", die Quote steht
+  // nackt in ihrer Spalte mit dem Formatbuchstaben D dahinter, und die Spalte
+  // Win/Loss ist der GEWINN, nicht die Auszahlung. Sie ist unbeschriftet und
+  // wird deshalb bewusst nicht gelesen, siehe kern/parser.js, Abschnitt 4b.
+  { schluessel: 'ps3838', name: 'PS3838', domains: ['ps3838.com', 'ps38.com'], schriftzug: [/\bps\s*3838\b/i], gebiet: 'en', waehrung: 'EUR', quotenformat: 'dezimal' },
   { schluessel: 'draftkings', name: 'DraftKings', domains: ['draftkings.com'], schriftzug: [/draft\s*kings/i], gebiet: 'en', waehrung: 'USD', quotenformat: 'amerikanisch' },
   { schluessel: 'fanduel', name: 'FanDuel', domains: ['fanduel.com'], schriftzug: [/fan\s*duel/i], gebiet: 'en', waehrung: 'USD', quotenformat: 'amerikanisch' },
   { schluessel: 'betmgm', name: 'BetMGM', domains: ['betmgm.com'], schriftzug: [/bet\s*mgm/i], gebiet: 'en', waehrung: 'USD', quotenformat: 'amerikanisch' },

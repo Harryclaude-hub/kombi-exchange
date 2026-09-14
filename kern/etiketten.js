@@ -33,6 +33,8 @@ export const EINSATZ_ETIKETTEN = [
   // Das blosse Wort "bet" steht bewusst NICHT in dieser Liste. Es kommt in
   // "Bet ID" vor und wuerde dort die Scheinnummer als Einsatz lesen.
   'einsatz', 'wetteinsatz', 'gesamteinsatz', 'ihr einsatz', 'eingesetzt', 'betrag',
+  // Betway schreibt 'Umsetzen' statt Einsatz (echtes Foto 13.09.2026).
+  'umsetzen', 'umgesetzt',
   'mise', 'enjeu', 'importo', 'puntata', 'apuesta', 'inzet', 'insats', 'stawka',
 ]
 
@@ -61,6 +63,13 @@ export const AUSZAHLUNG_ETIKETTEN = [
   { wort: 'mögliche auszahlung', bedeutung: 'auszahlung' },
   { wort: 'mögl. auszahlung', bedeutung: 'auszahlung' },
   { wort: 'ausgezahlt', bedeutung: 'auszahlung' },
+  // Betway, echtes Foto 13.09.2026: der Betrag daneben ist die Auszahlung
+  // MIT Einsatz (78,30 bei Quote 1,74 ergibt 136,30).
+  { wort: 'du hast gewonnen', bedeutung: 'auszahlung' },
+  // Bei einer Erstattung steht dort der Einsatz. Das ist die Auszahlung
+  // dieses Scheins, und daraus darf keine Quote gerechnet werden.
+  { wort: 'erstattet', bedeutung: 'auszahlung' },
+  { wort: 'erstattung', bedeutung: 'auszahlung' },
 
   // Eindeutig reiner Gewinn ohne Einsatz.
   { wort: 'to win', bedeutung: 'gewinn' },
@@ -89,7 +98,7 @@ export const AUSZAHLUNG_ETIKETTEN = [
 /** Beschriftungen fuer die Quote. */
 export const QUOTE_ETIKETTEN = [
   'odds', 'odd', 'price', 'total odds', 'parlay odds', 'combined odds', 'line',
-  'quote', 'gesamtquote', 'kombiquote', 'endquote', 'gesamt-quote',
+  'quote', 'quoten', 'gesamtquote', 'kombiquote', 'endquote', 'gesamt-quote',
   'cote', 'cotes', 'quota', 'quote totale', 'cuota', 'kurs',
 ]
 
@@ -138,6 +147,8 @@ export const STATUS_ETIKETTEN = [
   { wort: 'annulliert', status: 'storniert' },
   { wort: 'ungueltig', status: 'storniert' },
   { wort: 'ungültig', status: 'storniert' },
+  // Betway schreibt 'UNGUELTIG' bei einer Erstattung (echtes Foto 13.09.2026).
+  { wort: 'ungueltige wette', status: 'storniert' },
   { wort: 'won', status: 'gewonnen' },
   { wort: 'win', status: 'gewonnen' },
   { wort: 'winner', status: 'gewonnen' },
@@ -146,6 +157,9 @@ export const STATUS_ETIKETTEN = [
   { wort: 'lose', status: 'verloren' },
   { wort: 'loser', status: 'verloren' },
   { wort: 'verloren', status: 'verloren' },
+  // Stake schreibt 'Verlust' statt verloren (echtes Foto 13.09.2026).
+  { wort: 'verlust', status: 'verloren' },
+  { wort: 'nicht gewonnen', status: 'verloren' },
   { wort: 'pending', status: 'offen' },
   { wort: 'open', status: 'offen' },
   { wort: 'unsettled', status: 'offen' },

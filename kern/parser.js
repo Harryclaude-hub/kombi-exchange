@@ -732,6 +732,47 @@ export function leseSchein(rohzeilen, umgebung) {
     }
   }
 
+  // 4b. Die Quote in einer Tabellenspalte, mit Formatbuchstaben dahinter.
+  //
+  // PS3838 zeigt den Wettverlauf als TABELLE. Die Spaltenueberschriften stehen
+  // ausserhalb der Zeile, in der Zeile selbst steht die Quote nackt da:
+  //
+  //   1.854 D
+  //
+  // Der Buchstabe ist das Quotenformat: D fuer dezimal, A fuer amerikanisch,
+  // H fuer Hongkong, M fuer Malay, I fuer Indonesisch. Er ist also eine
+  // Beschriftung, nur eine sehr kurze, und er sagt sogar mehr als "Odds:".
+  //
+  // Absichtlich eng gefasst: die ganze Zeile muss aus genau dieser Zahl und
+  // genau diesem einen Buchstaben bestehen. Alles andere wuerde raten, und ein
+  // geratener Multiplikator ist bei Karams Einsaetzen das Teuerste ueberhaupt.
+  // Nur D und A werden gedeutet, bei den drei anderen Formaten bleibt die
+  // Quote leer und der Hinweis "quote_fehlt" stehen. Lieber nichts als falsch.
+  if (gefunden.quote === null) {
+    for (let i = 0; i < arbeitszeilen.length; i++) {
+      if (gefunden.etikettZeilen.has(i)) continue
+      const treffer = (arbeitszeilen[i] ?? '').trim().match(/^([0-9]{1,3}[.,][0-9]{2,3})\s*([DAHMI])$/)
+      if (!treffer || !treffer[1] || !treffer[2]) continue
+
+      const format = treffer[2] === 'D' ? 'dezimal' : treffer[2] === 'A' ? 'amerikanisch' : null
+      if (format === null) continue
+
+      const q = deuteQuote(treffer[1], format)
+      if (q.dezimal === null || q.dezimal <= 1) continue
+
+      gefunden.quote = q
+      gefunden.etikettZeilen.add(i)
+      hinweise.push({
+        code: 'quote_aus_spalte',
+        schwere: 'info',
+        feld: 'quoteDezimal',
+        text: `Die Quote ${treffer[1]} stand ohne Beschriftung in einer Tabellenspalte, ` +
+          `der Buchstabe "${treffer[2]}" nennt das Format. Bitte kurz nachsehen.`,
+      })
+      break
+    }
+  }
+
   // 5. Auswahlzeilen: alles, was weder Kopfzeile noch Beschriftungszeile ist.
   const auswahlzeilen = []
   for (let i = 0; i < zeilen.length; i++) {

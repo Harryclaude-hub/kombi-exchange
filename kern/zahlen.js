@@ -268,6 +268,19 @@ export function leseZahl(roh, einstellungen = {}) {
     }
   }
 
+  // Abgeschnittene Betraege: das Auslassungszeichen am Ende faellt weg.
+  //
+  // Stake zeigt Kryptobetraege mit acht Nachkommastellen und schneidet sie in
+  // der Anzeige ab: "5,000.000000...". Ohne diese Zeile bleiben die drei
+  // Punkte stehen, gelten als Trennzeichen, und die Ziffern werden
+  // zusammengeschoben: aus 5.000 wurden 5.000.000.000. Faktor eine Million,
+  // ohne jede Warnung. Am 13.09.2026 an Karams echten Fotos gefunden.
+  //
+  // Weggeschnitten wird NUR am Ende, und nur zwei Punkte oder mehr. Ein
+  // einzelner Punkt am Ende ist ein Satzzeichen oder ein Trennzeichen und wird
+  // weiter unten behandelt. Mitten in der Zahl wird nichts angefasst.
+  text = text.replace(/(?:\.{2,}|…)\s*$/, '')
+
   // Tausenderraeume entfernen (Apostroph, geschuetztes Leerzeichen, schmales Leerzeichen).
   text = text.replace(TAUSENDERRAUM, '')
 
