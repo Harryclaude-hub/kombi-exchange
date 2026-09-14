@@ -34,8 +34,8 @@ Datei schreiben. Im Programm gibt es oben rechts "Code wechseln".
 ## Sofort loslegen
 
 ```bash
-npm test                      # 202 Tests
-node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 66 Dateien
+npm test                      # 212 Tests
+node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 68 Dateien
 node werkzeug/messe_lesen.mjs # Wie gut wird gelesen
 node werkzeug/server.mjs      # Server auf http://localhost:4173
 ```
@@ -341,6 +341,97 @@ Das sind verschiedene Wetten mit verschiedenem Risiko, und das Programm haelt
 sie zu Recht auseinander. Nur wo die Linie wirklich gleich ist, gehoeren sie
 zusammen.
 
+### Der erste echte Durchlauf durch die Texterkennung (14.09.2026)
+
+Bis hierher waren 202 Tests gruen, und **keine einzige Tabellenregel konnte an
+einem echten Bild greifen.** Gefunden wurde das erst beim Durchlauf im Browser.
+Genau davor warnt Regel 2.
+
+Dafuer gibt es jetzt `werkzeug/probe/anbieter.html`: Zerlegung, Texterkennung
+und Auswertung an nachgebauten Ansichten aller fuenf Anbieter, mit den
+ROHZEILEN unter jedem Fall. `werkzeug/probe/anbieter_bilder.js` lag vorher als
+Waise da, von nichts eingebunden.
+
+#### Der Fund: eine einzige Zeile machte alle Spaltenregeln wirkungslos
+
+In `lesen/ocr.js` stand:
+
+    String(zeile.text).replace(/\s+/g, ' ')
+
+Jede Folge von Leerzeichen wurde zu genau einer. Die Texterkennung laeuft zwar
+mit `preserve_interword_spaces`, aber danach wurde der Text wieder platt
+gemacht. Der Parser erkennt eine Spaltengrenze an ZWEI Leerzeichen, und die
+gab es nach dieser Zeile nie mehr.
+
+Eine PS3838-Tabellenzeile kam so an:
+
+    1 Sportsbook 2026-09-13 15:57:21 Detroit Lions-vs-New Orleans Saints 1854 (500.00) 427.00 0.00 WIN
+
+Aus einer Tabelle mit acht Spalten wurde eine Wortkette. Alle Tests liefen auf
+Zeilen, die von Hand mit zwei Leerzeichen geschrieben waren, also auf einer
+Annahme, die die Texterkennung nicht erfuellte.
+
+**Die Luecken stehen in den Wortkaesten.** `baueZeilentext` in `lesen/ocr.js`
+misst sie jetzt aus. Die Schwelle ist gemessen, nicht geschaetzt, an einer
+Zeile mit 38 Bildpunkten Hoehe:
+
+    Wörter innerhalb einer Spalte     6, 7, 7, 8      etwa 0,2 Zeilenhöhen
+    Spaltengrenzen                       89 bis 286      2,3 Zeilenhöhen und mehr
+
+Dazwischen liegt nichts. Die Schwelle von 0,6 Zeilenhoehen hat nach beiden
+Seiten viel Luft und waechst mit der Schriftgroesse mit. Danach:
+
+    1  Sportsbook  2026-09-13 15:57:21  Detroit Lions-vs-New Orleans Saints  1854  (500.00)  427.00  0.00  WIN
+
+#### Der zweite Fund: die Texterkennung verliert den Punkt in der Quote
+
+Bei der echten Schriftgroesse von dreizehn Bildpunkten:
+
+    auf dem Bild steht   1.854
+    gelesen wird         1854      (auf einer Karte sogar "tase")
+
+Damit ist der Quotentext unbrauchbar. Auf derselben Zeile stehen aber
+`Risk: 500.00` und die Gewinnspalte `427.00`, und 427 geteilt durch 500 plus
+eins ergibt genau 1,854.
+
+Das allein waere zu wenig: auf der Zeile steht auch die 1854 selbst, und
+1854 geteilt durch 500 plus eins ergaebe 4,708, ebenfalls eine moegliche
+Quote. Abschnitt 4e verlangt deshalb einen ZWEITEN Beleg: die Ziffern der
+gerechneten Quote muessen als Baustein auf dem Schein vorkommen.
+
+    1,854 hat die Ziffern 1854, und "1854" steht da    ->  belegt
+    4,708 hat die Ziffern 4708, die steht nirgends     ->  verworfen
+
+Zwei unabhaengige Angaben sagen dasselbe. Das ist Regel 1.
+
+#### Was jetzt durchlaeuft und was nicht
+
+    bet365      2 von 2 Karten     alles richtig
+    BetOnline   3 von 3 Karten     alles richtig, auch die amerikanischen Quoten
+    PS3838      2 von 3 Karten     die verlorene Zeile bleibt offen
+    Betway      0 von 2 Karten     die Zerlegung schneidet die Karte durch
+    Stake       2 statt 4 Karten   die zwei Spalten werden nicht getrennt
+
+Vorher waren es 5 von 10 gepruefte Karten, jetzt 7 von 10.
+
+**Die verlorene PS3838-Zeile.** Dort ist die Texterkennung wirklich kaputt:
+die Gewinnspalte wurde zu `22D`, daneben steht `bool`, `Egat`, `oC`. Ohne
+Gewinnspalte gibt es keinen Pruefstein, also wird nichts genommen. Die Quote
+bleibt leer, der Hinweis steht sichtbar da, der Mensch traegt sie ein. Einsatz
+und Stand werden richtig gelesen, und bei einem verlorenen Schein bewegt die
+Quote kein Geld: sie sagt nur, was moeglich gewesen waere.
+
+**Betway.** Die Zerlegung schneidet die Karte an ihrer Spielstandsbox durch.
+Der Kopf landet auf der einen Haelfte, das Geld auf der naechsten. Wichtig:
+das faellt LAUT auf. Die halbe Karte ohne Geld erzeugt
+`FEHLER einsatz_fehlt`, und ein Schein ohne Einsatz geht nicht in die Summe.
+Kein stiller Verlust.
+
+**Nicht an den Nachbauten nachgestellt.** Die Schwellwerte der Zerlegung
+haengen an der Frage, wie stark die innere Trennlinie im ECHTEN Bild ist. Mein
+Nachbau ist meine Zeichnung. Wer daran dreht, stellt auf das eigene Artefakt
+ein. Das wartet weiter auf die Dateien in `.arbeit/fotos/`.
+
 ### Was "trainieren" hier heisst
 
 Kein neuronales Netz wird nachtrainiert. Jeder Fehler, den ein echtes Bild
@@ -520,7 +611,7 @@ stil/          NUR Design. Loeschbar.
 daten/         Datenbank und oertliche Ablage.
 werkzeug/      Pruefskript, Server, Messwerkzeug, Probe- und Trainingsseiten.
 supabase/migrations/  Der Datenbankaufbau, 0001 bis 0008.
-test/          202 Tests.
+test/          212 Tests.
 ```
 
 ---
@@ -624,13 +715,13 @@ test/          202 Tests.
 
 | | |
 |---|---|
-| Tests | 202, davon 201 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 212, davon 211 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, das ist der Auftrag |
 | Massstab geprueft | 60 Scheine, 18 Anbieter, 19.812 $, eine Gruppe |
 | Excel | 60 Zeilen, Summe auf den Cent gleich dem Programm |
-| Aufbaupruefung | 66 Dateien, keine Beanstandung |
-| Fassung | 2026-09-14-e |
+| Aufbaupruefung | 68 Dateien, keine Beanstandung |
+| Fassung | 2026-09-14-f |
 
 ---
 

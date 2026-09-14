@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: Probe des ganzen Leseweges</title>
+    <link rel="stylesheet" href="../../stil/marken.css" />
+    <link rel="stylesheet" href="../../stil/grund.css" />
+    <link rel="stylesheet" href="../../stil/bauteile.css" />
+    <style>
+      /* Nur fuer diese Pruefseite. Gehoert nicht zum Programm. */
+      body { padding: 1.5rem; }
+      h1 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+      h2 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+      .probe { margin: 0.75rem 0; padding: 0.75rem; border: 1px solid var(--linie);
+               border-left: 3px solid var(--schrift-still); border-radius: var(--rundung);
+               background: var(--flaeche); }
+      .probe[data-ok="true"] { border-left-color: var(--gut); }
+      .probe[data-ok="false"] { border-left-color: var(--schlecht); }
+      .probename { font-weight: 700; }
+      .probezahl { font-family: var(--schriftart-zahl); font-size: var(--text-klein);
+                   color: var(--schrift-leise); white-space: pre-wrap; }
+      .probebild { margin-top: 0.5rem; max-width: 100%; height: auto;
+                   border: 1px solid var(--linie); }
+      .ergebnis { padding: 0.75rem 1rem; border-radius: var(--rundung);
+                  font-weight: 700; margin-bottom: 1rem; }
+      .ergebnis[data-ok="true"] { background: var(--gut-tief); color: var(--gut); }
+      .ergebnis[data-ok="false"] { background: var(--schlecht-tief); color: var(--schlecht); }
+      .zeilen { font-family: var(--schriftart-zahl); font-size: var(--text-klein);
+                background: var(--flaeche-tief); padding: 0.5rem; border-radius: var(--rundung);
+                white-space: pre-wrap; overflow-x: auto; margin-top: 0.4rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Probe des ganzen Leseweges</h1>
+    <p class="leer-text" style="margin: 0 0 1rem; text-align: left">
+      Zerlegung, Texterkennung und Auswertung an nachgebauten Ansichten der fuenf
+      Anbieter. Hier haengt die Annahme, auf der die Tabellenregeln beruhen: dass
+      die Texterkennung eine Spaltengrenze wirklich als MEHRERE Leerzeichen
+      ausgibt. Die Rohzeilen stehen deshalb mit unter jedem Fall.
+      <br /><br />
+      <strong>Was das beweist und was nicht:</strong> ein schlechtes Ergebnis hier
+      beweist, dass es nicht reicht. Ein gutes Ergebnis beweist NICHT, dass es an
+      echten Fotos reicht. Nachgebaute Bilder tragen die Schrift dessen, der sie
+      gebaut hat, und daran scheitert eine Texterkennung nicht. Das ist die
+      Untergrenze, nicht der Beweis. Der Beweis braucht die Dateien in
+      <code>.arbeit/fotos/</code>.
+    </p>
+    <div id="ergebnis" class="ergebnis">Laeuft, die Texterkennung braucht einen Moment ...</div>
+    <div id="proben"></div>
+
+    <script type="module">
+      import { zerlege } from '../../bild/segmentierung.js'
+      import { ladeBild, bereiteVor } from '../../bild/vorverarbeitung.js'
+      import { starteLeser } from '../../lesen/ocr.js'
+      import { leseSchein } from '../../kern/parser.js'
+      import { baueP3838, baueBetway, baueBet365, baueStake, baueBetOnline } from './anbieter_bilder.js'
+
+      const PS3838 = { gebiet: 'en', waehrung: 'EUR', quotenformat: 'dezimal' }
+      const BETWAY = { gebiet: 'de', waehrung: 'EUR', quotenformat: 'dezimal' }
+      const BET365 = { gebiet: 'de', waehrung: 'EUR', quotenformat: 'dezimal' }
+      const STAKE = { gebiet: 'en', waehrung: 'UNBEKANNT', quotenformat: 'dezimal' }
+      const BETONLINE = { gebiet: 'en', waehrung: 'USD', quotenformat: 'amerikanisch' }
+
+      // Die Zahlen stammen von Karams echten Bildschirmfotos vom 14.09.2026.
+      const faelle = [
+        {
+          name: 'PS3838, Tabelle mit drei Zeilen',
+          umgebung: PS3838,
+          bauen: () =>
+            baueP3838({
+              zeilen: [
+                { nr: '3777854081', quote: 1.854, einsatz: 500, gewinn: 427, gewonnen: true },
+                { nr: '3777852309', quote: 1.862, einsatz: 499, gewinn: 430.14, gewonnen: true },
+                { nr: '3778381351', quote: 1.847, einsatz: 2540.48, gewinn: -2540.48, gewonnen: false },
+              ],
+            }),
+          soll: [
+            { einsatz: 500, quote: 1.854 },
+            { einsatz: 499, quote: 1.862 },
+            { einsatz: 2540.48, quote: 1.847 },
+          ],
+        },
+        {
+          name: 'Betway, zwei Karten, deutsch',
+          umgebung: BETWAY,
+          bauen: () =>
+            baueBetway({
+              karten: [
+                { quote: 1.74, einsatz: 78.3, auszahlung: 136.3, stand: 'GEWONNEN' },
+                { quote: 1.87, einsatz: 287.5, auszahlung: 287.5, stand: 'UNGUELTIG' },
+              ],
+            }),
+          soll: [
+            { einsatz: 78.3, auszahlung: 136.3 },
+            { einsatz: 287.5 },
+          ],
+        },
+        {
+          name: 'bet365, zwei Karten, dunkel, deutsch',
+          umgebung: BET365,
+          bauen: () =>
+            baueBet365({
+              karten: [
+                { quote: 1.8, einsatz: 250, auszahlung: 450 },
+                { quote: 2.3, einsatz: 961.54, auszahlung: 2211.55 },
+              ],
+            }),
+          soll: [
+            { einsatz: 250, auszahlung: 450 },
+            { einsatz: 961.54, auszahlung: 2211.55 },
+          ],
+        },
+        {
+          name: 'Stake, vier Karten in ZWEI Spalten',
+          hinweis:
+            'Bekannte Luecke: die Zerlegung trennt die zwei Spalten noch nicht. ' +
+            'Erwartet werden deshalb weniger Karten als Wetten.',
+          umgebung: STAKE,
+          bauen: () =>
+            baueStake({
+              karten: [
+                { quote: 1.84, einsatz: 5000, auszahlung: 9175.9955, gewonnen: true },
+                { quote: 1.9, einsatz: 2000, auszahlung: 0, gewonnen: false },
+                { quote: 1.01, einsatz: 5100, auszahlung: 5151, gewonnen: true },
+                { quote: 1.69, einsatz: 2165, auszahlung: 3660.804995, gewonnen: true },
+              ],
+            }),
+          soll: null,
+        },
+        {
+          name: 'BetOnline, drei Karten, amerikanische Quoten',
+          umgebung: BETONLINE,
+          bauen: () =>
+            baueBetOnline({
+              karten: [
+                { nr: '396228612', quote: -157, einsatz: 181, auszahlung: 296.84, gewonnen: true },
+                { nr: '396376584', quote: -115, einsatz: 300, auszahlung: 561, gewonnen: true },
+                { nr: '396418815', quote: -114, einsatz: 268, auszahlung: null, gewonnen: false },
+              ],
+            }),
+          soll: [
+            { einsatz: 181, auszahlung: 296.84, quote: 1.64 },
+            { einsatz: 300, auszahlung: 561, quote: 1.87 },
+            { einsatz: 268 },
+          ],
+        },
+      ]
+
+      const proben = document.getElementById('proben')
+      const ergebnisKasten = document.getElementById('ergebnis')
+      const wert = (e, f) => (e[f] && typeof e[f] === 'object' && 'wert' in e[f] ? e[f].wert : e[f])
+      const nah = (a, b) => a !== null && a !== undefined && Math.abs(a - b) < 0.011
+
+      async function alsBild(leinwand) {
+        const blob = await new Promise((r) => leinwand.toBlob(r, 'image/png'))
+        return ladeBild(blob)
+      }
+
+      let gut = 0
+      let gesamt = 0
+
+      const leser = await starteLeser({
+        fortschritt: (anteil, text) => {
+          ergebnisKasten.textContent = `Texterkennung: ${text} ${Math.round((anteil ?? 0) * 100)} Prozent`
+        },
+      })
+
+      try {
+        for (const fall of faelle) {
+          const leinwand = fall.bauen()
+          const bild = await alsBild(leinwand)
+          const zerlegt = zerlege(bild)
+
+          const kasten = document.createElement('div')
+          kasten.className = 'probe'
+          const titel = document.createElement('div')
+          titel.className = 'probename'
+          kasten.append(titel)
+          if (fall.hinweis) {
+            const h = document.createElement('div')
+            h.className = 'probezahl'
+            h.textContent = fall.hinweis
+            kasten.append(h)
+          }
+          proben.append(kasten)
+
+          const zeilen = []
+          let fallGut = 0
+          let fallGesamt = 0
+
+          for (let i = 0; i < zerlegt.karten.length; i++) {
+            const { leinwand: karte } = bereiteVor(bild, zerlegt.karten[i])
+            const lesung = await leser.leseKarte(karte)
+            const schein = leseSchein(lesung.zeilentexte, fall.umgebung)
+
+            // Die Rohzeilen. Hier steht, ob eine Spaltengrenze als mehrere
+            // Leerzeichen ankommt. Daran haengen die Abschnitte 4d und 5.
+            zeilen.push(`--- Karte ${i + 1} ---`)
+            for (const z of lesung.zeilentexte) zeilen.push(`  |${z}|`)
+            zeilen.push(
+              `  gelesen: Einsatz ${wert(schein, 'einsatz')}` +
+                `  Quote ${wert(schein, 'quoteDezimal')}` +
+                `  Auszahlung ${wert(schein, 'auszahlung')}` +
+                `  Stand ${schein.status}`
+            )
+
+            const soll = fall.soll ? fall.soll[i] : null
+            if (soll) {
+              const fehler = []
+              for (const [feld, sollwert] of Object.entries(soll)) {
+                const name = feld === 'quote' ? 'quoteDezimal' : feld
+                if (!nah(wert(schein, name), sollwert)) {
+                  fehler.push(`${feld}: ist ${wert(schein, name)}, soll ${sollwert}`)
+                }
+              }
+              fallGesamt++
+              if (fehler.length === 0) fallGut++
+              else zeilen.push(`  DANEBEN: ${fehler.join(' | ')}`)
+            }
+          }
+
+          gut += fallGut
+          gesamt += fallGesamt
+          const ok = fall.soll === null ? null : fallGut === fallGesamt && zerlegt.karten.length === fall.soll.length
+          if (ok !== null) kasten.dataset.ok = String(ok)
+          titel.textContent =
+            `${ok === null ? 'OFFEN' : ok ? 'OK' : 'FEHLER'}  ${fall.name}` +
+            `  (${zerlegt.karten.length} Karten erkannt` +
+            (fall.soll ? `, ${fall.soll.length} erwartet` : '') +
+            `, ${fallGut} von ${fallGesamt} Karten richtig gelesen)`
+
+          const text = document.createElement('div')
+          text.className = 'zeilen'
+          text.textContent = zeilen.join('\n')
+          kasten.append(text)
+
+          leinwand.className = 'probebild'
+          kasten.append(leinwand)
+        }
+      } finally {
+        await leser.beenden()
+      }
+
+      const allesGut = gut === gesamt && gesamt > 0
+      ergebnisKasten.dataset.ok = String(allesGut)
+      ergebnisKasten.textContent = allesGut
+        ? `${gut} von ${gesamt} gepruefte Karten richtig gelesen.`
+        : `${gut} von ${gesamt} gepruefte Karten richtig. Bitte die roten Faelle ansehen.`
+    </script>
+  </body>
+</html>

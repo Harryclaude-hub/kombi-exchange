@@ -337,7 +337,7 @@ export function sammleZeilen(data) {
           sicherheit: Number(w?.confidence ?? 0) / 100,
           kasten: ausBbox(w?.bbox),
         }))
-        const text = String(zeile?.text ?? '').replace(/\s+/g, ' ').trim()
+        const text = baueZeilentext(zeile?.text, woerter, ausBbox(zeile?.bbox).hoehe)
         if (text === '') continue
         zeilen.push({
           text,
@@ -349,6 +349,75 @@ export function sammleZeilen(data) {
     }
   }
   return zeilen
+}
+
+/**
+ * Ab welcher Luecke zwischen zwei Woertern eine SPALTENGRENZE beginnt,
+ * gemessen in Vielfachen der Zeilenhoehe.
+ *
+ * AM 14.09.2026 AN EINER PS3838-TABELLE GEMESSEN, nicht geschaetzt. Eine Zeile
+ * mit 38 Bildpunkten Hoehe:
+ *
+ *     Woerter innerhalb einer Spalte      6, 7, 7, 8    also etwa 0,2 Zeilenhoehen
+ *     Spaltengrenzen                      89 bis 286    also 2,3 Zeilenhoehen und mehr
+ *
+ * Dazwischen liegt nichts. Der Wert 0,6 hat nach beiden Seiten viel Luft und
+ * waechst mit der Schriftgroesse mit, weil er an der Zeilenhoehe haengt.
+ */
+const SPALTENGRENZE = 0.6
+
+/** Unter dieser Luecke wird nie getrennt, egal wie klein die Schrift ist. */
+const SPALTE_MINDESTLUECKE = 6
+
+/**
+ * Setzt den Text einer Zeile aus ihren Woertern zusammen und HAELT DABEI DIE
+ * SPALTEN FEST.
+ *
+ * WARUM ES DIESE FUNKTION GIBT
+ *
+ * Vorher stand hier eine einzige Zeile:
+ *
+ *     String(zeile.text).replace(/\s+/g, ' ')
+ *
+ * Damit wurde jede Folge von Leerzeichen zu genau einem. Die Texterkennung
+ * laeuft zwar mit preserve_interword_spaces, aber der Text wurde danach wieder
+ * platt gemacht, und die Spalteninformation war weg.
+ *
+ * Am 14.09.2026 im Browser gemessen. Eine PS3838-Tabellenzeile kam so an:
+ *
+ *     1 Sportsbook 2026-09-13 15:57:21 Detroit Lions-vs-New Orleans Saints 1854 (500.00) 427.00 0.00 WIN
+ *
+ * Aus einer Tabelle mit acht Spalten wurde eine einzige Wortkette. Der Parser
+ * erkennt eine Spaltengrenze an zwei Leerzeichen, und die gab es nie. Alle
+ * Regeln, die auf Spalten beruhen, konnten an einem echten Bild nicht greifen,
+ * obwohl ihre Tests gruen waren. Genau davor warnt Projektregel 2.
+ *
+ * Die Luecken stehen in den Wortkaesten, die die Texterkennung mitliefert. Sie
+ * werden hier ausgemessen, nicht geraten.
+ *
+ * @param {any} rohtext   Der Text der Zeile, als Rueckfall ohne Wortkaesten.
+ * @param {import('../kern/typen.js').OcrWort[]} woerter
+ * @param {number} zeilenhoehe
+ * @returns {string}
+ */
+export function baueZeilentext(rohtext, woerter, zeilenhoehe) {
+  const brauchbar = (woerter ?? []).filter((w) => String(w?.text ?? '').trim() !== '')
+  // Ohne Wortkaesten bleibt nur der alte Weg. Besser platt als gar nichts.
+  if (brauchbar.length === 0) return String(rohtext ?? '').replace(/\s+/g, ' ').trim()
+  if (brauchbar.length === 1) return brauchbar[0].text.trim()
+
+  const sortiert = brauchbar.slice().sort((a, b) => a.kasten.x - b.kasten.x)
+  const grenze = Math.max(SPALTE_MINDESTLUECKE, (zeilenhoehe || 0) * SPALTENGRENZE)
+
+  let text = sortiert[0].text.trim()
+  for (let i = 1; i < sortiert.length; i++) {
+    const links = sortiert[i - 1].kasten
+    const rechts = sortiert[i].kasten
+    const luecke = rechts.x - (links.x + links.breite)
+    text += luecke >= grenze ? '  ' : ' '
+    text += sortiert[i].text.trim()
+  }
+  return text.trim()
 }
 
 /**

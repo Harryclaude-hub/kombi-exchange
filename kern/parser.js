@@ -1086,6 +1086,101 @@ export function leseSchein(rohzeilen, umgebung) {
     }
   }
 
+  // 4e. Die Quote aus Einsatz und Gewinnspalte zurueckrechnen.
+  //
+  // AM 14.09.2026 IM BROWSER GEMESSEN, an einer nachgebauten PS3838-Tabelle in
+  // der echten Schriftgroesse von dreizehn Bildpunkten. Die Texterkennung
+  // verliert dort den Dezimalpunkt der Quote:
+  //
+  //   auf dem Bild steht   1.854
+  //   gelesen wird         1854      (einmal sogar "tase")
+  //
+  // Damit ist der Quotentext unbrauchbar, und Abschnitt 4d findet keinen
+  // Kandidaten im Quotenbereich. Auf derselben Zeile stehen aber zwei Zahlen,
+  // die das Ergebnis eindeutig festlegen:
+  //
+  //   Risk: 500.00     der Einsatz
+  //   427.00           die Spalte Win/Loss, also der GEWINN
+  //
+  //   427 / 500 + 1 = 1,854
+  //
+  // DAS ALLEIN WAERE NOCH ZU WENIG. Auf der Zeile steht auch die 1854 selbst,
+  // und 1854 / 500 + 1 ergaebe 4,708: ebenfalls eine moegliche Quote. Deshalb
+  // wird ein zweiter Beleg verlangt: die ZIFFERN der gerechneten Quote muessen
+  // irgendwo auf der Zeile als Baustein vorkommen.
+  //
+  //   1,854 hat die Ziffern 1854, und "1854" steht da   ->  belegt
+  //   4,708 hat die Ziffern 4708, und die steht nirgends ->  verworfen
+  //
+  // Zwei voneinander unabhaengige Angaben sagen dasselbe. Das ist Projektregel
+  // 1: hier gibt es einen Pruefstein, also darf die Automatik entscheiden.
+  //
+  // Bei einem VERLORENEN Schein steht in der Gewinnspalte der Einsatz mit
+  // Minus. Daraus laesst sich nichts zurueckrechnen, und es wird auch nichts
+  // genommen. Die Quote bleibt leer, der Hinweis bleibt stehen, der Mensch
+  // traegt sie ein. Das ist richtig so: ohne Pruefstein wird nicht geraten.
+  if (gefunden.quote === null && (gefunden.einsatz?.wert ?? 0) > 0) {
+    const einsatzWert = gefunden.einsatz.wert
+
+    /** Alle Ziffernfolgen, die irgendwo auf dem Schein stehen. */
+    const ziffernfolgen = new Set()
+    for (const z of arbeitszeilen) {
+      for (const baustein of (z ?? '').split(/\s+/)) {
+        const nur = baustein.replace(/[^0-9]/g, '')
+        if (nur.length >= 2) ziffernfolgen.add(nur.replace(/^0+(?=\d)/, ''))
+      }
+    }
+
+    /** @type {{quote: number, gewinn: number, ziffern: string}[]} */
+    const kandidaten = []
+    for (const z of arbeitszeilen) {
+      for (const spalte of (z ?? '').split(/\s{2,}/).map((t) => t.trim())) {
+        if (spalte === '' || !NACKTE_ZAHL.test(spalte)) continue
+        const fund = leseZahl(spalte, { gebiet, waehrungBekannt })
+        if (fund.wert === null || fund.wert <= 0) continue
+        // Der Einsatz selbst ist kein Gewinn.
+        if (Math.abs(fund.wert - einsatzWert) < 0.005) continue
+
+        const quote = Math.round((fund.wert / einsatzWert + 1) * 1000) / 1000
+        if (quote <= 1.01 || quote > 100) continue
+
+        // Der zweite Beleg: die Ziffern der gerechneten Quote muessen als
+        // Baustein auf dem Schein stehen.
+        const ziffern = quote.toFixed(3).replace(/[^0-9]/g, '').replace(/0+$/, '')
+        const passt = [...ziffernfolgen].some((f) => f === ziffern || f === quote.toFixed(3).replace(/[^0-9]/g, ''))
+        if (!passt) continue
+
+        if (!kandidaten.some((k) => Math.abs(k.quote - quote) < 0.0005)) {
+          kandidaten.push({ quote, gewinn: fund.wert, ziffern })
+        }
+      }
+    }
+
+    if (kandidaten.length > 1) {
+      hinweise.push({
+        code: 'quote_rueckgerechnet_mehrdeutig',
+        schwere: 'warnung',
+        feld: 'quoteDezimal',
+        text:
+          `Aus Einsatz und Gewinnspalte liessen sich mehrere Quoten zurueckrechnen ` +
+          `(${kandidaten.map((k) => k.quote).join(', ')}). Es wurde keine genommen. ` +
+          `Bitte von Hand eintragen.`,
+      })
+    } else if (kandidaten.length === 1) {
+      const k = kandidaten[0]
+      gefunden.quote = { dezimal: k.quote, amerikanisch: null, art: 'dezimal', mehrdeutig: false, roh: k.ziffern }
+      hinweise.push({
+        code: 'quote_rueckgerechnet',
+        schwere: 'info',
+        feld: 'quoteDezimal',
+        text:
+          `Die Quote stand unlesbar im Bild und wurde zurueckgerechnet: ` +
+          `Gewinn ${k.gewinn} geteilt durch Einsatz ${einsatzWert} plus eins ergibt ${k.quote}. ` +
+          `Belegt durch die Ziffernfolge "${k.ziffern}" auf demselben Schein. Bitte kurz nachsehen.`,
+      })
+    }
+  }
+
   // 5. Auswahlzeilen: alles, was weder Kopfzeile noch Beschriftungszeile ist.
   //
   // ERGAENZUNG VOM 14.09.2026, an Karams echten PS3838-Bildern gefunden.
