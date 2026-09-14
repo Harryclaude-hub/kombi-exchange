@@ -117,6 +117,47 @@ wieder einbaut:
   Text. "0 Fehler" bei fuenf verschwundenen Karten war die falsche gute
   Nachricht.
 
+### Karams fuenf echte Anbieter (13.09.2026)
+
+Er setzt bei **BetOnline, PS3838, Betway, bet365 und Stake**. Von allen fuenf
+gibt es Bildschirmfotos. Die Zeilen daraus stehen als Test in
+`test/echte_anbieter.test.mjs`, mit nachgerechneten Sollwerten.
+
+**Achtung, das sind nicht dieselben Tests wie der Bildkorpus.** Hier stehen
+Zeilen, die vom Bild ABGELESEN wurden. Sie pruefen Beschriftungen,
+Schreibweisen und Anordnung. Die Texterkennung selbst ist damit NICHT
+geprueft, dafuer braucht es die Bilddateien in `.arbeit/fotos/`.
+
+Was bei diesen fuenf anders ist als bei allem bisher Gebauten:
+
+| Anbieter | Besonderheit |
+|---|---|
+| **Stake** | Krypto mit acht Nachkommastellen, in der Anzeige abgeschnitten: `5,000.000000...`. Quote deutsch (`1,90`), Betrag englisch (`2,000.00`), im selben Schein. Beschriftung `Quoten`, Status `Verlust`. |
+| **PS3838** | TABELLE statt Karten. Spaltenueberschriften stehen ausserhalb der Zeile. Einsatz als `Risk: 500.00 (500.00)`, Quote nackt als `1.854 D`, Spalte Win/Loss ist der GEWINN, nicht die Auszahlung. |
+| **Betway** | Deutsch. `Umsetzen` statt Einsatz, `DU HAST GEWONNEN` ueber der Auszahlung, `UNGUELTIG` und `Erstattet` bei einer Annullierung. Beschriftung und Wert stehen in getrennten Zeilen. |
+| **bet365** | Deutsch, dunkler Modus. `Gewinn` heisst hier die Auszahlung MIT Einsatz (250 mal 1,80 gleich 450). Im Englischen waere `win` der reine Gewinn: das Wort entscheidet nicht, die Gegenrechnung entscheidet. |
+| **BetOnline** | Der bekannte Fall. Verlorene Scheine haben gar keine Returns-Spalte. |
+
+**Zwei Dinge, bei denen das Programm recht hatte und der Mensch falsch lag:**
+
+- Die angezeigte Quote ist nicht die echte. Stake zeigt 1,84, aus 5000 und
+  9175,9955 ergeben sich 1,8351991. Der Buchmacher rundet, das Programm
+  rechnet den genauen Multiplikator zurueck. 5000 mal 1,84 waeren 9200.
+- Bei einem verlorenen Schein sind `auszahlung` (was moeglich gewesen waere)
+  und `ausgezahlt` (was wirklich zurueckkam, also null) zwei verschiedene
+  Zahlen. Beide werden gebraucht.
+
+**OFFENE FRAGE AN KARAM:** Geldbetraege werden auf den Cent gerundet
+(`kern/quoten.js`). Bei Stake stehen acht Nachkommastellen, aus 9175,9955 wird
+9176,00. Bei sechzig Scheinen sind das hoechstens dreissig Cent. Soll die
+Rundung bleiben? Sie haengt an Excel und an der Summenpruefung, deshalb nicht
+eigenmaechtig geaendert.
+
+**Gemischte Waehrungen werden zuschlagen.** Karam setzt EUR bei PS3838,
+Betway und bet365, USD bei BetOnline und Krypto bei Stake. Der Riesenschein
+meldet das als FEHLER und rechnet NICHT um. Das ist richtig so, aber er muss
+entscheiden, wie er damit umgeht.
+
 ### Was "trainieren" hier heisst
 
 Kein neuronales Netz wird nachtrainiert. Jeder Fehler, den ein echtes Bild
