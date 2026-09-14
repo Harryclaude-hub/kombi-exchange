@@ -197,6 +197,11 @@ export function speichereProjekt(token, projekt, fassung = null) {
       notiz: projekt.notiz,
       waehrung: projekt.waehrung,
       angelegtAm: projekt.angelegtAm,
+      // Ablage: Ordner und Pin. Fehlt eines davon im Aufruf, laesst die
+      // Datenbank den alten Wert stehen (coalesce in Migration 0008). Deshalb
+      // werden sie nur mitgeschickt, wenn sie am Projekt wirklich stehen.
+      ordner: projekt.ordner ?? null,
+      angepinnt: projekt.angepinnt ?? null,
     },
   })
 }

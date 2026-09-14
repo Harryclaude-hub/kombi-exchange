@@ -1806,3 +1806,349 @@ li[data-schwere="info"] .hinweisart {
   background: var(--gut-tief);
   color: var(--gut);
 }
+
+/* ------------------------------------------------------------------- Ablage
+
+   Der Explorer: Ordner links, Projekte rechts, darunter der Inhalt des
+   offenen Projekts. Logik steht in oberflaeche/ansicht_ablage.js, hier
+   stehen nur Farben und Groessen.
+                                                                            */
+
+.ablage-kopf {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--luft-4);
+}
+
+.ablage-titel {
+  font-size: var(--text-gross);
+  font-weight: 600;
+}
+
+.ablage-zahl {
+  color: var(--schrift-leise);
+  font-size: var(--text-klein);
+}
+
+.ablage-suche,
+.ablage-sortierung {
+  padding: var(--luft-2) var(--luft-3);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  background: var(--flaeche);
+  color: var(--schrift);
+  font: inherit;
+}
+
+.ablage-suche {
+  flex: 1 1 14rem;
+  max-width: 24rem;
+}
+
+.ablage-suche:focus,
+.ablage-sortierung:focus {
+  outline: none;
+  border-color: var(--betonung);
+}
+
+.ablage-raster {
+  display: grid;
+  grid-template-columns: 15rem 1fr;
+  gap: var(--luft-4);
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .ablage-raster {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ablage-ordner,
+.ablage-projekte,
+.ablage-inhalt {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  padding: var(--luft-4);
+}
+
+.ablage-inhalt {
+  margin-top: var(--luft-4);
+}
+
+.ablage-spaltenkopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--luft-3);
+  margin-bottom: var(--luft-3);
+}
+
+.ablage-spaltentitel {
+  font-size: var(--text-klein);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--schrift-leise);
+  margin-bottom: var(--luft-3);
+}
+
+.ablage-spaltenkopf .ablage-spaltentitel {
+  margin-bottom: 0;
+}
+
+.ablage-hinweis {
+  color: var(--schrift-still);
+  font-size: var(--text-klein);
+  margin: var(--luft-3) 0 0;
+}
+
+.ablage-knopf {
+  padding: var(--luft-1) var(--luft-3);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  background: var(--flaeche-hoch);
+  color: var(--schrift);
+  font: inherit;
+  font-size: var(--text-klein);
+  cursor: pointer;
+}
+
+.ablage-knopf:hover {
+  border-color: var(--betonung);
+}
+
+/* -------------------------------------------------------------- Ordnerliste */
+
+.ordnerliste {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ordnerzeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--luft-2);
+  padding: var(--luft-2) var(--luft-3);
+  border-radius: var(--rundung);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--takt), border-color var(--takt);
+}
+
+.ordnerzeile:hover {
+  background: var(--flaeche-hoch);
+}
+
+.ordnerzeile[data-aktiv='true'] {
+  background: var(--betonung-tief);
+  border-color: var(--betonung);
+}
+
+.ordnerzeile.ordner-bereit {
+  border-color: var(--gut);
+  background: var(--gut-tief);
+}
+
+.ordnername {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ordnerzahl {
+  color: var(--schrift-still);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+}
+
+/* ------------------------------------------------------------- Projektliste */
+
+.projektliste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--luft-2);
+}
+
+.projektzeile {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--luft-3);
+  padding: var(--luft-3);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  background: var(--grund);
+  cursor: pointer;
+  transition: border-color var(--takt), background var(--takt);
+}
+
+.projektzeile:hover {
+  border-color: var(--linie-hell);
+  background: var(--flaeche-hoch);
+}
+
+.projektzeile[data-offen='true'] {
+  border-color: var(--betonung);
+  background: var(--betonung-tief);
+}
+
+.projektzeile[data-gepinnt='true'] .projektname::before {
+  content: '* ';
+  color: var(--offen);
+}
+
+.projektzeile.projekt-zieht {
+  opacity: 0.5;
+}
+
+.projektkopf {
+  display: flex;
+  align-items: baseline;
+  gap: var(--luft-2);
+  min-width: 0;
+}
+
+.projektname {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projektordner {
+  color: var(--schrift-still);
+  font-size: var(--text-klein);
+}
+
+.projektdatum {
+  color: var(--schrift-leise);
+  font-size: var(--text-klein);
+  white-space: nowrap;
+}
+
+.projektaktionen {
+  display: flex;
+  gap: var(--luft-1);
+}
+
+.projektpin,
+.projektknopf {
+  padding: var(--luft-1) var(--luft-2);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  background: transparent;
+  color: var(--schrift-leise);
+  font: inherit;
+  font-size: var(--text-winzig);
+  cursor: pointer;
+}
+
+.projektpin:hover,
+.projektknopf:hover {
+  border-color: var(--linie-hell);
+  color: var(--schrift);
+}
+
+.projektpin[data-an='true'] {
+  border-color: var(--offen);
+  color: var(--offen);
+  background: var(--offen-tief);
+}
+
+/* ------------------------------------------------------- Inhalt des Projekts */
+
+.kombiblock {
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  padding: var(--luft-3);
+  margin-bottom: var(--luft-3);
+  background: var(--grund);
+}
+
+.kombikopf {
+  display: flex;
+  align-items: baseline;
+  gap: var(--luft-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--luft-3);
+}
+
+.kombititel {
+  font-weight: 600;
+}
+
+.kombidatum,
+.kombizahl {
+  color: var(--schrift-leise);
+  font-size: var(--text-klein);
+}
+
+.kombisumme {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--luft-5);
+  padding-bottom: var(--luft-3);
+  border-bottom: 1px solid var(--linie);
+  margin-bottom: var(--luft-2);
+}
+
+.summenname {
+  color: var(--schrift-still);
+  font-size: var(--text-winzig);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summenwert {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-normal);
+}
+
+.scheinliste {
+  display: flex;
+  flex-direction: column;
+}
+
+.scheinzeile {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: var(--luft-3);
+  padding: var(--luft-1) 0;
+  font-size: var(--text-klein);
+  border-bottom: 1px solid var(--linie);
+}
+
+.scheinzeile:last-child {
+  border-bottom: none;
+}
+
+.scheinanbieter {
+  color: var(--schrift);
+}
+
+.scheinzahl {
+  font-family: var(--schriftart-zahl);
+  color: var(--schrift-leise);
+  text-align: right;
+}
+
+.scheinstand {
+  color: var(--schrift-still);
+  text-align: right;
+  min-width: 5rem;
+}
+
+.kombiwarnung {
+  color: var(--offen);
+  background: var(--offen-tief);
+  border: 1px solid var(--offen);
+  border-radius: var(--rundung);
+  padding: var(--luft-2) var(--luft-3);
+  margin: 0 0 var(--luft-3);
+  font-size: var(--text-klein);
+}

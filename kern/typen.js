@@ -193,6 +193,14 @@ export const DATENFASSUNG = 1
  * @property {Waehrung} waehrung
  * @property {string} angelegtAm
  * @property {string} geaendertAm
+ * @property {string} [ordner]
+ *   In welchem Ordner der Ablage das Projekt liegt. Leer heisst: ganz oben.
+ *   Ein Ordner ist nur ein Name, keine eigene Tabelle. Verschieben heisst:
+ *   dieses Feld aendern. Begruendung in supabase/migrations/0008.
+ * @property {boolean} [angepinnt]
+ *   Angepinnte Projekte stehen in der Ablage immer oben, egal wie sortiert
+ *   wird.
+ * @property {number} [fassung]
  */
 
 /**

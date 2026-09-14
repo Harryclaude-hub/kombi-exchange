@@ -158,6 +158,45 @@ Betway und bet365, USD bei BetOnline und Krypto bei Stake. Der Riesenschein
 meldet das als FEHLER und rechnet NICHT um. Das ist richtig so, aber er muss
 entscheiden, wie er damit umgeht.
 
+### Die Ablage (14.09.2026)
+
+Karams Auftrag: "Ein System wie beim Explorer, wo man all die Scheine und die
+Kombis hat. Man kann hin und her verschieben, es soll uebersichtlich sein, man
+soll Sachen anpinnen koennen, alles ist mit Datum beschriftet und man kann es
+umbenennen."
+
+`oberflaeche/ansicht_ablage.js`, Reiter "Ablage".
+
+- Links die Ordner ("Alle", "Angepinnt", "Ohne Ordner", dann jeder Ordner mit
+  Anzahl), rechts die Projekte, darunter der Inhalt des offenen Projekts.
+- Umbenennen per Doppelklick auf den Namen oder ueber den Knopf.
+- Anpinnen: Angepinntes steht IMMER oben, egal wie sortiert wird.
+- Verschieben: ein Projekt mit der Maus auf einen Ordner ziehen.
+- Suchen ueber Name, Ordner und Notiz. Sortieren nach Datum oder Name.
+- Je Kombination: Einsatz, moeglicher Gewinn, Multiplikator, zurueck, und
+  darunter jeder einzelne Schein mit Anbieter, Einsatz, Quote und Stand.
+
+**Ein Ordner ist nur ein Textfeld am Projekt, keine eigene Tabelle.**
+Verschieben heisst: das Feld aendern. Ein Ordner besteht, solange ein Projekt
+darin liegt, und verschwindet sonst von selbst. Begruendung in
+`supabase/migrations/0008_ablage_ordner_und_anpinnen.sql`. Die Migration ist
+angewandt, die Spalten `ordner` und `angepinnt` stehen in `kombi.projekte`.
+
+**Zwei Dinge, die beim Bauen aufgefallen sind:**
+
+- Die Ansicht wird bei jeder Aenderung komplett neu gebaut. Damit war das
+  Suchfeld nach jedem getippten Zeichen ein anderes Element, und der Fokus war
+  weg: man konnte genau einen Buchstaben eingeben. `zeichne()` merkt sich jetzt
+  den Fokus und stellt ihn samt Schreibzeiger wieder her.
+- Gemischte Waehrungen werden in einer Kombination NICHT summiert. 181 Dollar
+  plus 750 Euro sind nicht 931. Stattdessen steht dort ein Strich und eine
+  Warnung. Der Multiplikator bleibt, er ist ein Verhaeltnis und kuerzt sich.
+
+**Die Ansicht speichert nichts selbst.** Sie meldet zwei Ereignisse
+(`kombi-projekt-oeffnen`, `kombi-projekt-speichern`), und `app.js` laedt und
+speichert. Sonst gaebe es zwei Stellen, die Projekte schreiben, und die
+driften auseinander.
+
 ### Was "trainieren" hier heisst
 
 Kein neuronales Netz wird nachtrainiert. Jeder Fehler, den ein echtes Bild

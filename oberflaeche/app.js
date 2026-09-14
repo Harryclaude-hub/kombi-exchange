@@ -17,6 +17,7 @@ import { sorgeFuerAktuelleDateien } from '../daten/fassung.js'
 import { ladeBild } from '../bild/vorverarbeitung.js'
 
 import * as AnsichtAufnahme from './ansicht_aufnahme.js'
+import * as AnsichtAblage from './ansicht_ablage.js'
 import * as AnsichtScheine from './ansicht_scheine.js'
 import * as AnsichtPositionen from './ansicht_positionen.js'
 import * as AnsichtAusgabe from './ansicht_ausgabe.js'
@@ -26,6 +27,7 @@ const ANSICHTEN = [
   { schluessel: 'scheine', name: 'Scheine', zeichne: AnsichtScheine.zeichne },
   { schluessel: 'positionen', name: 'Riesenscheine', zeichne: AnsichtPositionen.zeichne },
   { schluessel: 'ausgabe', name: 'Ausgabe', zeichne: AnsichtAusgabe.zeichne },
+  { schluessel: 'ablage', name: 'Ablage', zeichne: AnsichtAblage.zeichne },
 ]
 
 /** @type {HTMLElement|null} */
@@ -54,6 +56,7 @@ export async function starte(ziel) {
   }
 
   Zustand.hoerZu(zeichneAlles)
+  horcheAufAblage()
 
   const gemerkt = localStorage.getItem(SITZUNG_SCHLUESSEL) ?? ''
   if (gemerkt) {
@@ -441,6 +444,74 @@ function projektwahl(stand) {
       onclick: () => leereAktuellesProjekt(),
     }),
   ])
+}
+
+/**
+ * Die Ablage meldet ihre Wuensche ueber zwei Ereignisse.
+ *
+ * WARUM SO: oberflaeche/ansicht_ablage.js soll nichts von der Datenbank wissen
+ * und nichts vom Nachladen. Sie zeigt an und meldet, was der Nutzer will. Das
+ * Laden und Speichern bleibt hier, an EINER Stelle, zusammen mit dem Rest.
+ *
+ * Wer das umdreht und in der Ansicht speichert, hat zwei Stellen, die Projekte
+ * schreiben, und die driften auseinander.
+ */
+function horcheAufAblage() {
+  window.addEventListener('kombi-projekt-oeffnen', async (e) => {
+    const id = /** @type {any} */ (e).detail?.id
+    const stand = Zustand.hole()
+    const gewaehlt = stand.projekte.find((p) => p.id === id)
+    if (!gewaehlt || gewaehlt.id === stand.projekt?.id) return
+
+    Zustand.aendere({
+      projekt: gewaehlt,
+      fassung: fassungVon(gewaehlt),
+      scheine: [],
+      riesenscheine: [],
+      bilder: new Map(),
+    })
+    await ladeProjektinhalt(gewaehlt.id)
+  })
+
+  window.addEventListener('kombi-projekt-speichern', async (e) => {
+    const projekt = /** @type {any} */ (e).detail?.projekt
+    if (!projekt) return
+    await speichereProjektAngaben(projekt)
+  })
+}
+
+/**
+ * Speichert Name, Ordner und Pin eines Projekts.
+ *
+ * ERST speichern, DANN anzeigen. Wer es umgekehrt macht, sieht eine Aenderung,
+ * die es nie gegeben hat, und merkt es erst beim naechsten Laden. Genau diese
+ * Fehlerklasse steht in UEBERGABE.md.
+ *
+ * @param {import('../kern/typen.js').Projekt} projekt
+ */
+async function speichereProjektAngaben(projekt) {
+  const stand = Zustand.hole()
+  const antwort = await Datenbank.speichereProjekt(stand.token, projekt, fassungVon(projekt))
+
+  if (antwort.art === 'fehler') {
+    Zustand.melde('warnung', `Nicht gespeichert: ${antwort.meldung}`)
+    return
+  }
+
+  const zeile = Array.isArray(antwort.daten) ? antwort.daten[0] : antwort.daten
+  if (!zeile) {
+    // Null Zeilen zurueck heisst: es wurde nichts geschrieben. Das sieht sonst
+    // genauso aus wie Erfolg, und beim naechsten Laden steht der alte Wert da.
+    Zustand.melde('warnung', 'Nicht gespeichert: die Datenbank hat nichts zurueckgemeldet.')
+    return
+  }
+
+  const frisch = ausDatenbankProjekt(zeile)
+  Zustand.aendere({
+    projekte: stand.projekte.map((p) => (p.id === frisch.id ? frisch : p)),
+    projekt: stand.projekt?.id === frisch.id ? frisch : stand.projekt,
+    fassung: stand.projekt?.id === frisch.id ? fassungVon(frisch) : stand.fassung,
+  })
 }
 
 /**
@@ -903,6 +974,9 @@ function ausDatenbankProjekt(zeile) {
     waehrung: /** @type {any} */ (zeile.waehrung ?? 'UNBEKANNT'),
     angelegtAm: String(zeile.angelegt_am ?? ''),
     geaendertAm: String(zeile.geaendert_am ?? ''),
+    // Ablage: Ordner und Pin. Alte Zeilen haben die Felder noch nicht.
+    ordner: String(zeile.ordner ?? ''),
+    angepinnt: zeile.angepinnt === true,
     // Haengt am Projekt, damit beim Umschalten die richtige mitkommt.
     fassung: fassungVon(zeile),
   }
