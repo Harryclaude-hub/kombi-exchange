@@ -26,8 +26,16 @@ const FUELLWOERTER = new Set([
 const MARKTARTEN = [
   { art: 'spread', muster: /\b(?:spread|handicap|hcp|asian handicap|ah|hdp)\b/i },
   { art: 'moneyline', muster: /\b(?:moneyline|money line|ml|sieg|siegwette|1x2|match winner|win outright)\b/i },
-  { art: 'ueber', muster: /\b(?:over|ueber|über|o\/u over|mehr als)\b/i },
-  { art: 'unter', muster: /\b(?:under|unter|weniger als)\b/i },
+  // WORTGRENZE MIT UMLAUT: \b ist in JavaScript rein englisch. Vor einem Ü
+  // steht deshalb NIE eine Wortgrenze, denn beide Seiten gelten als
+  // Nichtwortzeichen. /\büber\b/ hat nie getroffen, kein einziges Mal.
+  //
+  // Am 14.09.2026 an Karams echten Bildern gemessen: jeder deutsche Schein
+  // verlor dadurch Marktart UND Linie, also die zwei staerksten Merkmale fuer
+  // die Zuordnung zum Riesenschein. Die Fassung mit \p{L} kennt Buchstaben
+  // aller Sprachen.
+  { art: 'ueber', muster: /(?<![\p{L}\p{N}_])(?:over|ueber|über|o\/u over|mehr als)(?![\p{L}\p{N}_])/iu },
+  { art: 'unter', muster: /(?<![\p{L}\p{N}_])(?:under|unter|weniger als)(?![\p{L}\p{N}_])/iu },
   { art: 'doppelchance', muster: /\b(?:double chance|doppelte chance|doppelchance|1x|x2|12)\b/i },
   { art: 'btts', muster: /\b(?:both teams to score|btts|beide treffen)\b/i },
   { art: 'korrekt', muster: /\b(?:correct score|exaktes ergebnis|endstand)\b/i },
@@ -83,11 +91,17 @@ export function marktart(markt) {
  */
 export function bildeKennung(auswahl) {
   const markttext = auswahl.markt.wert ?? ''
-  const art = marktart(markttext)
+  // Die Marktart wird aus Markt UND Tipp bestimmt. Welcher der beiden die
+  // Wettart traegt, entscheidet allein der Aufbau des Anbieters, nicht die
+  // Wette selbst. Bei Stake steht sie im Tipp, bei BetOnline im Markt.
+  const art = marktart(`${markttext} ${auswahl.tipp.wert ?? ''}`)
 
   // Die Marktart und die Linie werden aus dem Thema entfernt, damit sie nicht doppelt zaehlen.
   const themaText = markttext
-    .replace(/\b(?:over|under|ueber|über|unter|spread|handicap|hcp|ah|moneyline|ml)\b/gi, ' ')
+    .replace(
+      /(?<![\p{L}\p{N}_])(?:over|under|ueber|über|unter|spread|handicap|hcp|ah|moneyline|ml)(?![\p{L}\p{N}_])/giu,
+      ' '
+    )
     .replace(/[+-]?\d+(?:[.,]\d+)?/g, ' ')
 
   return {

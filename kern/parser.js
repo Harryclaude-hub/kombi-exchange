@@ -418,6 +418,62 @@ export function findeScheinnummer(zeilen) {
     }
   }
 
+  // Vierte Wahl: eine nackte lange Ziffernfolge als EIGENE Tabellenspalte.
+  //
+  // PS3838 zeigt den Wettverlauf als Tabelle. Die Scheinnummer steht dort
+  // nicht am Zeilenanfang, sondern in der Spalte "Detail", also mitten drin:
+  //
+  //   Sportsbook  3778262388  Over 84.5 Rushing Yards  1.826  Risk: 2,315.98 ...
+  //
+  // Regel drei greift hier nicht. Sie verlangt den Zeilenanfang, und ihre
+  // Bremse "keine Geldbeschriftung in der Zeile" kann eine Tabellenzeile nie
+  // erfuellen: "Risk:" steht immer mit drauf, nur eben in einer ANDEREN Spalte.
+  //
+  // WARUM DAS WICHTIG IST UND NICHT NUR HUEBSCH WAERE: ohne Scheinnummer sehen
+  // zwei getrennt gesetzte Scheine mit gleichem Einsatz und gleicher Quote aus
+  // wie ein einziger, doppelt hochgeladener. Genau das steht in Karams Bild 10
+  // zweimal nebeneinander: 396228581 und 396228545, beide Deebo Samuel, beide
+  // 300 Dollar, beide -157. Werden die zusammengefasst, fehlen 300 Dollar
+  // Einsatz und 492 Dollar Auszahlung in der Summe.
+  //
+  // Die Bremsen bleiben, nur spaltenweise gedacht:
+  //   - mindestens ACHT Ziffern, eine mehr als bei Regel drei
+  //   - eine vollstaendige Spalte, links und rechts eine Spaltengrenze
+  //   - nur Ziffern, kein Trennzeichen, kein Waehrungszeichen daneben
+  //   - keine Geldbeschriftung in der Spalte DAVOR
+  //   - kein Datum in Ziffernform
+  for (let i = 0; i < Math.min(3, zeilen.length); i++) {
+    const zeile = zeilen[i] ?? ''
+    const muster = /(?:^|\s{2,})([0-9]{8,20})(?=\s{2,}|$)/g
+    let treffer
+    while ((treffer = muster.exec(zeile)) !== null) {
+      const kandidat = treffer[1]
+      if (!kandidat) continue
+      const start = treffer.index + treffer[0].length - kandidat.length
+
+      const umfeld = zeile.slice(Math.max(0, start - 6), start + kandidat.length + 6)
+      if (/[$\u20ac\u00a3\u00a5]|\b(usd|eur|gbp|chf)\b/i.test(umfeld)) continue
+
+      if (kandidat.length === 8 && siehtWieDatumAus(kandidat)) continue
+
+      const davor =
+        zeile
+          .slice(0, start)
+          .split(/\s{2,}/)
+          .filter((t) => t.trim() !== '')
+          .pop() ?? ''
+      if (findeEtikettstellen(davor).length > 0) continue
+
+      return {
+        wert: kandidat,
+        sicherheit: 0.6,
+        zeile: i,
+        start,
+        ende: start + kandidat.length,
+      }
+    }
+  }
+
   return { wert: null, sicherheit: 0, zeile: -1, start: -1, ende: -1 }
 }
 
@@ -638,11 +694,12 @@ export function leseBeinQuote(beinzeilen, quotenformat, gebiet = 'en') {
  * @param {string} markt
  * @returns {number|null}
  */
+const LINIEN_MUSTER =
+  /(?<![\p{L}\p{N}_])(?:over|under|ueber|über|unter|mehr als|weniger als|o|u|total|handicap|hcp|spread|ah)(?![\p{L}\p{N}_])[^0-9+-]{0,6}([+-]?\d+(?:[.,]\d+)?)/iu
+
 export function leseLinie(markt) {
   if (typeof markt !== 'string') return null
-  const treffer = markt.match(
-    /\b(?:over|under|ueber|über|unter|o|u|total|handicap|hcp|spread|ah)\b[^0-9+-]{0,6}([+-]?\d+(?:[.,]\d+)?)/i
-  )
+  const treffer = markt.match(LINIEN_MUSTER)
   if (treffer && treffer[1]) {
     const fund = leseZahl(treffer[1], { gebiet: 'en' })
     if (fund.wert !== null) return fund.wert
@@ -855,16 +912,247 @@ export function leseSchein(rohzeilen, umgebung) {
     }
   }
 
+  // 4c. Die Quote hinter einem At-Zeichen.
+  //
+  // Betway schreibt sie in die Kopfzeile der Karte:
+  //
+  //   Einzelwette @ 1.74
+  //
+  // Das At-Zeichen ist hier die Beschriftung. Auf demselben Schein steht es
+  // aber auch zwischen zwei Mannschaften ("San Francisco 49ers @ Los Angeles
+  // Rams") und vor einem Datum ("NFL @ 2026-09-13"). Deshalb muss hinter dem
+  // Zeichen eine Quote stehen und sonst NICHTS MEHR bis zum Zeilenende. Ein
+  // Datum und ein Mannschaftsname haben kein Dezimaltrennzeichen mit zwei bis
+  // drei Stellen und fallen damit von selbst heraus.
+  if (gefunden.quote === null) {
+    for (let i = 0; i < arbeitszeilen.length; i++) {
+      if (gefunden.etikettZeilen.has(i)) continue
+      const zeile = (arbeitszeilen[i] ?? '').trim()
+      if (zeile.length > 40) continue
+      const treffer = zeile.match(/@\s*([0-9]{1,3}[.,][0-9]{2,3})$/)
+      if (!treffer || !treffer[1]) continue
+
+      const q = deuteQuote(treffer[1], 'dezimal', gebiet)
+      if (q.dezimal === null || q.dezimal <= 1 || q.dezimal > 1000) continue
+
+      gefunden.quote = q
+      gefunden.etikettZeilen.add(i)
+      hinweise.push({
+        code: 'quote_hinter_at',
+        schwere: 'info',
+        feld: 'quoteDezimal',
+        text:
+          `Die Quote ${treffer[1]} stand hinter einem At-Zeichen in der Kopfzeile. ` +
+          `Bitte kurz nachsehen.`,
+      })
+      break
+    }
+  }
+
+  // 4d. Die Quote in einer Tabellenzeile, der Formatbuchstabe in einer anderen.
+  //
+  // 4b verlangt, dass die GANZE Zeile aus "1.854 D" besteht. Auf einem echten
+  // PS3838-Bildschirmfoto trifft das nie zu: die Texterkennung liest quer ueber
+  // alle Spalten hinweg, und dabei landet die Quote in der einen Zeile und ihr
+  // Formatbuchstabe in der naechsten:
+  //
+  //   Sportsbook  3777854081  Over 226.5 Passing Yards  1.854  Risk: 500.00  427.00  ...
+  //   Football  Caleb Williams Total Passing Yards  D  (500.00)  WIN
+  //
+  // Am 14.09.2026 an Karams echten Bildern gemessen: neun von neun
+  // PS3838-Scheinen hatten GAR KEINE Quote, und ohne Quote auch keine
+  // Auszahlung. Bei einem Einsatz von 2.540,48 ist das kein Schoenheitsfehler.
+  //
+  // Jeder Schritt hier ist eine Bremse:
+  //   - Irgendwo muss eine Spalte stehen, die NUR aus D oder A besteht. Ohne
+  //     diesen Beleg wird gar nichts genommen.
+  //   - Betrachtet werden nur Spalten, die ganz aus einer nackten Zahl
+  //     bestehen. "Over 84.5 Rushing Yards" ist Fliesstext und faellt damit
+  //     heraus, sonst waere die 84,5 eine Quote. Genau der Fall steht in Bild 1.
+  //   - Es muss genau EIN Kandidat im Quotenbereich uebrig bleiben. Bei
+  //     mehreren wird nichts genommen und der Zweifel angezeigt.
+  if (gefunden.quote === null) {
+    const spaltenJeZeile = arbeitszeilen.map((z) =>
+      (z ?? '')
+        .split(/\s{2,}/)
+        .map((t) => t.trim())
+        .filter((t) => t !== '')
+    )
+
+    /** @type {'dezimal'|'amerikanisch'|null} */
+    let format = null
+    for (const spalten of spaltenJeZeile) {
+      for (const spalte of spalten) {
+        if (spalte === 'D') format = 'dezimal'
+        else if (spalte === 'A') format = 'amerikanisch'
+      }
+      if (format !== null) break
+    }
+
+    if (format === 'dezimal') {
+      const einsatzWert = gefunden.einsatz?.wert ?? null
+
+      /** @type {{roh: string, wert: number}[]} */
+      const kandidaten = []
+      /** @type {number[]} */
+      const nackteWerte = []
+
+      for (const spalten of spaltenJeZeile) {
+        for (const spalte of spalten) {
+          if (!NACKTE_ZAHL.test(spalte)) continue
+          const z = leseZahl(spalte, { gebiet, waehrungBekannt })
+          if (z.wert === null) continue
+          nackteWerte.push(z.wert)
+          // Der Quotenbereich. Ein Multiplikator unter eins waere ein Verlust
+          // auf dem Papier, ueber hundert gibt es ihn hier nicht.
+          if (z.wert <= 1 || z.wert > 100) continue
+          // Ein Trennzeichen mit zwei bis drei Stellen dahinter. Eine glatte 5
+          // ist keine Quote, sondern ein Spielstand.
+          if (!/[.,][0-9]{2,3}$/.test(spalte)) continue
+          // Der Einsatz ist schon vergeben und darf nicht doppelt zaehlen.
+          if (einsatzWert !== null && Math.abs(z.wert - einsatzWert) < 0.005) continue
+          kandidaten.push({ roh: spalte, wert: z.wert })
+        }
+      }
+
+      if (kandidaten.length > 1) {
+        hinweise.push({
+          code: 'quote_spalte_mehrdeutig',
+          schwere: 'warnung',
+          feld: 'quoteDezimal',
+          text:
+            `In der Tabellenzeile stehen mehrere Zahlen, die eine Quote sein koennten ` +
+            `(${kandidaten.map((k) => k.roh).join(', ')}). Es wurde keine genommen. ` +
+            `Bitte von Hand eintragen.`,
+        })
+      } else if (kandidaten.length === 1) {
+        const k = kandidaten[0]
+        const q = deuteQuote(k.roh, 'dezimal', gebiet)
+        if (q.dezimal !== null && q.dezimal > 1) {
+          gefunden.quote = q
+
+          // GEGENRECHNUNG, und zwar auf derselben Zeile.
+          //
+          // Neben Einsatz und Quote steht bei PS3838 die Spalte Win/Loss, und
+          // das ist der GEWINN, nicht die Auszahlung. Also muss gelten:
+          //
+          //   Einsatz mal (Quote minus eins) = Win/Loss
+          //   500 mal 0,854 = 427,00
+          //
+          // Trifft das auf den Cent zu, ist die Quote nicht geraten, sondern
+          // belegt. Bei einem verlorenen Schein steht in derselben Spalte der
+          // Einsatz mit Minus. Auch das ist ein Beleg, nur ein anderer: er
+          // bestaetigt den Einsatz, sagt aber nichts ueber die Quote.
+          let belegt = null
+          if (einsatzWert !== null) {
+            const gewinnSoll = einsatzWert * (q.dezimal - 1)
+            if (nackteWerte.some((v) => Math.abs(v - gewinnSoll) < 0.011)) belegt = 'gewinn'
+            else if (nackteWerte.some((v) => Math.abs(v + einsatzWert) < 0.011)) belegt = 'verlust'
+          }
+
+          if (belegt === 'gewinn') {
+            hinweise.push({
+              code: 'quote_durch_gewinn_belegt',
+              schwere: 'info',
+              feld: 'quoteDezimal',
+              text:
+                `Die Quote ${k.roh} stand ohne Beschriftung in einer Tabellenspalte. ` +
+                `Sie ist gegengerechnet: Einsatz mal (Quote minus eins) ergibt genau ` +
+                `die Gewinnspalte derselben Zeile.`,
+            })
+          } else if (belegt === 'verlust') {
+            hinweise.push({
+              code: 'quote_aus_spalte',
+              schwere: 'info',
+              feld: 'quoteDezimal',
+              text:
+                `Die Quote ${k.roh} stand ohne Beschriftung in einer Tabellenspalte. ` +
+                `Der Schein ist verloren, in der Gewinnspalte steht der Einsatz mit ` +
+                `Minus. Damit ist der Einsatz belegt, die Quote aber nicht. Bitte ` +
+                `kurz nachsehen.`,
+            })
+          } else {
+            hinweise.push({
+              code: 'quote_aus_spalte',
+              schwere: 'warnung',
+              feld: 'quoteDezimal',
+              text:
+                `Die Quote ${k.roh} stand ohne Beschriftung in einer Tabellenspalte und ` +
+                `liess sich auf der Zeile nicht gegenrechnen. Bitte nachsehen.`,
+            })
+          }
+        }
+      }
+    }
+  }
+
   // 5. Auswahlzeilen: alles, was weder Kopfzeile noch Beschriftungszeile ist.
+  //
+  // ERGAENZUNG VOM 14.09.2026, an Karams echten PS3838-Bildern gefunden.
+  //
+  // In einer TABELLE steht die Wette in derselben Bildzeile wie das Geld:
+  //
+  //   Sportsbook  3777854081  Over 226.5 Passing Yards  1.854  Risk: 500.00  427.00 ...
+  //
+  // Wegen "Risk:" wird diese Zeile ganz als Beschriftungszeile verbraucht, und
+  // die Zeile darunter mit dem Spielernamen ebenfalls. Uebrig blieben nur die
+  // Zeitstempel und die Worte "Player Props" und "Specials". Die stehen auf
+  // JEDER PS3838-Zeile.
+  //
+  // Folge: jeder PS3838-Schein trug genau dieselbe Wettkennung, Uebereinstimmung
+  // 1,0. Der Riesenschein warf vier Gibbs-Scheine (Over 84.5 Rushing Yards,
+  // Detroit gegen New Orleans) mit zwei Williams-Scheinen (Over 226.5 Passing
+  // Yards, Carolina gegen Chicago) in EINE Gruppe. Anderer Spieler, anderes
+  // Spiel, andere Linie, eine Gruppe, ein sinnloser Multiplikator.
+  //
+  // Eine verbrauchte Zeile wird deshalb spaltenweise nachgelesen: was dort an
+  // TEXT steht und nicht zum Geld gehoert, ist die Wette.
+  //
+  // DAS KANN KEINE ZAHL VERDERBEN. Einsatz, Quote und Auszahlung sind an dieser
+  // Stelle laengst vergeben. Was hier hinzukommt, fliesst nur in Tipp,
+  // Begegnung und Markt, also allein in die Zuordnung zum Riesenschein.
+  const istStatusabzeichen = (text) =>
+    text.toLowerCase().replace(/[^a-zäöüß ]/g, '').trim() ===
+      status.roh.toLowerCase().replace(/[^a-zäöüß ]/g, '').trim() && text.length <= 16
+
+  /**
+   * Holt aus einer verbrauchten Tabellenzeile die Spalten, die Wettext sind.
+   * @param {string} zeile
+   * @returns {string[]}
+   */
+  const textspalten = (zeile) => {
+    const spalten = zeile
+      .split(/\s{2,}/)
+      .map((t) => t.trim())
+      .filter((t) => t !== '')
+    // Ohne Spaltengrenze ist es eine gewoehnliche Beschriftungszeile.
+    if (spalten.length < 2) return []
+    return spalten.filter((sp) => {
+      if (sp.length < 4) return false
+      if (NACKTE_ZAHL.test(sp)) return false
+      // Ohne ein richtiges Wort ist es kein Wettext, sondern Geld.
+      if (!/[a-zA-ZäöüÄÖÜß]{3,}/.test(sp)) return false
+      // "Risk: 500.00" gehoert zum Geld und ist schon gelesen.
+      if (findeEtikettstellen(sp).length > 0) return false
+      // Ein Datum oder eine Uhrzeit ist keine Wette.
+      if (/^\d{4}-\d{2}-\d{2}/.test(sp)) return false
+      if (istStatusabzeichen(sp)) return false
+      return true
+    })
+  }
+
   const auswahlzeilen = []
   for (let i = 0; i < zeilen.length; i++) {
-    if (gefunden.etikettZeilen.has(i)) continue
-    if (i === nummer.zeile) continue
-    if (i === zeitZeile) continue
     const zeile = (zeilen[i] ?? '').trim()
     if (zeile === '') continue
+    if (gefunden.etikettZeilen.has(i)) {
+      for (const sp of textspalten(zeile)) auswahlzeilen.push(sp)
+      continue
+    }
+    if (i === nummer.zeile) continue
+    if (i === zeitZeile) continue
     // Reine Statusabzeichen gehoeren nicht zur Auswahl.
-    if (zeile.toLowerCase().replace(/[^a-zäöüß ]/g, '').trim() === status.roh.toLowerCase().replace(/[^a-zäöüß ]/g, '').trim() && zeile.length <= 16) continue
+    if (istStatusabzeichen(zeile)) continue
     auswahlzeilen.push(zeile)
   }
 
@@ -1088,7 +1376,14 @@ export function leseSchein(rohzeilen, umgebung) {
       ereignis: feld(bein.ereignis || null, bein.ereignis ? 0.85 : 0, 'ocr', bein.ereignis),
       markt: feld(bein.markt || null, bein.markt ? 0.8 : 0, 'ocr', bein.markt),
       tipp: feld(bein.tipp || null, bein.tipp ? 0.8 : 0, 'ocr', bein.tipp),
-      linie: feld(leseLinie(bein.markt), 0.7, 'ocr', bein.markt),
+      // Die Linie steht nicht immer im Marktfeld.
+      //
+      // Bei Stake ist die Kopfzeile der Karte der TIPP (Über 2.5 Annahmen),
+      // bei BetOnline steht dieselbe Aussage im MARKT (WILL HAVE OVER 2.5
+      // RECEPTIONS). Dieselbe Wette darf nicht daran scheitern, in welches
+      // Feld der Aufbau des Anbieters sie gelegt hat. Erst der Markt, dann der
+      // Tipp: das Ereignisfeld bleibt aussen vor, dort stehen Spielstaende.
+      linie: feld(leseLinie(bein.markt) ?? leseLinie(bein.tipp), 0.7, 'ocr', bein.markt),
       quoteDezimal: feld(
         beine.length === 1 ? probe.dezimal : beinQuote.dezimal,
         beine.length === 1 ? 0.9 : 0.5,
@@ -1099,6 +1394,19 @@ export function leseSchein(rohzeilen, umgebung) {
       status: beine.length === 1 ? status.status : 'unbekannt',
     }
   })
+
+  // Ein verlorener Schein zahlt nichts aus.
+  //
+  // Das ist keine Schaetzung, sondern die Bedeutung des Wortes. Stake schreibt
+  // die Null hin ("Auszahlung 0.00000000"), PS3838 nicht: dort steht in der
+  // Gewinnspalte der Einsatz mit Minus, und das ist etwas anderes. Ohne diese
+  // Zeile blieb ausgezahlt leer, und ein verlorener Schein sah in der Summe
+  // aus wie ein noch offener.
+  //
+  // Nur 'verloren' bekommt die Null. 'halb_verloren' nicht, dort kommt ein
+  // Teil zurueck, und 'cashout' erst recht nicht.
+  const verlorenOhneZahl = probe.ausgezahlt === null && status.status === 'verloren'
+  const ausgezahltWert = verlorenOhneZahl ? 0 : probe.ausgezahlt
 
   return {
     id: umgebung.id,
@@ -1116,9 +1424,9 @@ export function leseSchein(rohzeilen, umgebung) {
     quoteAmerikanisch: feld(probe.amerikanisch, probe.amerikanisch === null ? 0 : 0.85, 'berechnet', gefunden.quote?.roh),
     auszahlung: feld(probe.auszahlung, herkunftSicherheit(probe.herkunft[1], gefunden.auszahlung), probe.herkunft[1] === 'berechnet' ? 'berechnet' : 'ocr', gefunden.auszahlung?.roh),
     ausgezahlt: feld(
-      probe.ausgezahlt,
-      probe.ausgezahlt === null ? 0 : 0.9,
-      'ocr',
+      ausgezahltWert,
+      ausgezahltWert === null ? 0 : 0.9,
+      verlorenOhneZahl ? 'berechnet' : 'ocr',
       gefunden.auszahlung?.roh
     ),
 

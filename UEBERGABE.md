@@ -34,8 +34,8 @@ Datei schreiben. Im Programm gibt es oben rechts "Code wechseln".
 ## Sofort loslegen
 
 ```bash
-npm test                      # 181 Tests
-node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 65 Dateien
+npm test                      # 202 Tests
+node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 66 Dateien
 node werkzeug/messe_lesen.mjs # Wie gut wird gelesen
 node werkzeug/server.mjs      # Server auf http://localhost:4173
 ```
@@ -196,6 +196,150 @@ angewandt, die Spalten `ordner` und `angepinnt` stehen in `kombi.projekte`.
 (`kombi-projekt-oeffnen`, `kombi-projekt-speichern`), und `app.js` laedt und
 speichert. Sonst gaebe es zwei Stellen, die Projekte schreiben, und die
 driften auseinander.
+
+### Karams echte Fotos, durchgearbeitet (14.09.2026)
+
+Er hat dreizehn Bildschirmfotos geschickt: **36 Scheine von fuenf Anbietern**.
+Jeder wurde von Hand abgelesen, jeder Sollwert nachgerechnet, und alle stehen
+als Test in `test/echte_fotos.test.mjs`.
+
+**Die Bilddateien liegen weiterhin NICHT auf dem Rechner.** Sie kamen im
+Gespraech an, nicht als Datei. `.arbeit/fotos/` ist leer. Geprueft ist also
+alles VOR der Texterkennung: Beschriftungen, Schreibweisen, Spalten,
+Zuordnung, Rechnung. Die Texterkennung selbst ist damit nach wie vor nicht an
+echten Pixeln gemessen.
+
+Der Unterschied zu `test/echte_anbieter.test.mjs`: dort stand die Quote sauber
+allein auf einer Zeile (`1.854 D`). So sieht ein echtes Bild nie aus. Die
+Texterkennung liest quer ueber alle Spalten, eine Bildzeile nach der anderen.
+Beim ersten Durchlauf mit echten Zeilen waren **26 von 36 Scheinen richtig**.
+
+#### Was dabei herauskam
+
+**1. PS3838 hatte bei neun von neun Scheinen GAR KEINE Quote.**
+Die Quote steht in der Tabellenzeile, ihr Formatbuchstabe D rutscht in die
+naechste. Die alte Regel verlangte, dass die ganze Zeile aus `1.854 D`
+besteht. Neu ist Abschnitt 4d in `kern/parser.js`: irgendwo muss eine Spalte
+stehen, die nur aus D oder A besteht, dann wird unter den reinen Zahlenspalten
+genau ein Kandidat im Quotenbereich gesucht. Bei mehreren wird nichts genommen.
+Die `84.5` aus `Over 84.5 Rushing Yards` faellt heraus, weil sie in einer
+TEXTspalte steht.
+
+Dazu die Gegenrechnung auf derselben Zeile: die Spalte Win/Loss ist der
+GEWINN, also muss Einsatz mal (Quote minus eins) genau diese Zahl ergeben.
+500 mal 0,854 sind 427,00. Trifft das zu, ist die Quote belegt und nicht
+geraten.
+
+**2. Der Riesenschein warf verschiedene Wetten zusammen. Der teuerste Fund.**
+In einer Tabelle steht die Wette in derselben Bildzeile wie das Geld. Wegen
+`Risk:` wurde diese Zeile ganz als Beschriftungszeile verbraucht, die Zeile
+mit dem Spielernamen ebenfalls. Uebrig blieben nur Zeitstempel und die Worte
+`Player Props` und `Specials`, und die stehen auf JEDER PS3838-Zeile.
+
+Damit trug jeder PS3838-Schein dieselbe Wettkennung, Uebereinstimmung 1,0.
+Vier Gibbs-Scheine (Over 84.5 Rushing Yards, Detroit gegen New Orleans)
+landeten mit zwei Williams-Scheinen (Over 226.5 Passing Yards, Carolina gegen
+Chicago) in EINER Gruppe. Anderer Spieler, anderes Spiel, andere Linie,
+ein sinnloser Multiplikator ueber 9.000 Euro Einsatz.
+
+Abschnitt 5 liest eine verbrauchte Zeile jetzt spaltenweise nach: was dort an
+Text steht und nicht zum Geld gehoert, ist die Wette. Das kann keine Zahl
+verderben, Einsatz und Quote sind an der Stelle laengst vergeben.
+
+**3. Die Wortgrenze vor einem Umlaut hat nie getroffen.**
+`\b` ist in JavaScript rein englisch. Vor einem grossen U-Umlaut steht deshalb
+nie eine Wortgrenze: links ein Leerzeichen, rechts ein Buchstabe, den die
+englische Regel nicht kennt, beide Seiten gelten als Nichtwortzeichen.
+
+    /\büber\b/.test("Über 2.5 Annahmen")   ->   false
+
+Folge: **jeder deutsche Schein verlor Marktart UND Linie**, also genau die zwei
+Merkmale, die ueber die Zuordnung zum Riesenschein entscheiden. Unsichtbar,
+weil englische Scheine sauber durchliefen. Jetzt mit `\p{L}` statt `\b`, in
+`kern/parser.js` und `kern/kennung.js`. Dazu: die Marktart wird aus Markt UND
+Tipp bestimmt, und die Linie ebenso. Welches Feld die Wettart traegt,
+entscheidet der Aufbau des Anbieters, nicht die Wette.
+
+**4. Ein verlorener Schein zahlte nichts aus, und das stand nirgends.**
+Stake schreibt die Null hin, PS3838 nicht: dort steht in der Gewinnspalte der
+Einsatz mit Minus, und das ist etwas anderes. `ausgezahlt` blieb leer, und ein
+verlorener Schein sah in der Summe aus wie ein offener. Nur `verloren` bekommt
+die Null, `halb_verloren` und `cashout` nicht.
+
+**5. Die Scheinnummer stand mitten in der Tabellenzeile.**
+Regel drei verlangte den Zeilenanfang und dass keine Geldbeschriftung in der
+Zeile steht. Eine Tabellenzeile kann das nie erfuellen. Neue Regel vier: eine
+Spalte aus mindestens ACHT reinen Ziffern, kein Waehrungszeichen daneben,
+keine Geldbeschriftung in der Spalte davor, kein Datum.
+
+Das ist kein Schoenheitsfehler. In Bild 10 stehen 396228581 und 396228545
+nebeneinander: beide Deebo Samuel, beide 300 Dollar, beide -157. Nur die
+Nummer unterscheidet sie. Ohne sie waeren sie ein doppelt hochgeladener
+Schein, und 300 Dollar Einsatz und 492 Dollar Auszahlung fehlten in der Summe.
+
+#### Was die Anbieter an Fallstricken mitbringen
+
+| Anbieter | Der Fallstrick, nachgerechnet |
+|---|---|
+| **BetOnline** | Die angezeigte amerikanische Quote ist GERUNDET. -157 ergibt umgerechnet 1,63694, die Auszahlung verlangt aber genau 1,64. -121 ergibt 1,82645, verlangt wird 1,83. Wo Returns dasteht, gilt Einsatz mal X gleich Returns. Wer die Anzeige umrechnet, liegt bei jedem Schein daneben. |
+| **Stake** | Angezeigt 1,84, wahr 1,8351991. Bei 5.000 Einsatz waeren 5.000 mal 1,84 gleich 9.200, ausgezahlt wurden 9.175,9955. Vierundzwanzig daneben auf EINEM Schein. |
+| **Betway** | Angezeigt 1.74, wahr 1,7407. Quote hinter einem At-Zeichen in der Kopfzeile, Abschnitt 4c. Auf demselben Schein steht das At-Zeichen auch zwischen zwei Mannschaften und vor einem Datum. |
+| **bet365** | `Gewinn` ist die Auszahlung MIT Einsatz: 250 mal 1,80 gleich 450. Deutscher Tausenderpunkt in `ö2.211,55`. |
+| **PS3838** | `Win/Loss` ist der GEWINN, nicht die Auszahlung. Die Auszahlung steht nirgends und wird gerechnet. |
+
+Der rote Faden: **die angezeigte Quote ist bei vier von fuenf Anbietern nicht
+die echte.** Wo Einsatz und Auszahlung beide dastehen, rechnet das Programm
+den genauen Multiplikator zurueck und schlaegt die Anzeige. Das ist Regel 1.
+
+#### Der Stand nach der Arbeit
+
+36 von 36 Scheinen vollstaendig richtig. Kein Schein ohne Einsatz, keiner ohne
+Multiplikator, **kein einziger Fehlerhinweis**.
+
+| | Scheine | Einsatz | moegl. Auszahlung | Multiplikator |
+|---|---|---|---|---|
+| PS3838 | 9 | 17.717,48 | 20.223,42 | 1,1414 |
+| Betway | 2 | 365,80 | 423,80 | 1,1586 |
+| bet365 | 5 | 2.135,04 | 4.242,65 | 1,9872 |
+| BetOnline | 8 | 1.925,00 | 2.357,88 | 1,2249 |
+| Stake | 12 | 40.266,00 | 37.950,83 | 0,9425 |
+
+Je Waehrung, und es wird NICHT umgerechnet: EUR 20.218,32 Einsatz gegen
+24.889,87, USD 1.925,00 gegen 2.357,88, Krypto 40.266,00 gegen 37.950,83.
+Beide Summen wurden auf einem zweiten Weg ohne `kern/rechnung.js` gegengerechnet
+und stimmen auf den Cent.
+
+Achtung beim Lesen: `auszahlungMoeglich` ist NICHT die Summe aller moeglichen
+Auszahlungen. Bei einem entschiedenen Schein zaehlt, was wirklich zurueckkam,
+und nur bei einem offenen das, was noch kommen kann. Wer alle
+`auszahlung`-Felder addiert, zaehlt die Auszahlungen verlorener Scheine mit,
+die es nie gab. Genau diese Verwechslung sah beim Gegenrechnen zuerst wie ein
+Programmfehler aus und war keiner.
+
+#### Was beim Riesenschein noch fehlt
+
+Derselbe Schein bei mehreren Anbietern wird **innerhalb** eines Anbieters
+richtig zusammengefasst, **ueber Anbieter hinweg noch nicht**. Gemessen an
+Deebo Samuel, mehr als 2.5 Annahmen, bei BetOnline, Stake und Betway:
+
+    vorher                    0,00   0,26   0,225
+    nach der Umlautreparatur  0,20   0,46   0,38
+    Schwelle fuer Vorschlag   0,60
+
+Marktart und Linie stimmen jetzt bei allen dreien ueberein. Es fehlen zwei
+Dinge: die uebersetzten Marktbegriffe (`receptions` gegen `Annahmen`) und die
+Paarung bei Stake, die im Thema statt bei den Beteiligten landet.
+
+**Nicht zusammenfassen ist SICHER, falsch zusammenfassen waere es nicht.**
+Deshalb wurde die Schwelle nicht gesenkt. Der Stand ist als Test festgehalten.
+
+#### Wichtig fuer den taeglichen Gebrauch
+
+Karam setzt bei den Anbietern NICHT dieselbe Linie. Gibbs steht bei PS3838 auf
+Over 84.5 und bei Stake auf Ueber 82.5, Williams auf 226.5, 227.5 und 229.5.
+Das sind verschiedene Wetten mit verschiedenem Risiko, und das Programm haelt
+sie zu Recht auseinander. Nur wo die Linie wirklich gleich ist, gehoeren sie
+zusammen.
 
 ### Was "trainieren" hier heisst
 
@@ -376,7 +520,7 @@ stil/          NUR Design. Loeschbar.
 daten/         Datenbank und oertliche Ablage.
 werkzeug/      Pruefskript, Server, Messwerkzeug, Probe- und Trainingsseiten.
 supabase/migrations/  Der Datenbankaufbau, 0001 bis 0008.
-test/          181 Tests.
+test/          202 Tests.
 ```
 
 ---
@@ -480,13 +624,13 @@ test/          181 Tests.
 
 | | |
 |---|---|
-| Tests | 181, davon 180 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 202, davon 201 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, das ist der Auftrag |
 | Massstab geprueft | 60 Scheine, 18 Anbieter, 19.812 $, eine Gruppe |
 | Excel | 60 Zeilen, Summe auf den Cent gleich dem Programm |
-| Aufbaupruefung | 65 Dateien, keine Beanstandung |
-| Fassung | 2026-09-14-d |
+| Aufbaupruefung | 66 Dateien, keine Beanstandung |
+| Fassung | 2026-09-14-e |
 
 ---
 
