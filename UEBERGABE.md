@@ -34,8 +34,8 @@ Datei schreiben. Im Programm gibt es oben rechts "Code wechseln".
 ## Sofort loslegen
 
 ```bash
-npm test                      # 148 Tests
-node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 59 Dateien
+npm test                      # 181 Tests
+node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 65 Dateien
 node werkzeug/messe_lesen.mjs # Wie gut wird gelesen
 node werkzeug/server.mjs      # Server auf http://localhost:4173
 ```
@@ -63,9 +63,9 @@ einmal gescheitert.
 2. Server starten, `http://localhost:4173/werkzeug/training/` oeffnen.
 3. **Aus dem Ordner holen.** Bei hundert Fotos ist das der bequemere Weg als
    der Auswahldialog. Der Dialog geht weiter.
-4. **Alles lesen.** Rechne mit etwa fuenf Sekunden je Schein. Ein zweiter
-   Druck liest nur neue Bilder und fragt vorher, wenn doch alles noch einmal
-   soll.
+4. **Alles lesen.** Rechne mit etwa zwei Sekunden je Schein auf acht Kernen.
+   Ein zweiter Druck liest nur neue Bilder und fragt vorher, wenn doch alles
+   noch einmal soll.
 5. Durchgehen. Scheine mit Fehler oder Warnung zuerst, dann die Zeilen mit
    niedriger Sicherheit.
    - Falsches rechts richtig eintragen. Komma und Punkt gehen beide.
@@ -375,8 +375,8 @@ ausgabe/       Excel und CSV.
 stil/          NUR Design. Loeschbar.
 daten/         Datenbank und oertliche Ablage.
 werkzeug/      Pruefskript, Server, Messwerkzeug, Probe- und Trainingsseiten.
-supabase/migrations/  Der Datenbankaufbau, 0001 bis 0007.
-test/          131 Tests.
+supabase/migrations/  Der Datenbankaufbau, 0001 bis 0008.
+test/          181 Tests.
 ```
 
 ---
@@ -433,8 +433,46 @@ test/          131 Tests.
    da. Nicht eigenmaechtig anfassen.
 5. **Waehrungen werden nicht umgerechnet.** Gemischte Waehrungen erzeugen eine
    Warnung, keine Umrechnung.
-6. **Dauer bei vielen Bildern.** Etwa fuenf Sekunden je Schein. Bei sechzig
-   Scheinen sind das mehrere Minuten. Auf einem Handy noch nicht gemessen.
+6. **Dauer bei vielen Bildern: gemessen, nicht mehr geschaetzt.** Im Browser
+   auf acht Kernen, 4 Bilder mit je 4 Scheinen:
+
+   | | 16 Karten | je Karte |
+   |---|---|---|
+   | vorher: ein Leser, Bildkopf zuerst | ~92 s | 5,74 s |
+   | Leser-Gruppe (`starteLeserGruppe`) | 39,6 s | 2,47 s |
+   | Bildkopf gleichzeitig | 33,4 s | 2,09 s |
+
+   Auf hundert Scheine hochgerechnet: **9,6 Minuten werden 3,5 Minuten.**
+   16 von 16 richtig gelesen, und der Lauf ging auch bei verdecktem Fenster
+   durch.
+
+   **Wichtig, warum das erlaubt war:** der zweite, gruendliche Durchgang
+   frisst 65 Prozent der Zeit. Ihn abzuschalten waere der billige Weg gewesen,
+   also weniger pruefen, um schneller zu sein. Bei Karams Betraegen ist das
+   genau falsch herum. Stattdessen laufen mehrere Leser gleichzeitig: gleicher
+   Quelltext, gleiche Einstellungen, gleicher zweiter Durchgang, nur mehrere
+   Karten auf einmal. Deshalb kann diese Aenderung kein Ergebnis
+   verschlechtern. Die Zahl der Leser bleibt unter der Zahl der Kerne,
+   min(4, Kerne minus 2), damit der Rechner bedienbar bleibt.
+
+   **Auf einem Handy noch nicht gemessen.** Dort gibt es weniger Kerne, also
+   weniger Leser. Mit zwei Kernen laeuft es wieder einspurig.
+
+7. **Kein einziger Test fasst `oberflaeche/` an.** Nachgepruefte Tatsache:
+   keine Datei in `test/` holt sich etwas aus diesem Ordner. Die 181 gruenen
+   Tests decken `kern/`, `bild/` und `ausgabe/` ab, aber weder die Ablage noch
+   das Clipping-Tool noch die Aufnahmeansicht. Wer die Zahl sieht und daraus
+   schliesst, die Ablage sei geprueft, irrt sich.
+
+   Beide brauchen ein Fenster: `getDisplayMedia`, Zwischenablage, Canvas,
+   Ziehen mit der Maus. Unter `node --test` gibt es das nicht. Geprueft wurden
+   sie stattdessen von Hand im Browser, Schritt fuer Schritt, und genau das
+   verlangt Regel 2. Das ersetzt aber keinen Test: es faellt niemandem auf,
+   wenn es spaeter kaputtgeht.
+
+   Wer das schliessen will, braucht eine kleine Fensternachbildung fuer
+   `zeichne()` und die Ereignisse. Der Aufwand lohnt erst, wenn sich die
+   Ablage nicht mehr taeglich aendert.
 
 ---
 
@@ -442,13 +480,13 @@ test/          131 Tests.
 
 | | |
 |---|---|
-| Tests | 148, davon 147 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 181, davon 180 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, das ist der Auftrag |
 | Massstab geprueft | 60 Scheine, 18 Anbieter, 19.812 $, eine Gruppe |
 | Excel | 60 Zeilen, Summe auf den Cent gleich dem Programm |
-| Aufbaupruefung | 59 Dateien, keine Beanstandung |
-| Fassung | 2026-09-13-e |
+| Aufbaupruefung | 65 Dateien, keine Beanstandung |
+| Fassung | 2026-09-14-d |
 
 ---
 
