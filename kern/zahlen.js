@@ -190,6 +190,19 @@ export function leseZahl(roh, einstellungen = {}) {
 
   let text = roh.normalize('NFKC').trim()
 
+  // Bei der ersten Spaltengrenze ist Schluss.
+  //
+  // EIN Leerzeichen kann ein Tausendertrenner sein, "1 234,56" gibt es
+  // wirklich. ZWEI oder mehr sind eine Spaltengrenze: keine Sprache trennt
+  // Tausender mit zwei Leerzeichen.
+  //
+  // Ohne diese Zeile wurde aus der Betway-Fusszeile "78,30     136,24" der
+  // Betrag 783.013.624 und aus bet365 "250,00      450,00" die Zahl
+  // 2.500.045.000. Am 14.09.2026 an nachgebauten Ansichten von Karams
+  // Anbietern gemessen, zwei von fuenf waren betroffen.
+  // Siehe test/spalten.test.mjs.
+  text = text.split(/\s{2,}/)[0] ?? ''
+
   // Waehrungskuerzel und Waehrungszeichen entfernen, bevor Ziffern gerettet werden.
   // Sonst wuerde aus dem Dollarzeichen eine Fuenf.
   text = text.replace(/US\$|\bUSD\b|\bEUR\b|\bGBP\b|\bCHF\b|Fr\.|[$€£]/gi, ' ')

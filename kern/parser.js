@@ -134,6 +134,51 @@ const ZAHLENMUSTER = new RegExp(
 )
 
 /**
+ * Besteht diese Zeile wirklich nur aus Werten?
+ *
+ * WOZU: die Regel "steht hinter der Beschriftung keine Zahl, dann steht der
+ * Wert in der naechsten Zeile" ist bei Karten mit Spalten unverzichtbar. Ohne
+ * Bremse frisst sie aber jede beliebige Zeile.
+ *
+ * Am 14.09.2026 an einer PS3838-Tabelle gemessen: das Wort "WIN" am Zeilenende
+ * gilt als unklarer Auszahlungsbegriff, dahinter stand nichts, und die
+ * naechste Zeile war "2026-09-13 11:35:43 Player Props D". Aus der JAHRESZAHL
+ * wurde ein Gewinn von 2026, daraus eine Auszahlung von 4.341,98 und eine
+ * Quote von 1,8748. Nichts davon steht auf dem Schein.
+ *
+ * Eine Wertzeile besteht aus ein bis drei Spalten, und jede davon ist nach
+ * Abzug von Waehrungszeichen und Vorzeichen eine nackte Zahl. Ein Datum
+ * (2026-09-13), eine Uhrzeit (11:35:43) und Fliesstext fallen damit heraus.
+ *
+ * Projektregel 1: wo kein Pruefstein ist, entscheidet der Mensch. Lieber kein
+ * Wert und ein sichtbarer Hinweis als ein erfundener Wert.
+ * Siehe test/wertzeile.test.mjs.
+ *
+ * @param {string} zeile
+ */
+export function istWertzeile(zeile) {
+  if (typeof zeile !== 'string') return false
+  const ohneWaehrung = zeile
+    .normalize('NFKC')
+    .replace(/US\$|\bUSD\b|\bEUR\b|\bGBP\b|\bCHF\b|Fr\.|[$€£]/gi, ' ')
+    .trim()
+  if (ohneWaehrung === '' || !/[0-9]/.test(ohneWaehrung)) return false
+
+  const spalten = ohneWaehrung.split(/\s{2,}/).map((s) => s.trim()).filter((s) => s !== '')
+  // Mehr als drei Spalten ist keine Wertzeile mehr, sondern eine Tabellenzeile.
+  if (spalten.length === 0 || spalten.length > 3) return false
+
+  return spalten.every((s) => NACKTE_ZAHL.test(s))
+}
+
+/**
+ * Eine nackte Zahl: Vorzeichen, Ziffern, Trennzeichen, sonst nichts.
+ * Ein einzelnes Leerzeichen als Tausendertrenner ist erlaubt, ein Doppelpunkt
+ * (Uhrzeit) und ein Bindestrich mitten drin (Datum) sind es nicht.
+ */
+const NACKTE_ZAHL = new RegExp(`^[+${MINUS_KLASSE}]?\\s?\\d[\\d.,']*(?: \\d[\\d.,']*)*$`)
+
+/**
  * Holt die erste Zahl aus einem Textabschnitt.
  *
  * @param {string} abschnitt
@@ -149,7 +194,12 @@ export function ersteZahl(abschnitt, einstellungen = {}) {
 
   const treffer = ohneWaehrung.match(ZAHLENMUSTER)
   if (!treffer || !treffer[0]) return null
-  const fund = leseZahl(treffer[0], einstellungen)
+
+  // Das Muster darf Leerzeichen enthalten, weil ein einzelnes ein
+  // Tausendertrenner sein kann. Zwei oder mehr sind aber eine Spaltengrenze,
+  // und dahinter steht die naechste Zahl. Siehe test/spalten.test.mjs.
+  const bisSpalte = treffer[0].split(/\s{2,}/)[0] ?? ''
+  const fund = leseZahl(bisSpalte, einstellungen)
   return fund.wert === null ? null : fund
 }
 
@@ -634,7 +684,18 @@ export function leseSchein(rohzeilen, umgebung) {
   /** @type {import('./typen.js').Hinweis[]} */
   const hinweise = []
 
-  const zeilen = (rohzeilen || []).map((z) => (typeof z === 'string' ? z.replace(/\s+/g, ' ').trim() : ''))
+  // Die Leerzeichen werden vereinheitlicht, aber NICHT platt gemacht.
+  //
+  // Frueher wurde jede Folge von Leerzeichen zu einem einzigen. Damit ging die
+  // Spalteninformation verloren, und aus der Betway-Fusszeile
+  // "78,30     136,24" wurde ein einziger Betrag von 783.013.624.
+  //
+  // Jetzt bleibt der Unterschied erhalten: ein Leerzeichen bleibt eines und
+  // kann ein Tausendertrenner sein, zwei oder mehr werden zu genau zwei und
+  // gelten als Spaltengrenze. Siehe test/spalten.test.mjs.
+  const zeilen = (rohzeilen || []).map((z) =>
+    typeof z === 'string' ? z.replace(/\s+/g, (m) => (m.length >= 2 ? '  ' : ' ')).trim() : ''
+  )
   const gesamttext = zeilen.filter((z) => z !== '').join('\n')
 
   // Kein Rateschluss auf 'en'. "1.250" heisst deutsch 1250 und englisch 1,25,
@@ -716,8 +777,21 @@ export function leseSchein(rohzeilen, umgebung) {
       // Steht hinter der Beschriftung keine Zahl, steht der Wert in der naechsten Zeile.
       if (!/[0-9]/.test(abschnitt)) {
         const naechste = arbeitszeilen[i + 1] ?? ''
-        if (/[0-9]/.test(naechste) && findeEtikettstellen(naechste).length === 0) {
-          abschnitt = naechste
+        if (istWertzeile(naechste) && findeEtikettstellen(naechste).length === 0) {
+          // Stehen in der Beschriftungszeile MEHRERE Etiketten nebeneinander,
+          // dann gehoert zu jedem die Zahl in derselben Spalte darunter:
+          //
+          //     Umsetzen            DU HAST GEWONNEN
+          //     78,30                         136,24
+          //
+          // Vorher bekam jedes Etikett die GANZE naechste Zeile, und damit
+          // beide denselben Wert: der Gewinn wurde zu 78,30 statt 136,24, und
+          // daraus rechnete das Programm eine Quote von 2,0. Am 14.09.2026 an
+          // nachgebauten Ansichten von Betway und bet365 gemessen.
+          // Siehe test/spalten.test.mjs.
+          const spalten = naechste.split(/\s{2,}/).filter((s) => s.trim() !== '')
+          const eigene = spalten.length === stellen.length ? spalten[n] : null
+          abschnitt = eigene ?? naechste
           gefunden.etikettZeilen.add(i + 1)
         }
       }
