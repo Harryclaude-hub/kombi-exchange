@@ -17,14 +17,14 @@
 import { ladeBild, bereiteVor } from '../bild/vorverarbeitung.js'
 import { zerlege, findeInhaltsspalte, findeSpalten } from '../bild/segmentierung.js'
 // Es gibt bewusst keine automatische Fenstersuche. Warum, steht in bild/segmentierung.js.
-import { starteLeser } from '../lesen/ocr.js'
+import { starteLeserGruppe } from '../lesen/ocr.js'
 import { leseSchein } from '../kern/parser.js'
 import { erkenneBuchmacher, erkenneKonto, erkenneKontostand, BUCHMACHER_NACH_SCHLUESSEL } from '../kern/buchmacher.js'
 import { pruefsumme, legeBildAb } from '../daten/ablage.js'
 import { neueKennung, jetzt, atmen } from './werkzeug.js'
 import * as Zustand from './zustand.js'
 
-/** @type {Awaited<ReturnType<typeof starteLeser>>|null} */
+/** @type {Awaited<ReturnType<typeof starteLeserGruppe>>|null} */
 let leser = null
 /** @type {Promise<any>|null} */
 let leserStartet = null
@@ -32,14 +32,17 @@ let leserStartet = null
 /**
  * Startet den Leser einmalig und gibt ihn danach immer wieder zurueck.
  *
- * @returns {Promise<Awaited<ReturnType<typeof starteLeser>>>}
+ * @returns {Promise<Awaited<ReturnType<typeof starteLeserGruppe>>>}
  */
 export async function holeLeser() {
   if (leser) return leser
   if (leserStartet) return leserStartet
 
   const einstellungen = Zustand.hole().einstellungen
-  leserStartet = starteLeser({
+  // Eine GRUPPE von Lesern, nicht einer. Am Lesen selbst aendert das nichts,
+  // es laufen nur mehrere Karten gleichzeitig. Gemessen: 3,74 mal schneller,
+  // hundert Scheine in 2,6 statt 9,6 Minuten. Siehe lesen/ocr.js.
+  leserStartet = starteLeserGruppe({
     sprachen: einstellungen.sprachen,
     gruendlich: einstellungen.gruendlich,
     fortschritt: ({ schritt, anteil }) => {
@@ -205,7 +208,7 @@ export async function nimmAuf(dateien) {
  * Liest den Kopfbereich eines Bildes, um Anbieter und Konto zu bestimmen.
  *
  * @param {HTMLImageElement} element
- * @param {Awaited<ReturnType<typeof starteLeser>>} derLeser
+ * @param {Awaited<ReturnType<typeof starteLeserGruppe>>} derLeser
  * @param {string} [eigenesKontomuster]
  * @returns {Promise<{buchmacher: import('../kern/buchmacher.js').Buchmacherfund, konto: {wert: string|null, sicherheit: number, quelleMuster: string}, kontostand: string|null, kopftext: string}>}
  */
@@ -258,6 +261,39 @@ export async function erkenneKopf(element, derLeser, eigenesKontomuster = '') {
 }
 
 /**
+ * Liest alle Karten EINES Bildes gleichzeitig.
+ *
+ * Die Leser-Gruppe verteilt sie auf mehrere Arbeiter (lesen/ocr.js). Am Lesen
+ * selbst aendert das nichts, es ist derselbe Weg je Karte, es laufen nur
+ * mehrere gleichzeitig. Bei Karams Bildern liegen vier Scheine auf einem Bild.
+ *
+ * Promise.all behaelt die Reihenfolge bei, die Zuordnung Karte zu Lesung
+ * bleibt also stimmig. Ein Fehler bei einer Karte darf die anderen nicht
+ * mitreissen, deshalb faengt jede ihren eigenen ab und liefert null.
+ *
+ * @param {any} eintrag
+ * @param {Awaited<ReturnType<typeof starteLeserGruppe>>} derLeser
+ */
+function leseKartenGleichzeitig(eintrag, derLeser) {
+  return Promise.all(
+    eintrag.karten.map(async (/** @type {any} */ ausschnitt) => {
+      if (!ausschnitt) return null
+      try {
+        const { leinwand } = bereiteVor(eintrag.element, ausschnitt)
+        return await derLeser.leseKarte(leinwand)
+      } catch (fehler) {
+        Zustand.melde(
+          'warnung',
+          `Eine Karte aus "${eintrag.bild.dateiname}" liess sich nicht lesen: ` +
+            `${fehler instanceof Error ? fehler.message : String(fehler)}`
+        )
+        return null
+      }
+    })
+  )
+}
+
+/**
  * Liest alle Karten der angegebenen Bilder.
  *
  * @param {string[]} bildIds
@@ -299,10 +335,36 @@ export async function leseBilder(bildIds, einstellungen = {}) {
     if (!eintrag || !eintrag.element) continue
 
     try {
-      // Kopfbereich fuer Anbieter und Konto.
-      Zustand.arbeite(true, `Anbieter wird erkannt (${eintrag.bild.dateiname})`, fertigeKarten / Math.max(1, gesamtKarten))
+      // Kopfbereich UND alle Karten gleichzeitig.
+      //
+      // Der Kopf sagt, welcher Anbieter es ist, und daraus kommen Gebiet,
+      // Waehrung und Quotenformat. Gebraucht wird das aber erst NACH der
+      // Texterkennung, beim Deuten der Zeilen. Die Texterkennung selbst
+      // braucht den Anbieter nicht. Also muss sie auch nicht auf ihn warten.
+      //
+      // Vorher lag der Kopf allein auf einem Arbeiter und die anderen drei
+      // standen still. Gemessen: 16 Karten in 39,6 Sekunden.
+      Zustand.arbeite(
+        true,
+        `"${eintrag.bild.dateiname}": Anbieter und ${eintrag.karten.length} Schein(e)`,
+        fertigeKarten / Math.max(1, gesamtKarten)
+      )
       await atmen()
-      const kopf = await erkenneKopf(eintrag.element, derLeser, einstellungen.eigenesKontomuster ?? '')
+
+      const [kopf, lesungen] = await Promise.all([
+        erkenneKopf(eintrag.element, derLeser, einstellungen.eigenesKontomuster ?? ''),
+        leseKartenGleichzeitig(eintrag, derLeser),
+      ])
+
+      // Der Fortschritt springt jetzt je Bild, nicht je Karte. Die Karten
+      // laufen gleichzeitig, es gibt also keine Reihenfolge mehr, in der man
+      // sie einzeln zaehlen koennte, ohne dass die Anzeige hin und her springt.
+      fertigeKarten += eintrag.karten.length
+      Zustand.arbeite(
+        true,
+        `${fertigeKarten} von ${gesamtKarten} Schein(en) gelesen`,
+        fertigeKarten / Math.max(1, gesamtKarten)
+      )
 
       const profil = kopf.buchmacher.profil
       const kontoWert = kopf.konto.wert ?? kopf.kontostand ?? null
@@ -327,21 +389,12 @@ export async function leseBilder(bildIds, einstellungen = {}) {
         )
       }
 
-      // Jede Karte einzeln lesen.
       for (let k = 0; k < eintrag.karten.length; k++) {
         const ausschnitt = eintrag.karten[k]
         if (!ausschnitt) continue
 
-        fertigeKarten++
-        Zustand.arbeite(
-          true,
-          `Schein ${fertigeKarten} von ${gesamtKarten} wird gelesen`,
-          fertigeKarten / Math.max(1, gesamtKarten)
-        )
-        await atmen()
-
-        const { leinwand } = bereiteVor(eintrag.element, ausschnitt)
-        const lesung = await derLeser.leseKarte(leinwand)
+        const lesung = lesungen[k]
+        if (!lesung) continue
 
         if (lesung.zeilentexte.length === 0) {
           Zustand.melde(

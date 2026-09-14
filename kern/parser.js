@@ -168,9 +168,16 @@ export function ersteZahl(abschnitt, einstellungen = {}) {
  *
  * @param {string} text
  * @param {'amerikanisch'|'dezimal'|'bruch'} [vorgabe]
+ * @param {'de'|'en'|'us'|null} [gebiet]
+ *   Die Schreibweise des Anbieters. Sie wurde hier frueher fest auf 'en'
+ *   gesetzt, und bei zwei Nachkommastellen faellt das nicht auf: "1,85" wird
+ *   so oder so 1,85. Bei DREI Stellen entscheidet es alles. Eine deutsche
+ *   Quote "1,854" wurde zu 1854, weil das Komma als Tausendertrenner galt.
+ *   Genau diese Schreibweise benutzen Pinnacle und Stake. Siehe
+ *   test/anbieter_streuung.test.mjs, Kombi mit drei Beinen.
  * @returns {Quotenfund}
  */
-export function deuteQuote(text, vorgabe = 'dezimal') {
+export function deuteQuote(text, vorgabe = 'dezimal', gebiet = 'en') {
   const leer = { dezimal: null, amerikanisch: null, art: null, mehrdeutig: false, roh: text }
   if (typeof text !== 'string' || text.trim() === '') return leer
 
@@ -191,7 +198,7 @@ export function deuteQuote(text, vorgabe = 'dezimal') {
   // Vorzeichen, und aus -157 wurde +157: Quote 2,57 statt 1,64, also ein
   // Aufschlag von 57 Prozent. Siehe test/verlesen.test.mjs.
   const hatVorzeichen = VORZEICHEN_MUSTER.test(t)
-  const zahl = ersteZahl(t, { gebiet: 'en' })
+  const zahl = ersteZahl(t, { gebiet })
   if (!zahl || zahl.wert === null) return leer
   const betrag = Math.abs(zahl.wert)
 
@@ -548,16 +555,17 @@ function istErgebniszeile(zeile) {
  *
  * @param {string[]} beinzeilen
  * @param {'amerikanisch'|'dezimal'|'bruch'} quotenformat
+ * @param {'de'|'en'|'us'|null} [gebiet]  Schreibweise des Anbieters, siehe deuteQuote.
  * @returns {Quotenfund}
  */
-export function leseBeinQuote(beinzeilen, quotenformat) {
+export function leseBeinQuote(beinzeilen, quotenformat, gebiet = 'en') {
   const leer = { dezimal: null, amerikanisch: null, art: null, mehrdeutig: false, roh: '' }
 
   for (const zeile of beinzeilen) {
     const stellen = findeEtikettstellen(zeile ?? '').filter((s) => s.art === 'quote')
     for (const stelle of stellen) {
       const abschnitt = (zeile ?? '').slice(stelle.ende)
-      const q = deuteQuote(abschnitt, quotenformat)
+      const q = deuteQuote(abschnitt, quotenformat, gebiet)
       if (q.dezimal !== null) return q
     }
   }
@@ -716,7 +724,7 @@ export function leseSchein(rohzeilen, umgebung) {
 
       if (stelle.art === 'quote') {
         if (gefunden.quote === null) {
-          const q = deuteQuote(abschnitt, quotenformat)
+          const q = deuteQuote(abschnitt, quotenformat, gebiet)
           if (q.dezimal !== null) gefunden.quote = q
         }
       } else if (stelle.art === 'einsatz') {
@@ -757,7 +765,7 @@ export function leseSchein(rohzeilen, umgebung) {
       const format = treffer[2] === 'D' ? 'dezimal' : treffer[2] === 'A' ? 'amerikanisch' : null
       if (format === null) continue
 
-      const q = deuteQuote(treffer[1], format)
+      const q = deuteQuote(treffer[1], format, gebiet)
       if (q.dezimal === null || q.dezimal <= 1) continue
 
       gefunden.quote = q
@@ -927,7 +935,7 @@ export function leseSchein(rohzeilen, umgebung) {
   hinweise.push(...probe.hinweise)
 
   // 8. Probe ueber die Beine: passt das Produkt der Einzelquoten zur Gesamtquote?
-  const beinQuotenFunde = beine.map((bein) => leseBeinQuote(bein.zeilen, quotenformat))
+  const beinQuotenFunde = beine.map((bein) => leseBeinQuote(bein.zeilen, quotenformat, gebiet))
   const beinQuoten = []
   for (const q of beinQuotenFunde) {
     if (q.dezimal !== null) beinQuoten.push(q.dezimal)

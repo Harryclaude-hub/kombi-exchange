@@ -219,6 +219,87 @@ export async function starteLeser(einstellungen = {}) {
 }
 
 /**
+ * Mehrere Leser, die sich die Karten teilen.
+ *
+ * WOZU
+ *
+ * Karam am 14.09.2026: "Es darf nicht zu lange dauern." Ein Leser schafft eine
+ * Karte in etwa sechs Sekunden, davon vier fuer den zweiten, genauen Durchgang
+ * ueber die Zahlenfelder. Bei hundert Scheinen sind das zehn Minuten.
+ *
+ * Gemessen am 14.09.2026 im Browser, acht Kerne:
+ *   vier Karten nacheinander, ein Leser        22,97 s   (5,74 je Karte)
+ *   vier Karten gleichzeitig, vier Leser        6,14 s   (1,53 je Karte)
+ *   also 3,74 mal schneller, hochgerechnet 9,6 statt 2,6 Minuten fuer hundert
+ *
+ * WAS SICH DABEI NICHT AENDERT
+ *
+ * Am Lesen selbst gar nichts. Es ist derselbe Quelltext, dieselben
+ * Einstellungen, derselbe zweite Durchgang. Es laufen nur mehrere Karten
+ * gleichzeitig. Deshalb kann diese Aenderung kein Ergebnis verschlechtern,
+ * und deshalb ist sie der ehrliche Weg zur Geschwindigkeit: nicht weniger
+ * pruefen, sondern besser auslasten.
+ *
+ * Die Zahl der Leser bleibt bewusst unter der Zahl der Kerne. Der Rechner muss
+ * waehrenddessen noch bedienbar bleiben, und das Sprachmodell liegt je Leser
+ * einmal im Speicher.
+ *
+ * @param {Leseeinstellungen & {arbeiter?: number}} [einstellungen]
+ * @returns {Promise<{leseKarte: (quelle: HTMLCanvasElement) => Promise<Kartenlesung>, beenden: () => Promise<void>, anzahl: number}>}
+ */
+export async function starteLeserGruppe(einstellungen = {}) {
+  const kerne = typeof navigator !== 'undefined' ? Number(navigator.hardwareConcurrency) || 2 : 2
+  const gewuenscht = einstellungen.arbeiter ?? Math.max(1, Math.min(4, kerne - 2))
+
+  // Der erste Leser meldet den Fortschritt, die uebrigen schweigen. Sonst
+  // ueberschreiben sich vier Fortschrittsmeldungen gegenseitig und die Anzeige
+  // springt.
+  const erste = await starteLeser(einstellungen)
+  const weitere = await Promise.all(
+    Array.from({ length: Math.max(0, gewuenscht - 1) }, () =>
+      starteLeser({ ...einstellungen, fortschritt: undefined })
+    )
+  )
+  const leser = [erste, ...weitere]
+
+  /** Wer gerade frei ist. Jeder Leser darf immer nur eine Karte auf einmal. */
+  const frei = [...leser]
+  /** @type {((l: any) => void)[]} */
+  const wartende = []
+
+  function hole() {
+    const l = frei.pop()
+    if (l) return Promise.resolve(l)
+    return new Promise((erfuellen) => wartende.push(erfuellen))
+  }
+
+  function zurueck(l) {
+    const naechster = wartende.shift()
+    if (naechster) naechster(l)
+    else frei.push(l)
+  }
+
+  /** @param {HTMLCanvasElement} quelle */
+  async function leseKarte(quelle) {
+    const l = await hole()
+    try {
+      return await l.leseKarte(quelle)
+    } finally {
+      // IMMER zurueckgeben, auch wenn das Lesen misslungen ist. Sonst ist der
+      // Leser nach dem ersten Fehler fuer immer verloren und die Gruppe wird
+      // mit jedem Fehler kleiner, bis gar nichts mehr geht.
+      zurueck(l)
+    }
+  }
+
+  async function beenden() {
+    await Promise.all(leser.map((l) => l.beenden()))
+  }
+
+  return { leseKarte, beenden, anzahl: leser.length }
+}
+
+/**
  * Holt die Zeilen samt Woertern aus dem Ergebnis.
  *
  * Ab Fassung 6 gibt es keine oberste Wortliste mehr. Man muss den Baum aus
