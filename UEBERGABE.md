@@ -25,6 +25,7 @@ zusammen und gibt ein Blatt und eine Excel-Mappe aus.
 | Seite | `https://harryclaude-hub.github.io/kombi-exchange/` |
 | Datenbank | Supabase, Projekt `appload`, Kennung `eybwhnvjavovcxvimtxr` |
 | Zugangscode | **steht nirgends im Quelltext.** Karam fragen. |
+| Karams Fotos | `FOTOS_KARAM.md`: alle 36 Scheine aus seinen 13 Bildschirmfotos, nachgerechnet. Die BILDDATEIEN gibt es nicht auf der Platte. |
 
 Der Code liegt nur als Einwegwert in `kombi.zugangscodes`. Niemals in eine
 Datei schreiben. Im Programm gibt es oben rechts "Code wechseln".
