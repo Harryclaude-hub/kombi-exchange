@@ -769,8 +769,29 @@ function findeDoppeltesEtikett(zeilen) {
       if (!klein.includes(wort)) continue
       const sicher = wort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const muster = new RegExp(`(?<!\\p{L})${sicher}(?!\\p{L})`, 'gu')
-      const treffer = klein.match(muster)
-      if (treffer && treffer.length >= 2) return wort
+      const stellen = [...klein.matchAll(muster)].map((t) => t.index ?? -1).filter((i) => i >= 0)
+      if (stellen.length < 2) continue
+
+      // Zweimal dasselbe Wort allein reicht NICHT.
+      //
+      // bet365 schreibt in einer Zeile "Einsatz:  Gewinn  450,00 Gewinn": das
+      // zweite "Gewinn" ist Teil der Beschriftung des Betrags, keine zweite
+      // Karte. Die Regel hat diesen Schein beim ersten Durchlauf im Browser
+      // sofort faelschlich beanstandet, und gruene Tests hatten es nicht
+      // gezeigt (Projektregel 2).
+      //
+      // Ein Etikett, das wirklich einen Betrag beschriftet, hat auch einen
+      // Betrag hinter sich. Gezaehlt wird deshalb nur, wo nach dem Wort und
+      // vor dem naechsten Vorkommen desselben Wortes eine Ziffer steht. Zwei
+      // beschriftete Betraege desselben Namens auf einer Zeile sind zwei
+      // Karten.
+      let mitZahl = 0
+      for (let i = 0; i < stellen.length; i++) {
+        const start = (stellen[i] ?? 0) + wort.length
+        const ende = i + 1 < stellen.length ? (stellen[i + 1] ?? klein.length) : klein.length
+        if (/\d/.test(klein.slice(start, ende))) mitZahl++
+      }
+      if (mitZahl >= 2) return wort
     }
   }
   return null

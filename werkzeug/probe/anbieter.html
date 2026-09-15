@@ -159,10 +159,16 @@
 
       let gut = 0
       let gesamt = 0
+      let schlimmGesamt = 0
 
+      // Der Rueckruf bekommt EIN Objekt {schritt, anteil}, siehe lesen/ocr.js.
+      // Hier standen zwei Parameter, und deshalb stand auf der Seite die ganze
+      // Zeit "Texterkennung: undefined NaN Prozent".
       const leser = await starteLeser({
-        fortschritt: (anteil, text) => {
-          ergebnisKasten.textContent = `Texterkennung: ${text} ${Math.round((anteil ?? 0) * 100)} Prozent`
+        fortschritt: (stand) => {
+          const schritt = stand?.schritt ?? ''
+          const anteil = Math.round((stand?.anteil ?? 0) * 100)
+          ergebnisKasten.textContent = `Texterkennung: ${schritt} ${anteil} Prozent`
         },
       })
 
@@ -188,6 +194,8 @@
           const zeilen = []
           let fallGut = 0
           let fallGesamt = 0
+          // Karten, die einen Fehler melden oder einen absurden Einsatz tragen.
+          let fallSchlimm = 0
 
           for (let i = 0; i < zerlegt.karten.length; i++) {
             const { leinwand: karte } = bereiteVor(bild, zerlegt.karten[i])
@@ -204,6 +212,26 @@
                 `  Auszahlung ${wert(schein, 'auszahlung')}` +
                 `  Stand ${schein.status}`
             )
+
+            // Die Hinweise des Scheins gehoeren MIT auf die Seite.
+            //
+            // Ohne sie stand hier eine Karte mit dem Einsatz
+            // 5.000.000.000.002.004 als "OFFEN" da, obwohl das Programm den
+            // Fehler laengst gemeldet hatte. Eine Schutzmassnahme zaehlt erst,
+            // wenn sie einmal ausgeloest hat (Projektregel 3).
+            const schlimm = schein.hinweise.filter((h) => h.schwere === 'fehler')
+            for (const h of schein.hinweise) {
+              if (h.schwere !== 'info') zeilen.push(`  ${h.schwere.toUpperCase()}: ${h.code}`)
+            }
+
+            // Zwei Pruefsteine, die IMMER gelten, auch wo es keinen Sollwert
+            // gibt. Ein Einsatz ueber einer Million ist bei Karams Scheinen
+            // kein Einsatz, sondern ein Lesefehler, und ein Hinweis der
+            // Schwere fehler ist ein Fehler, egal was sonst herauskam.
+            const einsatzWert = wert(schein, 'einsatz')
+            const absurd = einsatzWert !== null && Math.abs(einsatzWert) > 1_000_000
+            if (absurd) zeilen.push(`  ABSURD: Einsatz ${einsatzWert} ist keine Wette, sondern ein Lesefehler`)
+            if (schlimm.length > 0 || absurd) fallSchlimm++
 
             const soll = fall.soll ? fall.soll[i] : null
             if (soll) {
@@ -222,13 +250,23 @@
 
           gut += fallGut
           gesamt += fallGesamt
-          const ok = fall.soll === null ? null : fallGut === fallGesamt && zerlegt.karten.length === fall.soll.length
+          schlimmGesamt += fallSchlimm
+
+          // Ein gemeldeter Fehler ist IMMER ein Fehler, auch wo es keinen
+          // Sollwert gibt. Vorher stand der Stake-Fall als "OFFEN" da, obwohl
+          // eine Karte einen Einsatz von fuenf Billiarden trug: die Seite hat
+          // nur geprueft, was in soll stand, und dort stand nichts.
+          const sollErfuellt =
+            fall.soll === null ? null : fallGut === fallGesamt && zerlegt.karten.length === fall.soll.length
+          const ok = fallSchlimm > 0 ? false : sollErfuellt
           if (ok !== null) kasten.dataset.ok = String(ok)
           titel.textContent =
             `${ok === null ? 'OFFEN' : ok ? 'OK' : 'FEHLER'}  ${fall.name}` +
             `  (${zerlegt.karten.length} Karten erkannt` +
             (fall.soll ? `, ${fall.soll.length} erwartet` : '') +
-            `, ${fallGut} von ${fallGesamt} Karten richtig gelesen)`
+            `, ${fallGut} von ${fallGesamt} Karten richtig gelesen` +
+            (fallSchlimm > 0 ? `, ${fallSchlimm} mit Fehlermeldung` : '') +
+            `)`
 
           const text = document.createElement('div')
           text.className = 'zeilen'
@@ -242,11 +280,13 @@
         await leser.beenden()
       }
 
-      const allesGut = gut === gesamt && gesamt > 0
+      const allesGut = gut === gesamt && gesamt > 0 && schlimmGesamt === 0
       ergebnisKasten.dataset.ok = String(allesGut)
       ergebnisKasten.textContent = allesGut
-        ? `${gut} von ${gesamt} gepruefte Karten richtig gelesen.`
-        : `${gut} von ${gesamt} gepruefte Karten richtig. Bitte die roten Faelle ansehen.`
+        ? `${gut} von ${gesamt} gepruefte Karten richtig gelesen, keine Fehlermeldung.`
+        : `${gut} von ${gesamt} gepruefte Karten richtig` +
+          (schlimmGesamt > 0 ? `, ${schlimmGesamt} Karte(n) melden einen Fehler` : '') +
+          '. Bitte die roten Faelle ansehen.'
     </script>
   </body>
 </html>

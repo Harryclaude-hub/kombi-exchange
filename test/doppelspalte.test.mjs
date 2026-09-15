@@ -117,6 +117,30 @@ test('die verschmolzene Stake-Karte liefert keinen Muell-Einsatz', () => {
   )
 })
 
+test('eine doppelte Beschriftung allein ist noch keine zweite Karte', () => {
+  // GEGENPROBE, und zwar eine teure: beim ersten Durchlauf im Browser hat die
+  // Regel "dasselbe Etikett zweimal" sofort bet365 beanstandet, weil dort in
+  // EINER Zeile "Einsatz:  Gewinn  450,00 Gewinn" steht. Das zweite "Gewinn"
+  // beschriftet keinen zweiten Betrag, es gehoert zur Beschriftung des ersten.
+  //
+  // Gruene Tests hatten das nicht gezeigt, erst der Lauf an den nachgebauten
+  // Bildern (Projektregel 2). Seitdem zaehlt nur ein Etikett, hinter dem auch
+  // wirklich eine Zahl steht.
+  const bet365 = [
+    ['Nahshon wright - weniger ais 25  1.50', 'Tackles UU', 'NY Jets  23', 'TEN Titans  10',
+      'Einsatz:  Gewinn  €450,00 Gewinn', '€250,00  €450,00'],
+    ['€961,54  Einzelwetten', 'Nahshon Wright - Weniger als 2.5  2.30', 'Tackles UU',
+      'NY Jets  23', 'TEN Titans  10', 'Einsatz  Gewinn  €2.211,55 Gewinn', '€961.54  €2.211.55'],
+  ]
+  for (const zeilen of bet365) {
+    const e = leseSchein(zeilen, { gebiet: 'de', waehrung: 'EUR', quotenformat: 'dezimal' })
+    assert.ok(
+      !e.hinweise.some((h) => h.code === 'zwei_karten_in_einer'),
+      `bet365 ist EINE Karte: ${JSON.stringify(e.hinweise.map((h) => h.code))}`
+    )
+  }
+})
+
 test('ein Muell-Einsatz kann die Summe nicht mehr sprengen', () => {
   // Die Gegenrechnung ueber zwei Wege: was in rechne() ankommt, muss in der
   // Groessenordnung der echten Scheine bleiben.
