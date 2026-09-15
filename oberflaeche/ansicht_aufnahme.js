@@ -22,15 +22,11 @@ import {
   entferneBildGanz,
 } from './aufnahme.js'
 import { BUCHMACHER } from '../kern/buchmacher.js'
-import {
-  kannBildschirmAufnehmen,
-  kannZwischenablageLesen,
-  nimmBildschirmAuf,
-  ausZwischenablage,
-  ausBlob,
-  zeigeZuschnitt,
-  alsDatei,
-} from './bildschirmfoto.js'
+import { ausBlob, zeigeZuschnitt, alsDatei } from './bildschirmfoto.js'
+// Die drei Aufnahmewege stehen seit dem 16.09.2026 an EINER Stelle, damit sie
+// auch aus den Riesenscheinen heraus aufgerufen werden koennen, ohne dass es
+// zwei Fassungen desselben Ablaufs gibt (Projektregel 8).
+import { fotoknoepfe, bildschirmfotoMachen, ausZwischenablageHolen } from './fotoknoepfe.js'
 
 /** Mindesthoehe einer Karte im Originalbild. */
 const MINDESTHOEHE = 40
@@ -124,91 +120,9 @@ function ablegeflaeche() {
  * @returns {HTMLElement}
  */
 function aufnahmeknoepfe() {
-  const knoepfe = []
-
-  if (kannBildschirmAufnehmen()) {
-    knoepfe.push(
-      el('button.aufnahmeknopf', {
-        type: 'button',
-        text: 'Bildschirmfoto aufnehmen',
-        title: 'Fenster aussuchen, Rahmen um die Wettliste ziehen, fertig.',
-        onclick: async (e) => {
-          e.stopPropagation()
-          await bildschirmfotoMachen()
-        },
-      })
-    )
-  }
-
-  if (kannZwischenablageLesen()) {
-    knoepfe.push(
-      el('button.aufnahmeknopf', {
-        type: 'button',
-        text: 'Aus der Zwischenablage',
-        title: 'Erst mit Windows-Taste + Umschalt + S ausschneiden, dann hier druecken.',
-        onclick: async (e) => {
-          e.stopPropagation()
-          await ausZwischenablageHolen()
-        },
-      })
-    )
-  }
-
-  if (knoepfe.length === 0) {
-    return el('.ablage-text', {
-      text:
-        'Bildschirmfoto direkt aufnehmen geht hier nicht (der Browser erlaubt es nur ueber https). ' +
-        'Mach es mit Windows-Taste + Umschalt + S und druecke dann Strg+V.',
-    })
-  }
-
-  return el('.aufnahmeknoepfe', {}, [
-    ...knoepfe,
-    el('.ablage-text', { text: 'Oder mit Windows-Taste + Umschalt + S ausschneiden und hier Strg+V druecken.' }),
-  ])
-}
-
-/** Bildschirm aufnehmen, zuschneiden, aufnehmen lassen. */
-async function bildschirmfotoMachen() {
-  try {
-    const voll = await nimmBildschirmAuf()
-    const ausschnitt = await zeigeZuschnitt(voll)
-    if (!ausschnitt) {
-      Zustand.melde('info', 'Bildschirmfoto verworfen.')
-      return
-    }
-    await nimmAuf([await alsDatei(ausschnitt, 'bildschirm')])
-  } catch (fehler) {
-    // Ein Abbruch im Auswahlfenster des Browsers ist kein Fehler.
-    const text = fehler instanceof Error ? fehler.message : String(fehler)
-    const abgebrochen =
-      fehler instanceof DOMException &&
-      (fehler.name === 'NotAllowedError' || fehler.name === 'AbortError')
-    if (abgebrochen) Zustand.melde('info', 'Kein Bildschirmfoto gemacht.')
-    else Zustand.melde('fehler', `Bildschirmfoto misslungen: ${text}`)
-  }
-}
-
-/** Aus der Zwischenablage holen, zuschneiden, aufnehmen lassen. */
-async function ausZwischenablageHolen() {
-  try {
-    const bild = await ausZwischenablage()
-    if (!bild) {
-      Zustand.melde('warnung', 'In der Zwischenablage liegt kein Bild.')
-      return
-    }
-    const ausschnitt = await zeigeZuschnitt(bild)
-    if (!ausschnitt) {
-      Zustand.melde('info', 'Bild verworfen.')
-      return
-    }
-    await nimmAuf([await alsDatei(ausschnitt, 'zwischenablage')])
-  } catch (fehler) {
-    Zustand.melde(
-      'fehler',
-      `Zwischenablage: ${fehler instanceof Error ? fehler.message : String(fehler)}`
-    )
-  }
+  // Dieselbe Knopfreihe wie in den Riesenscheinen, aus derselben Datei. Hier
+  // in gross, weil sie mitten in der Ablegeflaeche steht.
+  return fotoknoepfe({ kompakt: false })
 }
 
 /**

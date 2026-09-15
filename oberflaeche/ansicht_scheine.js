@@ -304,11 +304,27 @@ function gruppenwahl(schein, stand) {
       {
         onchange: (e) => {
           const wert = /** @type {HTMLSelectElement} */ (e.target).value
+          if (wert === 'neu') {
+            // Einen eigenen Riesenschein aufmachen, nur fuer diesen Schein.
+            //
+            // WOZU: Karam am 16.09.2026, "man kann auch einen Riesenschein
+            // erstellen". Die Automatik fasst zusammen, was sie als dieselbe
+            // Wette erkennt. Wo sie das nicht kann, weil die Anbieter die
+            // Wette verschieden schreiben, macht es der Mensch: hier einen
+            // neuen aufmachen, und die uebrigen Scheine in derselben Spalte
+            // hineinziehen.
+            //
+            // Die Zuordnung von Hand haelt: gruppiere() bricht Handgruppen
+            // nicht wieder auf.
+            Zustand.neuerRiesenschein(schein.id)
+            return
+          }
           Zustand.verschiebeSchein(schein.id, wert === '' ? null : wert)
         },
       },
       [
         el('option', { value: '', text: 'automatisch zuordnen' }),
+        el('option', { value: 'neu', text: 'neuen Riesenschein aufmachen' }),
         ...stand.riesenscheine.map((r) =>
           el('option', {
             value: r.id,

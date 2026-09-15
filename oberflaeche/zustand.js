@@ -345,6 +345,35 @@ export function benenneUm(id, name) {
 }
 
 /**
+ * Macht einen neuen, eigenen Riesenschein auf und legt diesen Schein hinein.
+ *
+ * WOZU: die Automatik fasst zusammen, was sie als dieselbe Wette erkennt. Wo
+ * sie das nicht kann, weil zwei Anbieter dieselbe Wette verschieden schreiben,
+ * entscheidet der Mensch (Projektregel 1). Er macht hier einen neuen
+ * Riesenschein auf und zieht die uebrigen Scheine in der Spalte "Riesenschein"
+ * hinein.
+ *
+ * Die Kennung wird SOFORT vergeben und am Schein vermerkt. Damit bildet
+ * gruppiere() daraus eine Handgruppe, und Handgruppen werden nicht wieder
+ * aufgebrochen.
+ *
+ * @param {string} scheinId
+ * @returns {string|null} die Kennung des neuen Riesenscheins
+ */
+export function neuerRiesenschein(scheinId) {
+  const schein = stand.scheine.find((s) => s.id === scheinId)
+  if (!schein) return null
+
+  const id = neueKennung()
+  const scheine = stand.scheine.map((s) =>
+    s.id === scheinId ? { ...s, gruppeId: id, vonHand: true, geaendertAm: jetzt() } : s
+  )
+  ordneNeu(scheine)
+  melde('erfolg', 'Neuer Riesenschein aufgemacht. Weitere Scheine lassen sich jetzt hineinziehen.')
+  return id
+}
+
+/**
  * Setzt die Notiz eines Riesenscheins.
  *
  * @param {string} id

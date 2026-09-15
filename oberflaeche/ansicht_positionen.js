@@ -16,6 +16,7 @@ import { statusText } from '../bild/mosaik.js'
 import { barEinsatz, realisierterRueckfluss } from '../kern/rechnung.js'
 import { rechneProjekt } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
+import { fotoknoepfe } from './fotoknoepfe.js'
 
 /**
  * @param {HTMLElement} ziel
@@ -51,15 +52,28 @@ export function zeichne(ziel) {
     mehrereWetten ? projektkopf(gesamt) : null,
     // Die Liste links waehlt zwischen Riesenscheinen aus. Bei nur einem gibt es
     // nichts auszuwaehlen.
+    // DREI SPALTEN, seit dem 16.09.2026.
+    //
+    // Karam: "rechts einfach ein Panel bei den Riesenscheinen, wo alles drauf
+    // ist, und dann hat man einfach den offenen Schein in der Main, und links
+    // das Panel, da sind alle Scheine drinnen."
+    //
+    //   links   alle Riesenscheine zum Umschalten
+    //   Mitte   der offene Riesenschein mit seinen Zahlen
+    //   rechts  die einzelnen Scheine darin, nummeriert, plus Fotoknoepfe
+    //
+    // Die Liste links faellt weg, wenn es nur einen Riesenschein gibt: dann
+    // gaebe es nichts auszuwaehlen. Die Spalte rechts bleibt immer, denn dort
+    // liegt der Weg, ein Foto nachzureichen.
     el('.positionsspalten', { daten: { einzeln: String(!mehrereWetten) } }, [
       mehrereWetten
-        ? el(
-            '.positionsliste',
-            {},
-            stand.riesenscheine.map((r, i) => listeneintrag(r, rechnungen[i], r.id === gewaehlt))
-          )
+        ? el('.positionsliste', {}, [
+            el('.spaltentitel', { text: `${stand.riesenscheine.length} Riesenscheine` }),
+            ...stand.riesenscheine.map((r, i) => listeneintrag(r, rechnungen[i], r.id === gewaehlt)),
+          ])
         : null,
       gewaehlt ? einzelheit(gewaehlt) : null,
+      gewaehlt ? scheinpanel(gewaehlt) : null,
     ]),
   ])
 }
@@ -243,6 +257,38 @@ function einzelheit(riesenscheinId) {
       }),
     ]),
 
+  ])
+}
+
+/**
+ * Die rechte Spalte: alle Scheine dieses Riesenscheins, nummeriert.
+ *
+ * WARUM RECHTS UND NICHT UNTEN
+ *
+ * Ein Riesenschein besteht aus vielen einzelnen Scheinen, oft sechzig. Standen
+ * sie unter den Zahlen, musste man scrollen, um ueberhaupt zu sehen, wie viele
+ * es sind, und die Zahlen oben waren dann weg. Nebeneinander sieht man beides
+ * zugleich: was zusammengerechnet herauskommt, und woraus es sich zusammensetzt.
+ *
+ * OBEN DIE FOTOKNOEPFE. Karam wollte ausdruecklich, dass sich auch von hier aus
+ * ein Bildschirmfoto machen oder eine Datei hochladen laesst. Die Ansicht
+ * wechselt dabei NICHT: wer hier ein Foto nachreicht, will hier bleiben.
+ *
+ * @param {string} riesenscheinId
+ * @returns {HTMLElement}
+ */
+function scheinpanel(riesenscheinId) {
+  const stand = Zustand.hole()
+  const riesenschein = stand.riesenscheine.find((r) => r.id === riesenscheinId)
+  if (!riesenschein) return el('div')
+  const scheine = Zustand.scheineVon(riesenscheinId)
+
+  return el('.scheinpanel', {}, [
+    el('.spaltentitel', {
+      text: scheine.length === 1 ? '1 Schein' : `${scheine.length} Scheine`,
+      title: 'Die einzelnen Wettscheine, aus denen dieser Riesenschein besteht',
+    }),
+    fotoknoepfe({ kompakt: true, titel: 'Foto hinzufuegen' }),
     scheinliste(riesenschein, scheine),
   ])
 }
@@ -364,7 +410,7 @@ function rechnungshinweise(rechnung) {
  */
 function scheinliste(riesenschein, scheine) {
   return el('.scheinbereich', {}, [
-    el('.teiltitel', { text: `Die ${scheine.length} Scheine, in der Reihenfolge des Blattes` }),
+    el('.teiltitel', { text: 'In der Reihenfolge des Blattes' }),
     el(
       '.scheinreihe',
       {},

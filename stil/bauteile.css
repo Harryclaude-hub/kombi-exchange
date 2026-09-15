@@ -1703,11 +1703,7 @@ li[data-schwere="info"] .hinweisart {
   color: var(--schrift);
 }
 
-/* Bei nur einem Riesenschein gibt es keine Auswahlliste, also auch keine
-   zweite Spalte. Reine Optik. */
-.positionsspalten[data-einzeln='true'] {
-  grid-template-columns: 1fr;
-}
+/* Der Spaltenaufbau steht jetzt vollstaendig in grund.css. */
 
 /* ---------------------------------------------- Bildschirmfoto und Zuschnitt
 
@@ -2621,4 +2617,159 @@ li[data-schwere="info"] .hinweisart {
     font-size: var(--text-normal);
     padding: 0 var(--luft-3);
   }
+}
+
+/* ------------------------------------------------- Seitenpanel und Fotoknoepfe */
+
+/*
+  Die Spaltenueberschriften links und rechts. Sie sagen, was in der Spalte
+  steht, und bleiben beim Scrollen oben stehen, damit man bei sechzig Scheinen
+  nicht den Ueberblick verliert.
+*/
+.spaltentitel {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: var(--luft-2) var(--luft-3);
+  margin-bottom: var(--luft-2);
+  background: var(--grund);
+  border-bottom: 1px solid var(--linie);
+  font-size: var(--text-klein);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-leise);
+}
+
+/*
+  Die rechte Spalte: alle Scheine eines Riesenscheins, nummeriert, mit den
+  Fotoknoepfen oben. Eigene Hoehe und eigenes Scrollen, damit die Zahlen in der
+  Mitte stehen bleiben, waehrend man die Scheine durchgeht.
+*/
+.scheinpanel {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  padding: var(--luft-3);
+  max-height: calc(100vh - var(--kopfhoehe) - var(--reiterhoehe) - 4rem);
+  overflow-y: auto;
+}
+
+.scheinpanel .spaltentitel {
+  background: var(--flaeche);
+}
+
+.scheinpanel .scheinreihe {
+  display: grid;
+  gap: var(--luft-2);
+}
+
+/* In der schmalen Spalte stehen die Kaertchen untereinander, nicht nebeneinander. */
+.scheinpanel .scheinkaertchen {
+  width: auto;
+}
+
+.positionsliste {
+  display: grid;
+  gap: var(--luft-2);
+  align-content: start;
+  max-height: calc(100vh - var(--kopfhoehe) - var(--reiterhoehe) - 4rem);
+  overflow-y: auto;
+}
+
+/* ---- Fotoknoepfe, ueberall gleich ---- */
+
+.fotoknoepfe {
+  display: grid;
+  gap: var(--luft-2);
+  margin-bottom: var(--luft-3);
+}
+
+.fotoknoepfe-titel {
+  font-size: var(--text-winzig);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+.fotoknoepfe-reihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+}
+
+.fotoknoepfe[data-kompakt="true"] .fotoknoepfe-reihe .knopf {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+/* In der Ablegeflaeche sind es die grossen Knoepfe, mittig. */
+.fotoknoepfe[data-kompakt="false"] .fotoknoepfe-reihe {
+  justify-content: center;
+}
+
+/* ------------------------------------------------- Projektzeilen groesser */
+
+/*
+  Karam am 16.09.2026: "die Projekte sind nicht so passend, das ist zu klein,
+  bitte mach sie groesser."
+
+  Die Projektzeile war eine schmale Tabellenzeile. Bei einer Saison mit vielen
+  Projekten ist sie das, was man am haeufigsten anklickt, und sie muss sich
+  treffen lassen.
+*/
+.projektzeile {
+  padding: var(--luft-3) var(--luft-4);
+  gap: var(--luft-3);
+  min-height: 3.25rem;
+}
+
+.projektname {
+  font-size: var(--text-gross);
+  font-weight: 700;
+}
+
+.projektdatum {
+  font-size: var(--text-klein);
+}
+
+.ablage-titel {
+  font-size: var(--text-zahl);
+  font-weight: 800;
+}
+
+.ordnerzeile {
+  padding: var(--luft-3);
+  gap: var(--luft-2);
+  min-height: 2.75rem;
+}
+
+.ordnername {
+  font-size: var(--text-normal);
+  font-weight: 600;
+}
+
+/* Der Loeschknopf am Ordner bleibt zurueckhaltend und erscheint beim Zeigen. */
+.ordnerweg {
+  flex: 0 0 auto;
+  padding: 2px var(--luft-2);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  background: transparent;
+  color: var(--schrift-still);
+  font: inherit;
+  font-size: var(--text-winzig);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--takt), color var(--takt), border-color var(--takt);
+}
+
+.ordnerzeile:hover .ordnerweg,
+.ordnerweg:focus-visible {
+  opacity: 1;
+}
+
+.ordnerweg:hover {
+  color: var(--schlecht);
+  border-color: var(--schlecht);
 }

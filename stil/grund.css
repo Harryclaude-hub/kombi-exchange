@@ -166,15 +166,42 @@ img {
 
 /* ---------------------------------------------------------------- Raster */
 
+/*
+  Drei Spalten: Auswahl, offener Riesenschein, seine Scheine.
+
+  Karam am 16.09.2026: "rechts einfach ein Panel bei den Riesenscheinen, und
+  dann hat man den offenen Schein in der Main, und links das Panel, da sind
+  alle Scheine drinnen."
+
+  Die Mitte bekommt den Rest (1fr) und ist damit immer die breiteste Spalte.
+  Das ist Absicht: dort stehen die Zahlen, wegen derer man herschaut.
+*/
 .positionsspalten {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) 1fr;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr) minmax(280px, 380px);
   gap: var(--luft-4);
   align-items: start;
 }
 
-@media (max-width: 1100px) {
-  .positionsspalten {
+/* Nur ein Riesenschein: keine Auswahlliste, aber die Scheine bleiben rechts. */
+.positionsspalten[data-einzeln='true'] {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+}
+
+/* Schmaler Bildschirm: die Scheine ruecken unter die Zahlen. */
+@media (max-width: 1400px) {
+  .positionsspalten,
+  .positionsspalten[data-einzeln='true'] {
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  }
+  .scheinpanel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1000px) {
+  .positionsspalten,
+  .positionsspalten[data-einzeln='true'] {
     grid-template-columns: 1fr;
   }
 }

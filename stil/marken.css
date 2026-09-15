@@ -12,18 +12,18 @@
 
 :root {
   /* ---- Grundflaechen ---- */
-  --grund: #0e141f;
-  --grund-tief: #0a0f18;
-  --flaeche: #161e2c;
-  --flaeche-hoch: #1c2534;
-  --flaeche-heiss: #232d3f;
-  --linie: #2b3849;
-  --linie-hell: #3a4a63;
+  --grund: #131b28;
+  --grund-tief: #0d141f;
+  --flaeche: #1b2433;
+  --flaeche-hoch: #232e40;
+  --flaeche-heiss: #2c384d;
+  --linie: #35455c;
+  --linie-hell: #4a5d79;
 
   /* ---- Schrift ---- */
-  --schrift: #e6edf8;
-  --schrift-leise: #9aabc4;
-  --schrift-still: #74869f;
+  --schrift: #f2f6fc;
+  --schrift-leise: #b3c2d8;
+  --schrift-still: #8fa0b8;
 
   /* ---- Bedeutungen ---- */
   --gut: #18c98a;
@@ -81,8 +81,8 @@
     Werkzeugleiste, 72 sind eine Kopfzeile, in der die Balance und die
     Projektwahl Platz haben, ohne sich zu draengen.
   */
-  --kopfhoehe: 72px;
-  --reiterhoehe: 52px;
+  --kopfhoehe: 88px;
+  --reiterhoehe: 56px;
 }
 
 /*
