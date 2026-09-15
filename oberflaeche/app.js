@@ -42,6 +42,10 @@ export async function starte(ziel) {
   wurzel = ziel
   ladeEinstellungen()
 
+  // Die gemerkte Farbfassung ZUERST, noch vor allem anderen. Sonst blitzt die
+  // dunkle Fassung kurz auf, bevor die helle greift.
+  stelleFarbeHer()
+
   // Zuerst pruefen, ob dieser Browser eine veraltete Mischung aus alten und
   // neuen Programmdateien geladen hat. Passiert das, wird einmal neu geladen
   // und dieser Start bricht hier ab, weil gleich ein neuer folgt.
@@ -256,6 +260,7 @@ function zeichneKopf() {
           ? 'Die Daten werden in der Datenbank gesichert.'
           : 'Die Datenbank ist nicht erreichbar. Es wird nur oertlich gespeichert.',
       }),
+      farbwahlknopf(),
       el('button.knopf.knopf-klein', {
         type: 'button',
         text: 'Code wechseln',
@@ -273,6 +278,73 @@ function zeichneKopf() {
       }),
     ]),
   ])
+}
+
+/** Unter welchem Schluessel die Farbwahl im Browser liegt. */
+const FARBE_SCHLUESSEL = 'kombi-farbe'
+
+/**
+ * Der Umschalter zwischen heller und dunkler Fassung.
+ *
+ * DREI STUFEN, nicht zwei: "System" folgt der Einstellung des Betriebssystems,
+ * und das ist die richtige Vorgabe, weil niemand sie waehlen musste. Wer es
+ * anders will, waehlt hell oder dunkel und bekommt es ueberall gleich.
+ *
+ * HIER STEHT KEINE EINZIGE FARBE. Der Knopf setzt allein das Merkmal
+ * data-farbe am Wurzelelement; welche Farben dazugehoeren, steht in
+ * stil/marken.css. Wird stil/ geloescht, tut der Knopf nichts Sichtbares mehr
+ * und alles rechnet unveraendert weiter (Projektregel 5).
+ *
+ * @returns {HTMLElement}
+ */
+function farbwahlknopf() {
+  const stufen = [
+    { wert: '', name: 'System', hilfe: 'Folgt der Einstellung des Betriebssystems' },
+    { wert: 'hell', name: 'Hell', hilfe: 'Immer helle Fassung' },
+    { wert: 'dunkel', name: 'Dunkel', hilfe: 'Immer dunkle Fassung' },
+  ]
+  const jetzige = document.documentElement.dataset.farbe ?? ''
+  const i = Math.max(0, stufen.findIndex((s) => s.wert === jetzige))
+  const stufe = stufen[i] ?? stufen[0]
+  const naechste = stufen[(i + 1) % stufen.length] ?? stufen[0]
+
+  return el('button.knopf.knopf-klein.farbwahl', {
+    type: 'button',
+    text: `Ansicht: ${stufe.name}`,
+    title: `${stufe.hilfe}. Klicken schaltet auf: ${naechste.name}.`,
+    onclick: () => {
+      setzeFarbe(naechste.wert)
+      zeichneAlles()
+    },
+  })
+}
+
+/**
+ * Setzt die Farbfassung und merkt sie sich.
+ *
+ * @param {string} wert  leer heisst: der Einstellung des Systems folgen
+ */
+export function setzeFarbe(wert) {
+  if (wert === '') delete document.documentElement.dataset.farbe
+  else document.documentElement.dataset.farbe = wert
+  try {
+    if (wert === '') localStorage.removeItem(FARBE_SCHLUESSEL)
+    else localStorage.setItem(FARBE_SCHLUESSEL, wert)
+  } catch {
+    // Ein Browser ohne Speicher (privates Fenster, gesperrte Seitendaten) darf
+    // deswegen nicht die ganze Seite anhalten. Die Wahl gilt dann nur, solange
+    // das Fenster offen ist.
+  }
+}
+
+/** Holt die gemerkte Farbfassung beim Start. */
+function stelleFarbeHer() {
+  try {
+    const wert = localStorage.getItem(FARBE_SCHLUESSEL)
+    if (wert === 'hell' || wert === 'dunkel') document.documentElement.dataset.farbe = wert
+  } catch {
+    // Siehe oben.
+  }
 }
 
 /**
@@ -478,6 +550,73 @@ function horcheAufAblage() {
     if (!projekt) return
     await speichereProjektAngaben(projekt)
   })
+
+  window.addEventListener('kombi-projekte-loeschen', async (e) => {
+    const ids = /** @type {any} */ (e).detail?.ids
+    if (!Array.isArray(ids) || ids.length === 0) return
+    await loescheProjekte(ids)
+  })
+}
+
+/**
+ * Loescht ein oder mehrere Projekte, mitsamt allem, was darin liegt.
+ *
+ * WARUM DAS BISHER GEFEHLT HAT: kombi_projekt_loeschen gibt es in der
+ * Datenbank seit der ersten Migration, und Datenbank.loescheProjekt ruft es
+ * auf. Nur hat diese Funktion niemand aufgerufen. In der Oberflaeche gab es
+ * bloss "Projekt leeren". Karam am 16.09.2026: "ich will den irgendwie
+ * loeschen, aber das funktioniert nicht ganz so gut". Es ging gar nicht.
+ *
+ * JEDES PROJEKT EINZELN, NICHT ALLE AUF EINMAL: geht eines schief, sollen die
+ * uebrigen trotzdem verschwinden, und am Ende muss dastehen, was wirklich
+ * passiert ist. Ein stiller Teilerfolg waere die schlimmere Auskunft.
+ *
+ * @param {string[]} ids
+ */
+async function loescheProjekte(ids) {
+  const stand = Zustand.hole()
+  /** @type {string[]} */
+  const weg = []
+  /** @type {string[]} */
+  const gescheitert = []
+
+  for (const id of ids) {
+    const antwort = await Datenbank.loescheProjekt(stand.token, id)
+    if (antwort.art === 'fehler') {
+      const name = stand.projekte.find((p) => p.id === id)?.name ?? id
+      gescheitert.push(`${name}: ${antwort.meldung}`)
+    } else {
+      weg.push(id)
+    }
+  }
+
+  if (weg.length > 0) {
+    const uebrig = stand.projekte.filter((p) => !weg.includes(p.id))
+    /** @type {any} */
+    const aenderung = { projekte: uebrig }
+
+    // War das offene Projekt dabei, muss auch sein Inhalt aus dem Arbeitsstand
+    // verschwinden. Sonst stehen Scheine eines Projekts auf dem Bildschirm,
+    // das es nicht mehr gibt, und der naechste Speicherlauf schreibt sie
+    // womoeglich wieder irgendwohin.
+    if (stand.projekt && weg.includes(stand.projekt.id)) {
+      aenderung.projekt = uebrig[0] ?? null
+      aenderung.scheine = []
+      aenderung.riesenscheine = []
+      aenderung.bilder = new Map()
+    }
+    Zustand.aendere(aenderung)
+
+    if (aenderung.projekt) await ladeProjektinhalt(aenderung.projekt.id)
+    Zustand.melde(
+      'erfolg',
+      weg.length === 1 ? 'Projekt geloescht.' : `${weg.length} Projekte geloescht.`
+    )
+  }
+
+  if (gescheitert.length > 0) {
+    Zustand.melde('fehler', `Nicht geloescht: ${gescheitert.join(' | ')}`)
+  }
 }
 
 /**
@@ -676,9 +815,23 @@ function zeichneMeldungen() {
   if (!ecke) return
   const stand = Zustand.hole()
 
+  // Hoechstens drei auf einmal, und Fehler zuerst.
+  //
+  // Karam am 16.09.2026: "es kommen zu viele Benachrichtigungen". Fuenf
+  // gleichzeitige Kaesten verdecken die halbe Ecke, und weil sie nie von selbst
+  // verschwanden, wuchs der Stapel den ganzen Tag. Die Dauer steht jetzt in
+  // zustand.js, hier steht nur, wie viele gleichzeitig Platz haben.
+  //
+  // Fehler nach vorn: wenn drei Bestaetigungen und ein Fehler zugleich
+  // anstehen, ist der Fehler der, den man sehen muss.
+  const wichtigZuerst = [...stand.meldungen].sort((a, b) => {
+    const rang = { fehler: 0, warnung: 1, info: 2, erfolg: 2 }
+    return (rang[a.art] ?? 3) - (rang[b.art] ?? 3)
+  })
+
   fuelle(
     ecke,
-    stand.meldungen.slice(0, 5).map((m) =>
+    wichtigZuerst.slice(0, 3).map((m) =>
       el('.meldung', { daten: { art: m.art } }, [
         el('span.meldungstext', { text: m.text }),
         el('span.meldungszeit', { text: zeitText(m.zeit).slice(-5) }),

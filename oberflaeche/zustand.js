@@ -118,10 +118,39 @@ export function aendere(aenderung) {
  * @param {'info'|'erfolg'|'warnung'|'fehler'} art
  * @param {string} text
  */
+/**
+ * Wie lange eine Meldung stehen bleibt, in Millisekunden.
+ *
+ * WARUM NICHT ALLE GLEICH
+ *
+ * Eine Bestaetigung ("Bild entfernt") hat ihren Zweck erfuellt, sobald man sie
+ * gelesen hat. Sie geht von selbst. Eine Warnung braucht laenger, weil man
+ * vielleicht erst zu Ende tippt.
+ *
+ * Ein FEHLER bleibt stehen, bis der Mensch ihn wegklickt. Das ist die ganze
+ * Regel in einem Satz: was Geld betrifft, verschwindet nicht von allein. Eine
+ * Fehlermeldung, die nach vier Sekunden weg ist, ist dasselbe wie keine
+ * Fehlermeldung, und genau davor warnt die Fehlerklasse "stille Fehlschlaege".
+ */
+const MELDUNG_DAUER = {
+  erfolg: 4000,
+  info: 5000,
+  warnung: 9000,
+  fehler: 0,
+}
+
 export function melde(art, text) {
   const meldung = { id: neueKennung(), art, text, zeit: jetzt() }
   // Neueste zuerst, hoechstens fuenfzig behalten.
   aendere({ meldungen: [meldung, ...stand.meldungen].slice(0, 50) })
+
+  const dauer = MELDUNG_DAUER[art] ?? 5000
+  if (dauer > 0) {
+    // setTimeout und nicht requestAnimationFrame: der Merksatz aus diesem
+    // Projekt lautet, nichts an der Sichtbarkeit des Fensters aufzuhaengen.
+    // In einem verdeckten Reiter wuerde die Meldung sonst nie verschwinden.
+    setTimeout(() => meldungWeg(meldung.id), dauer)
+  }
   return meldung.id
 }
 

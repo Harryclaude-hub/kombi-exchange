@@ -2232,3 +2232,112 @@ li[data-schwere="info"] .hinweisart {
 .knopf-weg:hover {
   background: var(--schlecht-tief);
 }
+
+/* ------------------------------------------------- Knoepfe sichtbar machen */
+
+/*
+  Karam am 16.09.2026: "manche Buttons sind einfach als Text, man erkennt
+  nicht, dass es direkt ein Button ist".
+
+  Er hat recht. .projektknopf war durchsichtig, in leiser Schrift und in der
+  kleinsten Schriftgroesse des Programms. Das sieht aus wie eine Bemerkung,
+  nicht wie etwas zum Draufdruecken.
+
+  Die Regel ab hier: jeder Knopf hat eine Flaeche, einen Rand und volle
+  Schriftfarbe. Was gefaehrlich ist, traegt zusaetzlich die Warnfarbe. Nichts
+  davon steht im JavaScript, es haengt allein an den Klassennamen.
+*/
+.projektknopf,
+.projektpin,
+.ablage-knopf,
+.aufnahmeknopf,
+.zuschnitt-nehmen,
+.zuschnitt-ganz,
+.zuschnitt-abbruch,
+.kartenteilen,
+.kartenverbinden,
+.kartenweg {
+  background: var(--flaeche-hoch);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  color: var(--schrift);
+  font: inherit;
+  font-size: var(--text-klein);
+  font-weight: 600;
+  padding: var(--luft-2) var(--luft-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--takt), border-color var(--takt);
+}
+
+.projektknopf:hover,
+.projektpin:hover,
+.ablage-knopf:hover,
+.aufnahmeknopf:hover,
+.zuschnitt-nehmen:hover,
+.zuschnitt-ganz:hover,
+.zuschnitt-abbruch:hover,
+.kartenteilen:hover,
+.kartenverbinden:hover,
+.kartenweg:hover {
+  background: var(--flaeche-heiss);
+  border-color: var(--betonung);
+}
+
+/* Ein angepinntes Projekt zeigt das am Knopf selbst. */
+.projektpin[data-an="true"] {
+  color: var(--offen);
+  border-color: var(--offen);
+  background: var(--offen-tief);
+}
+
+/*
+  Die wichtigsten Knoepfe sind die, mit denen man weiterkommt: lesen, Excel,
+  neues Projekt. Sie bekommen die Signalfarbe, damit das Auge sie zuerst
+  findet.
+*/
+.knopf-haupt,
+.aufnahmeknopf {
+  font-size: var(--text-normal);
+}
+
+/* ------------------------------------------------- Mehrfachauswahl */
+
+/*
+  Die Leiste erscheint nur, wenn wirklich etwas angehakt ist, und nennt immer
+  die Zahl. Sie sitzt oben in der Projektliste, damit man nach dem Anhaken
+  nicht suchen muss, wo die Aktion liegt.
+*/
+.auswahlleiste {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+  padding: var(--luft-2) var(--luft-3);
+  margin-bottom: var(--luft-2);
+  background: var(--betonung-tief);
+  border: 1px solid var(--betonung);
+  border-radius: var(--rundung);
+}
+
+.auswahlzahl {
+  flex: 1 1 auto;
+  font-size: var(--text-klein);
+  font-weight: 700;
+  color: var(--schrift);
+}
+
+.projektwahl {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-right: var(--luft-2);
+  cursor: pointer;
+  accent-color: var(--betonung);
+}
+
+/* ------------------------------------------------- Farbwahl im Kopf */
+
+.farbwahl {
+  flex: 0 0 auto;
+}

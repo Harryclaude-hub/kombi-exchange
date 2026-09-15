@@ -12,18 +12,18 @@
 
 :root {
   /* ---- Grundflaechen ---- */
-  --grund: #070a10;
-  --grund-tief: #04060a;
-  --flaeche: #0d131e;
-  --flaeche-hoch: #121a29;
-  --flaeche-heiss: #17202f;
-  --linie: #1e2a3d;
-  --linie-hell: #2b3b54;
+  --grund: #0e141f;
+  --grund-tief: #0a0f18;
+  --flaeche: #161e2c;
+  --flaeche-hoch: #1c2534;
+  --flaeche-heiss: #232d3f;
+  --linie: #2b3849;
+  --linie-hell: #3a4a63;
 
   /* ---- Schrift ---- */
   --schrift: #e6edf8;
-  --schrift-leise: #8598b4;
-  --schrift-still: #5c6e89;
+  --schrift-leise: #9aabc4;
+  --schrift-still: #74869f;
 
   /* ---- Bedeutungen ---- */
   --gut: #18c98a;
@@ -74,8 +74,15 @@
   --takt-lang: 260ms;
 
   /* ---- Masse der Huelle ---- */
-  --kopfhoehe: 56px;
-  --reiterhoehe: 44px;
+  /*
+    Kopf und Reiterleiste, am 16.09.2026 vergroessert.
+    Karam: "ich will, dass der Header groesser ist und die Buttons
+    sichtbarer und besser zum Navigieren". 56 Pixel sind eine
+    Werkzeugleiste, 72 sind eine Kopfzeile, in der die Balance und die
+    Projektwahl Platz haben, ohne sich zu draengen.
+  */
+  --kopfhoehe: 72px;
+  --reiterhoehe: 52px;
 }
 
 /*
@@ -112,4 +119,48 @@
     --schatten: 0 1px 2px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.08);
     --schatten-flach: 0 1px 2px rgba(16, 24, 40, 0.08);
   }
+}
+
+/*
+  Die helle Fassung, von Hand gewaehlt.
+
+  ACHTUNG, ZWEITE FASSUNG: dieselben Werte stehen weiter oben noch einmal im
+  Block @media (prefers-color-scheme: light). Beide gehoeren zusammen und
+  werden IMMER im selben Arbeitsgang geaendert (Projektregel 8).
+
+  Warum die Dopplung sein muss: CSS kann einen Satz Merkmale nicht an zwei
+  Bedingungen zugleich haengen, wenn eine davon eine Medienabfrage ist. Der
+  obere Block gilt, wenn das System auf hell steht, dieser hier, wenn Karam es
+  ausdruecklich waehlt. Wer nur einen von beiden aendert, bekommt zwei
+  verschiedene helle Fassungen, je nachdem wie das Betriebssystem eingestellt
+  ist, und sucht den Unterschied lange.
+*/
+:root[data-farbe="hell"] {
+  --grund: #f4f6fa;
+  --grund-tief: #e8ecf3;
+  --flaeche: #ffffff;
+  --flaeche-hoch: #f7f9fc;
+  --flaeche-heiss: #eef2f8;
+  --linie: #dbe2ec;
+  --linie-hell: #c3cddb;
+
+  --schrift: #0e1522;
+  --schrift-leise: #4c5a6f;
+  --schrift-still: #77869b;
+
+  --gut: #00875a;
+  --gut-tief: rgba(0, 135, 90, 0.1);
+  --schlecht: #d03547;
+  --schlecht-tief: rgba(208, 53, 71, 0.1);
+  --offen: #b26a00;
+  --offen-tief: rgba(178, 106, 0, 0.1);
+  --betonung: #1667c7;
+  --betonung-tief: rgba(22, 103, 199, 0.1);
+
+  --stufe-mittel: rgba(178, 106, 0, 0.14);
+  --stufe-niedrig: rgba(208, 53, 71, 0.14);
+  --stufe-keine: rgba(119, 134, 155, 0.12);
+
+  --schatten: 0 1px 2px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.08);
+  --schatten-flach: 0 1px 2px rgba(16, 24, 40, 0.08);
 }
