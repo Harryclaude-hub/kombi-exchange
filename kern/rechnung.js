@@ -116,7 +116,58 @@ export function rechne(scheine) {
   /** @type {import('./typen.js').Hinweis[]} */
   const hinweise = []
 
-  const gueltige = (scheine || []).filter((s) => !s.ausgeschlossen)
+  const nichtAusgeschlossen = (scheine || []).filter((s) => !s.ausgeschlossen)
+
+  // ---- Scheine, deren Zahlen nicht belastbar sind, kommen nicht in die Summe.
+  //
+  // Bis zum 15.09.2026 zaehlte jeder Schein mit, den der Mensch nicht
+  // ausdruecklich ausgeschlossen hatte. Ein Hinweis der Schwere fehler aenderte
+  // daran nichts. So ging eine verschmolzene Stake-Doppelspalte mit einem
+  // Einsatz von fuenf Billiarden in den Gesamteinsatz ein, und an der Zahl
+  // selbst war nichts zu sehen.
+  //
+  // Die Regel ist bewusst allgemein und keine Liste von Codes: WER einen Fehler
+  // meldet, sagt damit, dass seine Zahlen nicht stimmen. Eine Liste wuerde bei
+  // jedem neuen Fehlercode veralten, und dann waere die Luecke wieder da.
+  //
+  // Genau eine Ausnahme: einsatz_fehlt. Dafuer gibt es seit jeher die sanftere
+  // Behandlung weiter unten (einsatz_fehlt_in_summe). Solche Scheine steuern
+  // keinen Einsatz bei, bleiben aber Teil des Riesenscheins. Wuerden sie
+  // aussortiert, aendert sich das Verhalten fuer jeden verlorenen
+  // BetOnline-Schein ohne Returns-Spalte.
+  //
+  // Weggeworfen wird nichts: Anzahl und Kennungen stehen in mitFehler, und der
+  // Hinweis darunter nennt sie (Projektregel 9).
+  const istNichtRechenbar = (s) =>
+    (s.hinweise || []).some((h) => h.schwere === 'fehler' && h.code !== 'einsatz_fehlt')
+
+  const nichtRechenbare = nichtAusgeschlossen.filter(istNichtRechenbar)
+  const gueltige = nichtAusgeschlossen.filter((s) => !istNichtRechenbar(s))
+
+  const mitFehler = {
+    anzahl: nichtRechenbare.length,
+    scheinIds: nichtRechenbare.map((s) => s.id),
+  }
+
+  if (nichtRechenbare.length > 0) {
+    const gruende = [
+      ...new Set(
+        nichtRechenbare.flatMap((s) =>
+          (s.hinweise || [])
+            .filter((h) => h.schwere === 'fehler' && h.code !== 'einsatz_fehlt')
+            .map((h) => h.code)
+        )
+      ),
+    ]
+    hinweise.push({
+      code: 'scheine_mit_fehler',
+      schwere: 'fehler',
+      text:
+        `${nichtRechenbare.length} Schein(e) sind nicht in die Summe genommen worden, weil ihre ` +
+        `Zahlen nicht belastbar sind (${gruende.join(', ')}). Sie stehen weiter in der Liste und ` +
+        'koennen von Hand berichtigt werden.',
+    })
+  }
 
   // ---- Waehrung. Es wird niemals ueber Waehrungen hinweg summiert. ----
   const waehrungen = new Set(
@@ -352,6 +403,11 @@ export function rechne(scheine) {
     konten: /** @type {string[]} */ (alleKonten),
     waehrung,
     waehrungGemischt,
+
+    // Was wegen eines Fehlers nicht mitgerechnet wurde. Nie leer verschweigen:
+    // die Anzeige zeigt die Zahl, damit niemand eine Summe fuer vollstaendig
+    // haelt, die es nicht ist (Projektregel 9).
+    mitFehler,
 
     einsatzGesamt: runde(einsatzGesamt, 2),
     einsatzOffen: runde(einsatzOffen, 2),
