@@ -250,6 +250,57 @@ export function horcheAufEinfuegen() {
  * @param {import('./zustand.js').Bildeintrag} eintrag
  * @returns {HTMLElement}
  */
+/**
+ * Welche Bilder gerade gross angezeigt werden.
+ *
+ * WARUM HIER UND NICHT IM ZUSTAND
+ *
+ * Das ist reine Ansichtssache und kein Wert, der gerechnet oder gespeichert
+ * wird. Im Zustand wuerde er mit jedem Projekt mitgeschleppt und in die
+ * Datenbank wandern. Hier lebt er genau so lange wie die Seite offen ist, und
+ * er ueberlebt das Neuzeichnen, weil das Modul bestehen bleibt.
+ *
+ * @type {Set<string>}
+ */
+const grosseBilder = new Set()
+
+/**
+ * Bilder werden klein nebeneinander gezeigt, nicht eines untereinander.
+ *
+ * Karam laedt zwanzig bis hundert Bildschirmfotos auf einmal hoch. Eines je
+ * Bildschirmbreite heisst hundertmal scrollen, um zu sehen, was ueberhaupt da
+ * ist. Klein und nebeneinander passen mehrere ins Bild, und wer eines genauer
+ * ansehen oder den Rahmen ziehen will, macht es gross.
+ *
+ * Beim Rahmensetzen wird das Bild IMMER gross, sonst zieht man den Rahmen auf
+ * einer Briefmarke.
+ *
+ * @param {string} bildId
+ * @returns {boolean}
+ */
+function istGross(bildId) {
+  return grosseBilder.has(bildId)
+}
+
+/**
+ * Schaltet ein Bild zwischen klein und gross um.
+ *
+ * Die Karte wird direkt umgeschaltet, ohne die ganze Ansicht neu zu zeichnen:
+ * das ist schneller, und ein offenes Eingabefeld verliert dabei nicht den
+ * Schreibzeiger. Die Groesse selbst steht in stil/, hier steht nur, WELCHER
+ * Zustand gilt.
+ *
+ * @param {string} bildId
+ * @param {HTMLElement} karte
+ */
+function schalteGroesse(bildId, karte) {
+  if (grosseBilder.has(bildId)) grosseBilder.delete(bildId)
+  else grosseBilder.add(bildId)
+  karte.dataset.gross = String(grosseBilder.has(bildId))
+  const knopf = karte.querySelector('.groessenknopf')
+  if (knopf) knopf.textContent = grosseBilder.has(bildId) ? 'Kleiner' : 'Groesser'
+}
+
 function bildkarte(eintrag) {
   const anzahl = eintrag.karten.length
 
@@ -266,12 +317,26 @@ function bildkarte(eintrag) {
   const breitesBild = eintrag.bild.breite >= 1000
   const nichtsGetrennt = !eintrag.bereich && breitesBild
 
-  return el('.bildkarte', { daten: { bild: eintrag.bild.id } }, [
+  // Beim Rahmensetzen zaehlt nur die grosse Ansicht, sonst zieht man den
+  // Rahmen auf einer Briefmarke.
+  const gross = istGross(eintrag.bild.id) || imRahmenmodus.has(eintrag.bild.id)
+
+  const karte = el('.bildkarte', { daten: { bild: eintrag.bild.id, gross: String(gross) } }, [
     el('.bildkopf', {}, [
-      el('.bildname', { text: eintrag.bild.dateiname }),
+      el('.bildname', { text: eintrag.bild.dateiname, title: eintrag.bild.dateiname }),
       el('.bildmasse', { text: `${eintrag.bild.breite} x ${eintrag.bild.hoehe}` }),
       el('.bildzahl', {
         text: anzahl === 1 ? '1 Schein erkannt' : `${anzahl} Scheine erkannt`,
+      }),
+      el('button.knopf.knopf-klein.groessenknopf', {
+        type: 'button',
+        text: gross ? 'Kleiner' : 'Groesser',
+        title: 'Dieses Bild gross oder klein anzeigen',
+        onclick: (e) => {
+          const ziel = /** @type {HTMLElement} */ (e.currentTarget)
+          const dieKarte = /** @type {HTMLElement|null} */ (ziel.closest('.bildkarte'))
+          if (dieKarte) schalteGroesse(eintrag.bild.id, dieKarte)
+        },
       }),
     ]),
     anbieterwahl(eintrag),
@@ -290,6 +355,8 @@ function bildkarte(eintrag) {
       ? el('ul.bildhinweise', {}, eintrag.hinweise.map((h) => el('li', { text: h })))
       : null,
   ])
+
+  return karte
 }
 
 /**
@@ -386,6 +453,15 @@ function schnittflaeche(eintrag) {
     alt: eintrag.bild.dateiname,
     onload: () => {
       if (bildAdresse) setTimeout(() => URL.revokeObjectURL(bildAdresse), 1000)
+    },
+    // Ein Klick aufs Bild macht es gross und wieder klein. Beim Rahmenziehen
+    // NICHT: dort beginnt der Klick das Aufziehen des Rahmens, und beides
+    // zugleich wuerde sich gegenseitig stoeren.
+    onclick: (e) => {
+      if (imRahmenmodus.has(eintrag.bild.id)) return
+      const ziel = /** @type {HTMLElement} */ (e.currentTarget)
+      const dieKarte = /** @type {HTMLElement|null} */ (ziel.closest('.bildkarte'))
+      if (dieKarte) schalteGroesse(eintrag.bild.id, dieKarte)
     },
   })
 

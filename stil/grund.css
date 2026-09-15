@@ -162,8 +162,20 @@ img {
   gap: var(--luft-4);
 }
 
+/*
+  Bilder liegen NEBENEINANDER, nicht untereinander.
+
+  Karam laedt zwanzig bis hundert Bildschirmfotos auf einmal hoch. Eines je
+  Bildschirmbreite hiesse hundertmal scrollen, nur um zu sehen, was da ist.
+  Mit auto-fill passen so viele Karten in eine Zeile, wie hineinpassen, und
+  ein einzelnes Bild wird auf Knopfdruck gross (siehe .bildkarte in
+  bauteile.css). Das ist reine Anzeige: an den gelesenen Zahlen aendert sich
+  dadurch nichts.
+*/
 .bildliste {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  align-items: start;
   gap: var(--luft-4);
   margin-top: var(--luft-4);
 }

@@ -353,6 +353,41 @@
   overflow: hidden;
 }
 
+/*
+  Klein ist die Vorgabe, gross ist eine Entscheidung.
+
+  Im kleinen Zustand wird das Bild in der Hoehe gedeckelt, damit ein hohes
+  Bildschirmfoto nicht die halbe Seite einnimmt. Der Rest der Karte (Name,
+  Anbieter, Zahl der Scheine, Hinweise) bleibt vollstaendig sichtbar, denn
+  genau das braucht man beim Durchsehen von hundert Bildern.
+
+  Im grossen Zustand nimmt die Karte die ganze Zeile ein und das Bild seine
+  natuerliche Hoehe. Beim Rahmenziehen schaltet die Ansicht automatisch auf
+  gross, sonst zieht man den Rahmen auf einer Briefmarke.
+*/
+.bildkarte[data-gross="false"] .schnittbild {
+  max-height: 14rem;
+  object-fit: contain;
+  object-position: top;
+  cursor: zoom-in;
+}
+
+.bildkarte[data-gross="false"] .schnittbereich {
+  padding: var(--luft-2);
+}
+
+.bildkarte[data-gross="true"] {
+  grid-column: 1 / -1;
+}
+
+.bildkarte[data-gross="true"] .schnittbild {
+  cursor: zoom-out;
+}
+
+.groessenknopf {
+  flex: 0 0 auto;
+}
+
 .bildkopf {
   display: flex;
   align-items: center;
