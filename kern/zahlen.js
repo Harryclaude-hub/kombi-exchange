@@ -310,8 +310,46 @@ export function leseZahl(roh, einstellungen = {}) {
   let dezimaltrenner = null
   let mehrdeutig = false
 
+  // Wenn wahr, stecken in diesem Text MEHR ALS EINE Zahl. Dann wird kein Wert
+  // zurueckgegeben, nur der Grund. Siehe die lange Begruendung weiter unten.
+  let zweiZahlen = false
+
   if (punkte > 0 && kommas > 0) {
     dezimaltrenner = bereinigt.lastIndexOf('.') > bereinigt.lastIndexOf(',') ? '.' : ','
+    const anderer = dezimaltrenner === '.' ? ',' : '.'
+
+    // ZWEI ZAHLEN IN EINEM FELD, der teuerste Fund des 15.09.2026.
+    //
+    // Bei Stake liegen zwei Wetten nebeneinander, die Bildzerlegung trennt sie
+    // nicht, und die Texterkennung liefert die Geldzeile als
+    //
+    //     Einsatz 5,000.00000000 2,000.00000000
+    //
+    // Zwischen den Betraegen steht genau EIN Leerzeichen, und ein einzelnes
+    // Leerzeichen ist weiter oben ein erlaubter Tausenderraum ("1 181,50" gibt
+    // es wirklich). Es fiel also weg, und uebrig blieb
+    // "5,000.000000002,000.00000000". Ohne die folgende Pruefung wurde daraus
+    // der Einsatz 5.000.000.000.002.000, und der wanderte in die Summe.
+    //
+    // Das laesst sich ENTSCHEIDEN, nicht nur raten: ein Dezimaltrennzeichen
+    // gibt es in EINER Zahl genau einmal. Kommt es zweimal vor, sind es zwei
+    // Zahlen. Und der Tausendertrenner bildet in jeder Sprache Gruppen von
+    // genau drei Ziffern, mit ein bis drei Ziffern davor.
+    //
+    // Geraten wird hier nichts: wo die Zuordnung nicht eindeutig ist, bleibt
+    // der Wert leer und der Grund steht dabei (Projektregel 1).
+    const wieOftDezimal = dezimaltrenner === '.' ? punkte : kommas
+    if (wieOftDezimal > 1) {
+      zweiZahlen = true
+    } else {
+      const kopf = bereinigt.slice(0, bereinigt.indexOf(dezimaltrenner))
+      const gruppen = kopf.split(anderer)
+      const erste = gruppen[0] ?? ''
+      const weitere = gruppen.slice(1)
+      if (erste.length < 1 || erste.length > 3 || !weitere.every((g) => g.length === 3)) {
+        zweiZahlen = true
+      }
+    }
   } else if (punkte > 1 || kommas > 1) {
     // Dasselbe Zeichen mehrfach. Frueher hiess das immer Tausendertrennung,
     // und aus "1,000,00" wurde 100000. Der Faktor hundert.
@@ -342,6 +380,16 @@ export function leseZahl(roh, einstellungen = {}) {
     } else {
       dezimaltrenner = null
       mehrdeutig = true
+
+      // Auch hier koennen zwei Zahlen aneinandergeraten sein, wenn beide
+      // dasselbe Trennzeichen tragen: aus "78,30 136,30" wird nach dem
+      // Wegfallen des einzelnen Leerzeichens "78,30136,30". Das Erkennungsmal
+      // ist eindeutig: eine Gruppe MITTENDRIN ist laenger als drei Ziffern
+      // (sie ist in Wahrheit das Ende der ersten und der Anfang der zweiten
+      // Zahl), und am Ende stehen die zwei Nachkommastellen der zweiten.
+      // Ohne diese Zeile waere daraus der Betrag 783.013.630.
+      const zuLang = vordere.some((g) => g.length > 3)
+      if (zuLang && letzte.length >= 1 && letzte.length <= 2) zweiZahlen = true
     }
   } else if (punkte === 1 || kommas === 1) {
     const trenner = punkte === 1 ? '.' : ','
@@ -362,6 +410,20 @@ export function leseZahl(roh, einstellungen = {}) {
       dezimaltrenner = null
     } else {
       dezimaltrenner = trenner
+    }
+  }
+
+  // Zwei Zahlen ergeben keine Zahl. Hier wird bewusst NICHTS zurueckgegeben:
+  // jeder Wert waere erfunden, und ein erfundener Wert wandert still in die
+  // Summe. Der Aufrufer sieht wert null und den Grund und meldet es dem
+  // Menschen (Projektregel 1 und 9).
+  if (zweiZahlen) {
+    return {
+      ...leer,
+      bereinigt,
+      ersetzt,
+      mehrdeutig: true,
+      grund: 'zwei zahlen in einem feld',
     }
   }
 

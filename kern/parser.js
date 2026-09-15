@@ -737,6 +737,45 @@ export function leseLinie(markt) {
  * @param {Leseumgebung} umgebung
  * @returns {import('./typen.js').Schein}
  */
+/**
+ * Sucht ein Geld- oder Quotenetikett, das auf EINER Zeile zweimal steht.
+ *
+ * Das ist das Erkennungsmal fuer zwei Wettscheine nebeneinander, die beim
+ * Zuschneiden nicht getrennt wurden: ein einzelner Schein traegt "Einsatz",
+ * "Auszahlung" oder "Quoten" genau einmal je Zeile. Steht eines davon
+ * zweimal da, gehoeren die Zahlen rechts und links zu verschiedenen Wetten.
+ *
+ * Es gibt hier keinen Schwellwert und nichts zu kalibrieren, deshalb ist die
+ * Regel auch ohne echte Fotos belastbar.
+ *
+ * Die Wortgrenze wird mit \p{L} gebildet, nicht mit \b. In JavaScript ist \b
+ * rein englisch und trifft vor einem Umlaut nie, und genau daran sind schon
+ * einmal alle deutschen Scheine gescheitert.
+ *
+ * @param {string[]} zeilen
+ * @returns {string|null} das doppelte Etikett, oder null
+ */
+function findeDoppeltesEtikett(zeilen) {
+  const etiketten = [
+    ...EINSATZ_ETIKETTEN,
+    ...AUSZAHLUNG_ETIKETTEN.map((e) => e.wort),
+    ...QUOTE_ETIKETTEN,
+  ].filter((wort) => typeof wort === 'string' && wort.length >= 4)
+
+  for (const zeile of zeilen) {
+    if (zeile === '') continue
+    const klein = zeile.toLowerCase()
+    for (const wort of etiketten) {
+      if (!klein.includes(wort)) continue
+      const sicher = wort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const muster = new RegExp(`(?<!\\p{L})${sicher}(?!\\p{L})`, 'gu')
+      const treffer = klein.match(muster)
+      if (treffer && treffer.length >= 2) return wort
+    }
+  }
+  return null
+}
+
 export function leseSchein(rohzeilen, umgebung) {
   /** @type {import('./typen.js').Hinweis[]} */
   const hinweise = []
@@ -1409,6 +1448,35 @@ export function leseSchein(rohzeilen, umgebung) {
           'Begegnung ist das normal, weil der Buchmacher sie abhaengig bepreist.',
       })
     }
+  }
+
+  // 8b. Zwei Karten nebeneinander, die beim Zerlegen nicht getrennt wurden.
+  //
+  // Bei Stake liegen die Wetten in zwei Spalten. Trennt die Bildzerlegung sie
+  // nicht, steht in EINER Karte alles doppelt, und die Texterkennung liefert
+  // Zeilen wie "Auszahlung  9.175,9955  Auszahlung  0,00". Aus so einer Karte
+  // kann kein richtiger Schein werden: die Betraege der linken und der rechten
+  // Wette stehen nebeneinander, und jede Zuordnung waere geraten.
+  //
+  // Am 15.09.2026 wurde daraus zuerst der Einsatz 5.000.000.000.002.004 und
+  // danach, nach der Reparatur in kern/zahlen.js, ein AUSGERECHNETER Einsatz
+  // von 49,87 aus einer verlesenen Quote 184. Beides lief ohne einen einzigen
+  // Fehlerhinweis in die Summe.
+  //
+  // Das Erkennungsmal ist eindeutig und braucht keinen Schwellwert: steht
+  // DASSELBE Geld- oder Quotenetikett zweimal auf EINER Zeile, sind es zwei
+  // Karten. Ein Schein hat jedes dieser Etiketten genau einmal.
+  const doppeltesEtikett = findeDoppeltesEtikett(zeilen)
+  if (doppeltesEtikett !== null) {
+    hinweise.push({
+      code: 'zwei_karten_in_einer',
+      schwere: 'fehler',
+      text:
+        `Auf einer Zeile steht "${doppeltesEtikett}" zweimal. Hier liegen zwei Wettscheine ` +
+        'nebeneinander, die beim Zuschneiden nicht getrennt wurden. Die Zahlen dieser Karte ' +
+        'gehoeren zu zwei verschiedenen Wetten und werden deshalb nicht in die Summe genommen. ' +
+        'Bitte den Ausschnitt so setzen, dass nur eine Wette darin steht.',
+    })
   }
 
   // 9. Fehlende Pflichtangaben melden, statt sie zu verschweigen.
