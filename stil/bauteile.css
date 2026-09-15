@@ -2791,3 +2791,12 @@ li[data-schwere="info"] .hinweisart {
   color: var(--schrift);
   border-color: var(--betonung);
 }
+
+/*
+  Ein Feld, dessen Eingabe sich nicht deuten liess. Der alte Wert bleibt
+  stehen, der Grund steht im Titel. Nichts wird still gespeichert.
+*/
+.feldeingabe[data-fehler="true"] {
+  border-color: var(--schlecht);
+  background: var(--schlecht-tief);
+}

@@ -14,6 +14,7 @@ import { el, fuelle, zeitText, sicherheitsstufe, anbieterzeichen } from './werkz
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { statusText } from '../bild/mosaik.js'
 import { barEinsatz } from '../kern/rechnung.js'
+import { leseGeldEingabe, leseQuoteEingabe } from '../kern/handeingabe.js'
 import * as Zustand from './zustand.js'
 
 /** Alle Status, die von Hand gesetzt werden koennen. */
@@ -379,9 +380,30 @@ function zahlfeld(schein, feldname, waehrung) {
       daten: { stufe: sicherheitsstufe(feld.sicherheit), quelle: feld.quelle },
       title: `${feld.quelle === 'berechnet' ? 'Berechnet. ' : ''}${feld.roh ? `Gelesen: ${feld.roh}` : ''}`,
       onchange: (e) => {
-        const roh = /** @type {HTMLInputElement} */ (e.target).value.trim().replace(/\./g, '').replace(',', '.')
-        const wert = roh === '' ? null : Number(roh)
-        Zustand.setzeFeld(schein.id, feldname, wert !== null && Number.isFinite(wert) ? wert : null)
+        // Ueber kern/handeingabe.js, nicht mit einer eigenen Umwandlung.
+        //
+        // Hier stand bis zum 16.09.2026 replace(/\./g, '') plus Number(): das
+        // strich ALLE Punkte, und aus "5000.00" wurde 500000, aus "5,000.00"
+        // wurde 5. Der Wert bekam Sicherheit 1 und die Herkunft hand und wurde
+        // nie wieder ueberschrieben.
+        const feldEl = /** @type {HTMLInputElement} */ (e.target)
+        const gelesen = leseGeldEingabe(feldEl.value, schein.leseumgebung?.gebiet ?? 'de')
+        if (feldEl.value.trim() === '') {
+          feldEl.removeAttribute('data-fehler')
+          feldEl.title = ''
+          Zustand.setzeFeld(schein.id, feldname, null)
+          return
+        }
+        if (gelesen.wert === null) {
+          // Nicht deutbar: NICHTS speichern, stehen lassen, Grund anzeigen.
+          feldEl.dataset.fehler = 'true'
+          feldEl.title = gelesen.grund
+          Zustand.melde('warnung', gelesen.grund)
+          return
+        }
+        feldEl.removeAttribute('data-fehler')
+        feldEl.title = gelesen.grund
+        Zustand.setzeFeld(schein.id, feldname, gelesen.wert)
       },
     }),
     el('span.waehrungszeichen', { text: waehrung === 'UNBEKANNT' ? '?' : waehrung }),
@@ -404,9 +426,26 @@ function quotenfeld(schein) {
           ? `Angezeigt beim Anbieter: ${schein.quoteAmerikanisch.wert > 0 ? '+' : ''}${Math.round(schein.quoteAmerikanisch.wert)}`
           : '',
       onchange: (e) => {
-        const roh = /** @type {HTMLInputElement} */ (e.target).value.trim().replace(',', '.')
-        const wert = roh === '' ? null : Number(roh)
-        Zustand.setzeFeld(schein.id, 'quoteDezimal', wert !== null && Number.isFinite(wert) ? wert : null)
+        // Ebenfalls ueber kern/handeingabe.js. "1.854" ergab hier frueher
+        // 1.854, "1,90." dagegen still null: die Quote war weg, ohne dass es
+        // jemand merkte.
+        const quoteEl = /** @type {HTMLInputElement} */ (e.target)
+        const gelesen = leseQuoteEingabe(quoteEl.value, schein.leseumgebung?.gebiet ?? 'de')
+        if (quoteEl.value.trim() === '') {
+          quoteEl.removeAttribute('data-fehler')
+          quoteEl.title = ''
+          Zustand.setzeFeld(schein.id, 'quoteDezimal', null)
+          return
+        }
+        if (gelesen.wert === null) {
+          quoteEl.dataset.fehler = 'true'
+          quoteEl.title = gelesen.grund
+          Zustand.melde('warnung', gelesen.grund)
+          return
+        }
+        quoteEl.removeAttribute('data-fehler')
+        quoteEl.title = gelesen.grund
+        Zustand.setzeFeld(schein.id, 'quoteDezimal', gelesen.wert)
       },
     }),
     schein.quoteAmerikanisch.wert !== null

@@ -1,10 +1,17 @@
 # Uebergabe an die naechste Sitzung
 
-Stand: 13.09.2026. Diese Datei ist so geschrieben, dass jemand ohne jede
-Vorgeschichte weiterarbeiten kann. Zuerst lesen, dann anfangen.
+Stand: 16.09.2026, Fassung 2026-09-16-f. Diese Datei ist so geschrieben, dass
+jemand ohne jede Vorgeschichte weiterarbeiten kann. Zuerst lesen, dann anfangen.
 
-**Auftrag der naechsten Sitzung: das Leseprogramm an echten Fotos trainieren.**
-Karam bringt 20 bis 100 Bildschirmfotos von Wettscheinen mit.
+**Auftrag der naechsten Sitzung: Design und Bedienung.** Was am Programm
+gerechnet wird, bleibt unberuehrt (Regel 5).
+
+**Zuerst pushen, dann arbeiten.** Am 16.09. lagen neun Commits nur oertlich, und
+Karam sah auf der oeffentlichen Seite tagelang den alten Stand. Nach JEDEM
+Arbeitsgang: `git push origin main`. Und: GitHub Pages sagt dem Browser
+`max-age=600`, also zehn Minuten ohne Nachfrage. Die Fassung steht deshalb oben
+rechts in der Kopfzeile; steht dort nicht die neueste, ein Klick darauf laedt
+erzwungen neu.
 
 ---
 
@@ -596,6 +603,7 @@ weggeworfen. Was nie angezeigt wird, wird nie korrigiert.
 ```
 kern/          Reine Logik, keine Anzeige. Hier wird gerechnet.
   zahlen.js      Text zu Zahl. EINZIGE Stelle dafuer.
+  handeingabe.js Was der Mensch tippt, ueber zahlen.js gelesen. Neu 16.09.
   quoten.js      Amerikanisch, dezimal, Bruch. Und versoehne().
   parser.js      Aus Textzeilen einen Schein machen.
   reparatur.js   Verlesene Ziffern anhand der Rechnung berichtigen.
@@ -603,17 +611,85 @@ kern/          Reine Logik, keine Anzeige. Hier wird gerechnet.
   gruppierung.js Gleiche Wetten zu einem Riesenschein zusammenfuehren.
   kennung.js     Erkennen, ob zwei Scheine dieselbe Wette sind.
   etiketten.js   Beschriftungen der Buchmacher, mehrsprachig.
-  buchmacher.js  Liste der Anbieter und ihrer Merkmale.
+  buchmacher.js  Anbieterliste, plus schluesselFuerName und kuerzelFuer.
+  status.js      Was ein Stand bedeutet. EINZIGE Stelle dafuer.
 bild/          Bildzerlegung. segmentierung.js ist das Herzstueck.
 lesen/         Texterkennung (tesseract.js).
 oberflaeche/   Anzeige und Bedienung.
+  app.js             Zusammenbau, Kopfzeile, Reiter, Speichern.
+  zustand.js         Der eine Arbeitsstand.
+  werkzeug.js        el(), fuelle(), anbieterzeichen().
+  fotoknoepfe.js     Die drei Aufnahmewege. EINZIGE Stelle. Neu 16.09.
+  ansicht_*.js       Je Reiter eine Datei, dazu ansicht_hilfe.js (neu 16.09).
 ausgabe/       Excel und CSV.
 stil/          NUR Design. Loeschbar.
+  marken.css     Alle Farben, Groessen, Abstaende.
+  grund.css      Aufbau der Seite.
+  bauteile.css   Aussehen der einzelnen Bausteine.
+  logos.css      Hausfarben der Anbieter. Neu 16.09.
+  buehne.js      Optionale Bewegung.
 daten/         Datenbank und oertliche Ablage.
 werkzeug/      Pruefskript, Server, Messwerkzeug, Probe- und Trainingsseiten.
+  probe/anbieter.html         Der ganze Leseweg an nachgebauten Bildern.
+  probe/hilfe.html            Vorschau der Hilfeseite, ohne Zugangscode.
+  probe/anbieterzeichen.html  Alle sechzig Anbieterzeichen. Neu 16.09.
 supabase/migrations/  Der Datenbankaufbau, 0001 bis 0008.
-test/          212 Tests.
+test/          236 Tests.
 ```
+
+**Probeseiten brauchen KEINEN Zugangscode.** Alles andere schon. Wer ohne Code
+arbeitet, kann die Reiter Aufnahme, Scheine, Riesenscheine, Ausgabe und Ablage
+nicht selbst ansehen und muss das ehrlich sagen (Regel 2).
+
+## Was am 16.09.2026 gebaut wurde
+
+Alles veroeffentlicht, Fassung 2026-09-16-f.
+
+**Fuenf Geldfehler, alle mit Test zuerst:**
+
+1. Zwei Zahlen in einem Feld ergaben einen Einsatz von fuenf Billiarden.
+   `5,000.00000000 2,000.00000000` mit EINEM Leerzeichen dazwischen: das
+   Leerzeichen galt als Tausenderraum und fiel weg. Jetzt gilt: kommt das
+   Dezimaltrennzeichen zweimal vor, sind es zwei Zahlen, und dann wird nichts
+   geraten. Dazu Regel 8b im Parser: steht dasselbe Geldetikett zweimal mit
+   einer Zahl dahinter auf einer Zeile, liegen zwei Karten nebeneinander
+   (`zwei_karten_in_einer`, Schwere fehler).
+2. Ein Schein mit einem Hinweis der Schwere fehler ging trotzdem in die Summe.
+   Jetzt bleibt er draussen und steht im neuen Feld `mitFehler` mit Anzahl und
+   Gruenden. Eine Ausnahme: `einsatz_fehlt` behaelt seine alte, sanftere
+   Behandlung.
+3. Das Geldfeld im Reiter Scheine strich ALLE Punkte: aus `5000.00` wurde
+   500000, aus `5,000.00` wurde 5, und der Wert war mit Sicherheit 1 und
+   Herkunft hand fuer immer festgeschrieben. Jetzt ueber `kern/handeingabe.js`,
+   das `leseZahl` und `deuteQuote` aufruft. Was unklar bleibt, wird NICHT
+   gespeichert: das Feld wird rot und der Grund steht im Titel.
+4. Eine amerikanische Quote im Dezimalfeld wird abgelehnt statt umgerechnet.
+   Die Anzeige ist gerundet, umgerechnet liegt sie bei jedem Schein daneben.
+5. Die Probeseite fuehrte den Stake-Fall als "OFFEN" und verschwieg damit genau
+   die Karte mit dem Muell-Einsatz. Jetzt zaehlt jeder Hinweis der Schwere
+   fehler und jeder Einsatz ueber einer Million als FEHLER.
+
+**Bedienung:** Bilder klein nebeneinander statt gross untereinander, per Klick
+gross. Loeschen fuer einzelne Fotos, einzelne Scheine, einzelne und mehrere
+Projekte, und Ordner (die Projekte darin bleiben). Notizen an Schein und
+Riesenschein. Meldungen verschwinden von selbst, Fehler bleiben stehen.
+
+**Riesenscheine in drei Spalten:** links die Auswahl, in der Mitte die Zahlen,
+rechts die einzelnen Scheine nummeriert plus die Fotoknoepfe. Ein Riesenschein
+laesst sich in der Scheineliste von Hand aufmachen.
+
+**Anbieterzeichen:** jeder der sechzig Anbieter steht mit Hausfarbe und Kuerzel
+da. Echte Logos passen ohne Codeaenderung hinein: Datei nach
+`stil/logos/<schluessel>.png`, eine Zeile in `stil/logos.css`. Die Schluessel
+stehen auf `werkzeug/probe/anbieterzeichen.html`.
+
+**Reiter Hilfe:** erklaert den Weg in fuenf Schritten, dann jeden Reiter mit
+Schaubild, Liste und Achtung-Kasten, dazu die Woerter und sechs Faelle
+"wenn etwas nicht stimmt".
+
+**Aussehen:** Kopfzeile 88 Pixel mit der Navigation darin, hellere und
+kontrastreichere dunkle Fassung, ein Umschalter System/Hell/Dunkel, groessere
+Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 ---
 
@@ -716,15 +792,12 @@ test/          212 Tests.
 
 | | |
 |---|---|
-| Tests | 212, davon 211 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 236, davon 235 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
-| Lesekorpus echt | noch leer, das ist der Auftrag |
-| Massstab geprueft | 60 Scheine, 18 Anbieter, 19.812 $, eine Gruppe |
-| Excel | 60 Zeilen, Summe auf den Cent gleich dem Programm |
-| Aufbaupruefung | 68 Dateien, keine Beanstandung |
-| Fassung | 2026-09-14-f |
-
----
+| Lesekorpus echt | noch leer, die Fotos fehlen |
+| Aufbaupruefung | 78 Dateien, keine Beanstandung |
+| Fassung | 2026-09-16-f, oeffentlich ausgeliefert |
+| Probeseite (nachgebaute Bilder) | bet365 und BetOnline sauber, PS3838 2 von 3, Betway und Stake melden ihre Fehler laut |
 
 ## Bekannte Stolpersteine in diesem Container
 
