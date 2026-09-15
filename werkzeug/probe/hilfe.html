@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: Vorschau der Hilfeseite</title>
+    <link rel="stylesheet" href="../../stil/marken.css" />
+    <link rel="stylesheet" href="../../stil/grund.css" />
+    <link rel="stylesheet" href="../../stil/bauteile.css" />
+    <style>
+      /* Nur fuer diese Vorschau. Gehoert nicht zum Programm. */
+      body { padding: 1.5rem; }
+      .probeleiste {
+        display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+        margin-bottom: 1rem; padding: 0.75rem 1rem;
+        border: 1px solid var(--linie); border-radius: var(--rundung);
+        background: var(--flaeche);
+      }
+      .probeleiste p { margin: 0; font-size: var(--text-klein); color: var(--schrift-leise); }
+    </style>
+  </head>
+  <body>
+    <div class="probeleiste">
+      <strong>Vorschau der Hilfeseite</strong>
+      <button class="knopf knopf-klein" type="button" id="hell">Hell</button>
+      <button class="knopf knopf-klein" type="button" id="dunkel">Dunkel</button>
+      <button class="knopf knopf-klein" type="button" id="system">System</button>
+      <p>
+        Dieselbe Ansicht wie der Reiter "Hilfe" im Programm, nur ohne Zugangscode.
+        Zum Draufsehen, ob die Erklaerungen taugen.
+      </p>
+    </div>
+    <div id="ziel"></div>
+
+    <script type="module">
+      import { zeichne } from '../../oberflaeche/ansicht_hilfe.js'
+
+      const ziel = document.getElementById('ziel')
+      zeichne(ziel)
+
+      const setze = (wert) => {
+        if (wert) document.documentElement.dataset.farbe = wert
+        else delete document.documentElement.dataset.farbe
+      }
+      document.getElementById('hell').addEventListener('click', () => setze('hell'))
+      document.getElementById('dunkel').addEventListener('click', () => setze('dunkel'))
+      document.getElementById('system').addEventListener('click', () => setze(''))
+    </script>
+  </body>
+</html>

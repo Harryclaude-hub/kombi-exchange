@@ -2341,3 +2341,225 @@ li[data-schwere="info"] .hinweisart {
 .farbwahl {
   flex: 0 0 auto;
 }
+
+/* ------------------------------------------------- Hilfeseite */
+
+/*
+  Die Erklaerseite. Sie ist zum Lesen da, nicht zum Arbeiten, deshalb
+  grosszuegigere Zeilenhoehe und eine begrenzte Zeilenlaenge: ueber etwa 80
+  Zeichen findet das Auge den Zeilenanfang nicht mehr.
+*/
+.hilfeseite {
+  max-width: 68rem;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--luft-5);
+}
+
+.hilfeblock {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  padding: var(--luft-5);
+}
+
+.hilfe-einleitung {
+  border-left: 3px solid var(--gut);
+}
+
+.hilfetitel {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--luft-3);
+  margin: 0 0 var(--luft-3);
+  font-size: var(--text-gross);
+  color: var(--schrift);
+}
+
+.hilfereiter {
+  padding: 2px var(--luft-3);
+  border-radius: 999px;
+  background: var(--betonung-tief);
+  border: 1px solid var(--betonung);
+  color: var(--betonung);
+  font-size: var(--text-klein);
+  font-weight: 700;
+}
+
+.hilfewofuer {
+  font-size: var(--text-normal);
+  font-weight: 400;
+  color: var(--schrift-leise);
+}
+
+.hilfetext {
+  margin: 0 0 var(--luft-3);
+  max-width: 80ch;
+  line-height: 1.65;
+  color: var(--schrift-leise);
+}
+
+/* ---- Die fuenf Schritte ---- */
+
+.hilfeschritte {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--luft-4);
+}
+
+.hilfeschritt {
+  display: flex;
+  gap: var(--luft-4);
+  align-items: flex-start;
+}
+
+.schrittnummer {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gut-tief);
+  border: 1px solid var(--gut);
+  color: var(--gut);
+  font-family: var(--schriftart-zahl);
+  font-weight: 700;
+}
+
+.schritttitel {
+  font-weight: 700;
+  color: var(--schrift);
+}
+
+.schrittwo {
+  font-size: var(--text-klein);
+  color: var(--betonung);
+  margin-bottom: var(--luft-2);
+}
+
+/* ---- Bereich mit Schaubild ---- */
+
+.hilfezeile {
+  display: grid;
+  grid-template-columns: minmax(min(100%, 20rem), 24rem) 1fr;
+  gap: var(--luft-5);
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .hilfezeile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hilfebild {
+  width: 100%;
+  height: auto;
+  color: var(--schrift-leise);
+  background: var(--grund-tief);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+}
+
+/*
+  Das Schaubild traegt keine eigenen Farben. Es erbt ueber currentColor die
+  Schriftfarbe, damit es in beiden Fassungen lesbar bleibt.
+*/
+.bildkasten {
+  fill: var(--flaeche-hoch);
+  stroke: var(--linie-hell);
+  stroke-width: 1;
+}
+
+.bildkasten-betont {
+  fill: var(--betonung-tief);
+  stroke: var(--betonung);
+}
+
+.bildschrift {
+  fill: currentColor;
+  font-size: 8px;
+  font-family: var(--schriftart);
+}
+
+.hilfeliste {
+  margin: 0 0 var(--luft-3);
+  padding-left: 1.1rem;
+  line-height: 1.6;
+  color: var(--schrift-leise);
+}
+
+.hilfeliste li {
+  margin-bottom: var(--luft-2);
+}
+
+.hilfeachtung {
+  padding: var(--luft-3);
+  border-radius: var(--rundung);
+  background: var(--offen-tief);
+  border-left: 3px solid var(--offen);
+  font-size: var(--text-klein);
+  line-height: 1.6;
+  color: var(--schrift);
+}
+
+/* ---- Begriffe ---- */
+
+.hilfebegriffe {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  gap: var(--luft-2) var(--luft-4);
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .hilfebegriffe {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .hilfebegriffe dd {
+    margin-bottom: var(--luft-3);
+  }
+}
+
+.hilfebegriffe dt {
+  font-weight: 700;
+  color: var(--schrift);
+}
+
+.hilfebegriffe dd {
+  margin: 0;
+  color: var(--schrift-leise);
+}
+
+/* ---- Wenn etwas nicht stimmt ---- */
+
+.hilfefaelle {
+  display: grid;
+  gap: var(--luft-3);
+  margin-bottom: var(--luft-4);
+}
+
+.hilfefall {
+  padding: var(--luft-3);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  background: var(--flaeche-hoch);
+}
+
+.fallfrage {
+  font-weight: 700;
+  color: var(--schrift);
+  margin-bottom: var(--luft-1);
+}
+
+.fallantwort {
+  font-size: var(--text-klein);
+  line-height: 1.6;
+  color: var(--schrift-leise);
+}

@@ -21,6 +21,7 @@ import * as AnsichtAblage from './ansicht_ablage.js'
 import * as AnsichtScheine from './ansicht_scheine.js'
 import * as AnsichtPositionen from './ansicht_positionen.js'
 import * as AnsichtAusgabe from './ansicht_ausgabe.js'
+import * as AnsichtHilfe from './ansicht_hilfe.js'
 
 const ANSICHTEN = [
   { schluessel: 'aufnahme', name: 'Aufnahme', zeichne: AnsichtAufnahme.zeichne },
@@ -28,6 +29,7 @@ const ANSICHTEN = [
   { schluessel: 'positionen', name: 'Riesenscheine', zeichne: AnsichtPositionen.zeichne },
   { schluessel: 'ausgabe', name: 'Ausgabe', zeichne: AnsichtAusgabe.zeichne },
   { schluessel: 'ablage', name: 'Ablage', zeichne: AnsichtAblage.zeichne },
+  { schluessel: 'hilfe', name: 'Hilfe', zeichne: AnsichtHilfe.zeichne },
 ]
 
 /** @type {HTMLElement|null} */

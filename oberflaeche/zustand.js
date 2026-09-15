@@ -45,7 +45,7 @@ import { neueKennung, jetzt } from './werkzeug.js'
  * @property {import('../kern/typen.js').Riesenschein[]} riesenscheine
  * @property {import('../kern/typen.js').Restposten[]} restposten
  * @property {import('../kern/gruppierung.js').Doppelfund[]} verdacht
- * @property {'aufnahme'|'scheine'|'positionen'|'ausgabe'} ansicht
+ * @property {'aufnahme'|'scheine'|'positionen'|'ausgabe'|'ablage'|'hilfe'} ansicht
  * @property {string|null} auswahl
  * @property {number|null} fassung
  * @property {{laeuft: boolean, text: string, anteil: number}} arbeit
