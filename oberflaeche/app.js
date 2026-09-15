@@ -11,7 +11,7 @@ import { formatiere } from '../kern/geld.js'
 import { rechneProjekt } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
 import * as Datenbank from '../daten/datenbank.js'
-import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL } from '../daten/einstellungen.js'
+import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL, PROGRAMM_FASSUNG } from '../daten/einstellungen.js'
 import { merkeStand, holeStand, holeBilderZuProjekt, loescheBild } from '../daten/ablage.js'
 import { sorgeFuerAktuelleDateien } from '../daten/fassung.js'
 import { ladeBild } from '../bild/vorverarbeitung.js'
@@ -267,6 +267,29 @@ function zeichneKopf() {
         title: stand.datenbankErreichbar
           ? 'Die Daten werden in der Datenbank gesichert.'
           : 'Die Datenbank ist nicht erreichbar. Es wird nur oertlich gespeichert.',
+      }),
+      // Welche Fassung dieses Fenster geladen hat.
+      //
+      // WOZU: am 16.09.2026 stand Karam vor der veroeffentlichten Seite und
+      // sah seine Aenderungen nicht. Der Grund war der Zwischenspeicher des
+      // Browsers (GitHub Pages sagt max-age=600, also zehn Minuten ohne
+      // Nachfrage). Ohne eine sichtbare Fassung laesst sich das nicht von
+      // "es wurde nicht hochgeschickt" unterscheiden, und man sucht an der
+      // falschen Stelle.
+      //
+      // Ein Klick erzwingt ein Neuladen mit der Fassung in der Adresse. Fuer
+      // den Browser ist das eine andere Seite, also holt er sie wirklich neu.
+      el('button.knopf.knopf-klein.fassungschip', {
+        type: 'button',
+        text: PROGRAMM_FASSUNG,
+        title:
+          `Dieses Fenster laeuft mit Fassung ${PROGRAMM_FASSUNG}. ` +
+          'Klicken laedt die Seite neu und umgeht dabei den Zwischenspeicher des Browsers.',
+        onclick: () => {
+          const adresse = new URL(location.href)
+          adresse.searchParams.set('f', `${PROGRAMM_FASSUNG}-${Date.now()}`)
+          location.replace(adresse.toString())
+        },
       }),
       farbwahlknopf(),
       el('button.knopf.knopf-klein', {

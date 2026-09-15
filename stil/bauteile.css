@@ -2773,3 +2773,21 @@ li[data-schwere="info"] .hinweisart {
   color: var(--schlecht);
   border-color: var(--schlecht);
 }
+
+/*
+  Der Fassungschip in der Kopfzeile. Bewusst leise: er ist kein Knopf, den man
+  oft braucht, aber im Zweifelsfall der wichtigste auf der Seite, weil er die
+  Frage "sehe ich ueberhaupt den neuen Stand" in einem Blick beantwortet.
+*/
+.fassungschip {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  background: transparent;
+  border-color: var(--linie);
+}
+
+.fassungschip:hover {
+  color: var(--schrift);
+  border-color: var(--betonung);
+}

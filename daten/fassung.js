@@ -115,6 +115,15 @@ export async function sorgeFuerAktuelleDateien() {
     /* siehe oben */
   }
 
-  location.reload()
+  // NICHT location.reload(). Ein gewoehnliches Neuladen fragt den
+  // Zwischenspeicher, und GitHub Pages sagt dem Browser max-age=600: er
+  // behaelt jede Datei zehn Minuten lang, OHNE nachzufragen. Genau deshalb sah
+  // Karam am 16.09.2026 nach dem Veroeffentlichen weiter den alten Stand.
+  //
+  // Mit der Fassung in der Adresse ist es fuer den Browser eine andere Seite,
+  // und er holt sie wirklich neu.
+  const adresse = new URL(location.href)
+  adresse.searchParams.set('f', ergebnis.dort)
+  location.replace(adresse.toString())
   return { neugeladen: true, art: 'veraltet', meldung: '' }
 }
