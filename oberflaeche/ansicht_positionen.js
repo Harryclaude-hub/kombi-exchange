@@ -225,6 +225,24 @@ function einzelheit(riesenscheinId) {
     // man erst aufklappen muss, ist keine Warnung.
     rechnung.hinweise.length > 0 ? rechnungshinweise(rechnung) : null,
 
+    // Karams Gedaechtnis zu dieser Wette: warum sie gesetzt wurde, was beim
+    // Abrechnen auffiel, worauf beim naechsten Mal zu achten ist. Ueber eine
+    // ganze Saison ist das der Unterschied zwischen einer Liste von Zahlen und
+    // einer Liste von Entscheidungen.
+    el('.notizblock', {}, [
+      el('.teiltitel', { text: 'Notiz zu diesem Riesenschein' }),
+      el('textarea.notizfeld', {
+        rows: '2',
+        placeholder: 'Warum diese Wette, was ist aufgefallen, worauf beim naechsten Mal achten.',
+        text: riesenschein.notiz ?? '',
+        onchange: (e) =>
+          Zustand.setzeRiesenscheinNotiz(
+            riesenscheinId,
+            /** @type {HTMLTextAreaElement} */ (e.target).value
+          ),
+      }),
+    ]),
+
     scheinliste(riesenschein, scheine),
   ])
 }

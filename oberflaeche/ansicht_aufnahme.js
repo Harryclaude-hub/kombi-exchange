@@ -13,7 +13,14 @@
 
 import { el, fuelle, neueKennung } from './werkzeug.js'
 import * as Zustand from './zustand.js'
-import { nimmAuf, leseBilder, setzeKarten, setzeBuchmacher, setzeBereich } from './aufnahme.js'
+import {
+  nimmAuf,
+  leseBilder,
+  setzeKarten,
+  setzeBuchmacher,
+  setzeBereich,
+  entferneBildGanz,
+} from './aufnahme.js'
 import { BUCHMACHER } from '../kern/buchmacher.js'
 import {
   kannBildschirmAufnehmen,
@@ -336,6 +343,31 @@ function bildkarte(eintrag) {
           const ziel = /** @type {HTMLElement} */ (e.currentTarget)
           const dieKarte = /** @type {HTMLElement|null} */ (ziel.closest('.bildkarte'))
           if (dieKarte) schalteGroesse(eintrag.bild.id, dieKarte)
+        },
+      }),
+      // Dieses eine Bild weg, nicht alle. Mit Rueckfrage, weil die daraus
+      // gelesenen Scheine mitgehen: ein Schein ohne sein Bild liesse sich nie
+      // wieder nachpruefen.
+      el('button.knopf.knopf-klein.knopf-weg', {
+        type: 'button',
+        text: 'Loeschen',
+        title: 'Dieses Bild und die daraus gelesenen Scheine entfernen',
+        onclick: async () => {
+          const daran = Zustand.hole().scheine.filter((s) => s.bildId === eintrag.bild.id).length
+          const frage =
+            daran === 0
+              ? `"${eintrag.bild.dateiname}" wirklich entfernen?`
+              : `"${eintrag.bild.dateiname}" wirklich entfernen? ${
+                  daran === 1 ? 'Ein daraus gelesener Schein geht mit.' : `${daran} daraus gelesene Scheine gehen mit.`
+                }`
+          if (!window.confirm(frage)) return
+          const weg = await entferneBildGanz(eintrag.bild.id)
+          Zustand.melde(
+            'info',
+            weg === 0
+              ? 'Bild entfernt.'
+              : `Bild entfernt, dazu ${weg === 1 ? 'ein Schein' : `${weg} Scheine`}.`
+          )
         },
       }),
     ]),

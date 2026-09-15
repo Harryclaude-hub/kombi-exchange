@@ -146,6 +146,10 @@ export const DATENFASSUNG = 1
  *   seine Wahrheit stammt. Sonst prueft er etwas anderes.
  * @property {number} ocrSicherheit
  * @property {Hinweis[]} hinweise
+ * @property {string} [notiz]
+ *   Freier Text des Nutzers zu diesem einen Schein. Wird nie gelesen, nie
+ *   gerechnet und nie gegengeprueft, deshalb ist es ein schlichter Text und
+ *   kein Feld mit Herkunft und Sicherheit.
  * @property {boolean} vonHand         true, sobald ein Feld von Hand gesetzt wurde.
  * @property {boolean} ausgeschlossen  true, wenn der Nutzer ihn bewusst herausgenommen hat.
  * @property {string} angelegtAm       Zeitpunkt der Aufnahme. Entscheidet beim Zusammenfuehren.

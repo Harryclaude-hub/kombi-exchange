@@ -2187,3 +2187,48 @@ li[data-schwere="info"] .hinweisart {
   margin: 0 0 var(--luft-3);
   font-size: var(--text-klein);
 }
+
+/* ---------------------------------------------------------------- Notizen und Loeschen */
+
+/*
+  Notizfeld an Schein und Riesenschein. Karams Gedaechtnis ueber eine ganze
+  Saison: warum diese Wette, was beim Abrechnen auffiel. Reine Anzeige, an
+  keiner Rechnung beteiligt.
+*/
+.notizfeld {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 2.5rem;
+  padding: var(--luft-2) var(--luft-3);
+  font: inherit;
+  font-size: var(--text-klein);
+  color: var(--schrift);
+  background: var(--grund-tief);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+}
+
+.notizfeld:focus {
+  outline: 2px solid var(--gut);
+  outline-offset: 1px;
+}
+
+.notizblock {
+  padding: var(--luft-3) var(--luft-4);
+}
+
+/*
+  Der Knopf, der etwas wegnimmt, sieht anders aus als der, der etwas tut.
+  Zurueckhaltend, nicht schreiend: er steht neben Knoepfen, die man oft
+  drueckt, und soll nicht das Auge fangen, sondern im Ernstfall gefunden
+  werden.
+*/
+.knopf-weg {
+  color: var(--schlecht);
+  border-color: var(--schlecht);
+}
+
+.knopf-weg:hover {
+  background: var(--schlecht-tief);
+}

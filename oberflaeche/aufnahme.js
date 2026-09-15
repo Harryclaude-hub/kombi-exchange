@@ -20,7 +20,7 @@ import { zerlege, findeInhaltsspalte, findeSpalten } from '../bild/segmentierung
 import { starteLeserGruppe } from '../lesen/ocr.js'
 import { leseSchein } from '../kern/parser.js'
 import { erkenneBuchmacher, erkenneKonto, erkenneKontostand, BUCHMACHER_NACH_SCHLUESSEL } from '../kern/buchmacher.js'
-import { pruefsumme, legeBildAb } from '../daten/ablage.js'
+import { pruefsumme, legeBildAb, loescheBild } from '../daten/ablage.js'
 import { neueKennung, jetzt, atmen } from './werkzeug.js'
 import * as Zustand from './zustand.js'
 
@@ -491,6 +491,40 @@ export async function leseBilder(bildIds, einstellungen = {}) {
   }
 
   return { gelesen: neueScheine.length, fehler: fehlerzahl }
+}
+
+/**
+ * Entfernt ein Bild samt seiner Scheine, aus dem Arbeitsstand UND vom Geraet.
+ *
+ * WOZU: Karam fotografiert in Mengen. Ein Ausschnitt trifft daneben, ein Foto
+ * gehoert gar nicht in dieses Projekt, eine Aufnahme ist doppelt. Bisher gab es
+ * nur "Alle Bilder verwerfen", also alles oder nichts.
+ *
+ * BEIDE SEITEN AUF EINMAL: nur aus dem Arbeitsstand zu entfernen reicht nicht,
+ * das Bild kaeme beim naechsten Laden aus der oertlichen Ablage zurueck. Nur aus
+ * der Ablage zu loeschen reicht auch nicht, dann stuende es weiter auf dem
+ * Bildschirm. Deshalb steht beides hier an einer Stelle, und die Ansicht ruft
+ * genau diese eine Stelle auf (Projektregel 8).
+ *
+ * @param {string} bildId
+ * @returns {Promise<number>} wie viele Scheine mit entfernt wurden
+ */
+export async function entferneBildGanz(bildId) {
+  const mitGegangen = Zustand.entferneBild(bildId)
+  try {
+    await loescheBild(bildId)
+  } catch (fehler) {
+    // Das Bild ist aus der Ansicht verschwunden, liegt aber noch auf dem
+    // Geraet. Das wird gemeldet, nicht verschwiegen: sonst taucht es beim
+    // naechsten Laden wieder auf und niemand weiss, warum.
+    Zustand.melde(
+      'warnung',
+      `Das Bild ist aus der Liste entfernt, konnte aber nicht vom Geraet geloescht werden: ${
+        fehler instanceof Error ? fehler.message : String(fehler)
+      }. Nach einem Neuladen kann es wieder auftauchen.`
+    )
+  }
+  return mitGegangen
 }
 
 /**

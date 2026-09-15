@@ -448,6 +448,41 @@ function aufklappung(schein, stand) {
             text: 'Nur noetig bei vorzeitiger Auszahlung oder wenn der Anbieter anders abgerechnet hat.',
           }),
         ]),
+
+        // Eine Notiz je Schein. Sie wird nie gelesen und nie gerechnet, sie ist
+        // Karams Gedaechtnis: warum dieser Schein anders ist als die anderen.
+        el('.teiltitel', { text: 'Notiz zu diesem Schein' }),
+        el('textarea.notizfeld', {
+          rows: '2',
+          placeholder: 'Eigene Bemerkung, zum Beispiel warum dieser Schein anders ist.',
+          text: schein.notiz ?? '',
+          onchange: (e) => {
+            Zustand.setzeScheinNotiz(schein.id, /** @type {HTMLTextAreaElement} */ (e.target).value)
+          },
+        }),
+
+        // Diesen einen Schein weg, nicht alle. Mit Rueckfrage, denn er ist
+        // danach wirklich weg: ein Neulesen des Bildes bringt ihn zurueck, eine
+        // Handkorrektur daran nicht.
+        el('.teiltitel', { text: 'Schein entfernen' }),
+        el('.feldreihe', {}, [
+          el('button.knopf.knopf-klein.knopf-weg', {
+            type: 'button',
+            text: 'Diesen Schein loeschen',
+            title: 'Nur diesen Schein. Das Bild und die uebrigen Scheine bleiben.',
+            onclick: () => {
+              const name = schein.scheinNr.wert ? `Nr. ${schein.scheinNr.wert}` : 'diesen Schein'
+              if (!window.confirm(`Wirklich ${name} loeschen? Das Bild bleibt erhalten.`)) return
+              Zustand.entferneSchein(schein.id)
+              Zustand.melde('info', 'Schein geloescht. Das Bild ist noch da.')
+            },
+          }),
+          el('span.feldhilfe', {
+            text:
+              'Der Riesenschein bleibt bestehen. Soll der Schein nur aus der Rechnung heraus, ' +
+              'aber sichtbar bleiben, nimm oben "Ganz aus der Rechnung nehmen".',
+          }),
+        ]),
       ]),
 
       el('.aufklapp-teil', {}, [

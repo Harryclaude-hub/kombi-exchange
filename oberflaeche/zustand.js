@@ -316,6 +316,85 @@ export function benenneUm(id, name) {
 }
 
 /**
+ * Setzt die Notiz eines Riesenscheins.
+ *
+ * @param {string} id
+ * @param {string} notiz
+ */
+export function setzeRiesenscheinNotiz(id, notiz) {
+  aendere({
+    riesenscheine: stand.riesenscheine.map((r) =>
+      r.id === id ? { ...r, notiz: String(notiz ?? ''), geaendertAm: jetzt() } : r
+    ),
+  })
+}
+
+/**
+ * Setzt die Notiz eines einzelnen Scheins.
+ *
+ * Eine Notiz ist KEIN Feld mit Herkunft und Sicherheit wie Einsatz oder Quote:
+ * sie wird nie gelesen, nie gerechnet und nie gegengeprueft. Sie ist ein
+ * schlichter Text am Schein. Deshalb laeuft sie nicht ueber setzeFeld und setzt
+ * auch vonHand nicht: wer eine Bemerkung schreibt, hat damit keinen Wert von
+ * Hand bestaetigt, und ein spaeteres Neulesen soll den Schein weiter berichtigen
+ * duerfen.
+ *
+ * @param {string} scheinId
+ * @param {string} notiz
+ */
+export function setzeScheinNotiz(scheinId, notiz) {
+  aendere({
+    scheine: stand.scheine.map((s) =>
+      s.id === scheinId ? { ...s, notiz: String(notiz ?? ''), geaendertAm: jetzt() } : s
+    ),
+  })
+}
+
+/**
+ * Entfernt einen einzelnen Schein.
+ *
+ * WOZU: Karam fotografiert in Mengen. Ein Ausschnitt trifft danebem, eine Karte
+ * wird doppelt erfasst, ein Schein gehoert gar nicht in dieses Projekt. Ohne
+ * einen Weg, genau diesen einen loszuwerden, bleibt nur "alles verwerfen".
+ *
+ * Der Riesenschein bleibt bestehen, auch wenn er dadurch leer wird: ordneNeu
+ * baut die Gruppen aus den verbliebenen Scheinen neu, und Name und Notiz
+ * ueberleben ueber die Kennung. Wer den letzten Schein einer Gruppe entfernt,
+ * hat die Gruppe damit aufgeloest, und das ist dieselbe Entscheidung.
+ *
+ * @param {string} scheinId
+ */
+export function entferneSchein(scheinId) {
+  const vorher = stand.scheine.length
+  const scheine = stand.scheine.filter((s) => s.id !== scheinId)
+  if (scheine.length === vorher) return
+  ordneNeu(scheine)
+}
+
+/**
+ * Entfernt ein Bild und alle Scheine, die daraus gelesen wurden.
+ *
+ * Beides gehoert zusammen: ein Schein ohne sein Bild laesst sich nie wieder
+ * nachpruefen, und ein Bild ohne seine Scheine erzeugt beim naechsten Lesen
+ * Doppelgaenger. Wie viele Scheine mitgehen, gibt die Funktion zurueck, damit
+ * die Ansicht vorher fragen kann.
+ *
+ * @param {string} bildId
+ * @returns {number} wie viele Scheine mit entfernt wurden
+ */
+export function entferneBild(bildId) {
+  const bilder = new Map(stand.bilder)
+  if (!bilder.delete(bildId)) return 0
+
+  const betroffen = stand.scheine.filter((s) => s.bildId === bildId)
+  aendere({ bilder })
+  if (betroffen.length > 0) {
+    ordneNeu(stand.scheine.filter((s) => s.bildId !== bildId))
+  }
+  return betroffen.length
+}
+
+/**
  * Aendert die Reihenfolge der Scheine in einem Riesenschein.
  *
  * @param {string} id
