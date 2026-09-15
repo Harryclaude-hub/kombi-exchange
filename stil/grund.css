@@ -80,22 +80,42 @@ img {
 
 /* ---------------------------------------------------------------- Huelle */
 
+/*
+  Zwei Reihen, nicht drei: die Navigation sitzt seit dem 16.09.2026 IN der
+  Kopfzeile. Die Kopfzeile nimmt sich ihre Hoehe selbst (auto), damit die
+  groesseren Zahlen oben nicht abgeschnitten werden.
+*/
 .huelle {
   display: grid;
-  grid-template-rows: var(--kopfhoehe) var(--reiterhoehe) 1fr;
+  grid-template-rows: auto 1fr;
   min-height: 100vh;
 }
 
+/*
+  Die Kopfzeile traegt jetzt BEIDES: oben Marke, Laufwerte und Knoepfe, darunter
+  die Navigation. Karam am 16.09.2026: "einfach das Navigationssystem in den
+  Header. Und macht den Header ein bisschen groesser, dass die Anzeigen oben
+  eindeutig groesser sind."
+
+  Deshalb keine feste Hoehe mehr, sondern zwei Reihen, die sich ihre Hoehe
+  nehmen. Die Zahlen oben sind in bauteile.css groesser gesetzt.
+*/
 .kopfleiste {
   display: flex;
-  align-items: center;
-  gap: var(--luft-4);
-  padding: 0 var(--luft-4);
+  flex-direction: column;
   background: var(--grund-tief);
   border-bottom: 1px solid var(--linie);
   position: sticky;
   top: 0;
   z-index: 20;
+}
+
+.kopfoben {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-4);
+  padding: var(--luft-3) var(--luft-4);
+  min-height: var(--kopfhoehe);
 }
 
 .reiterleiste {
@@ -104,11 +124,14 @@ img {
   gap: 2px;
   padding: 0 var(--luft-4);
   background: var(--flaeche);
-  border-bottom: 1px solid var(--linie);
-  position: sticky;
-  top: var(--kopfhoehe);
-  z-index: 19;
+  border-top: 1px solid var(--linie);
+  min-height: var(--reiterhoehe);
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.reiterleiste::-webkit-scrollbar {
+  display: none;
 }
 
 .inhalt {

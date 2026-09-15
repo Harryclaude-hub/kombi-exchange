@@ -6,6 +6,8 @@
  * den Dateien im Ordner stil. Diese Datei baut nur Bausteine und haengt sie ein.
  */
 
+import { schluesselFuerName, kuerzelFuer } from '../kern/buchmacher.js'
+
 /**
  * Baut ein Element.
  *
@@ -181,4 +183,44 @@ export function sicherheitsstufe(sicherheit) {
   if (sicherheit >= 0.85) return 'hoch'
   if (sicherheit >= 0.6) return 'mittel'
   return 'niedrig'
+}
+
+/**
+ * Das Zeichen eines Anbieters: Logo, wenn es eines gibt, sonst sein Kuerzel.
+ *
+ * WOZU: Karam am 16.09.2026, "es ist sehr wichtig, dass jeder Anbieter mit dem
+ * Logo dasteht". Ueberall, wo ein Anbietername steht, steht ab jetzt sein
+ * Zeichen davor: in der Scheineliste, in der Ablage, bei den Riesenscheinen
+ * und in der Aufnahme.
+ *
+ * WIE DAS AUSSEHEN HEREINKOMMT
+ *
+ * Hier steht KEINE Farbe und KEIN Dateiname. Dieses Element traegt nur zwei
+ * Merkmale:
+ *
+ *   data-anbieter="ps3838"   der technische Schluessel, oder "unbekannt"
+ *   Textinhalt "PS"          das Kuerzel als Rueckfall
+ *
+ * Alles Weitere steht in stil/logos.css: dort haengt an jedem Schluessel die
+ * Hausfarbe und, sobald eine Datei da ist, das Bild. Faellt stil/ weg, bleibt
+ * das Kuerzel als schlichter Text stehen und nichts rechnet anders
+ * (Projektregel 5).
+ *
+ * WARUM EIN KUERZEL UND NICHT NUR DAS LOGO
+ *
+ * Es liegt noch keine einzige Logodatei im Projekt, und sechzig Anbieter
+ * werden auch spaeter nicht alle eine haben. Ein leerer Fleck neben jedem
+ * zweiten Namen waere genau das, was Karam nicht wollte. Das Kuerzel steht
+ * immer da; wo ein Bild dazukommt, legt es sich darueber.
+ *
+ * @param {string|null|undefined} name  Der Anzeigename, wie er am Schein steht.
+ * @returns {HTMLElement}
+ */
+export function anbieterzeichen(name) {
+  const schluessel = schluesselFuerName(name)
+  return el('span.anbieterzeichen', {
+    daten: { anbieter: schluessel ?? 'unbekannt' },
+    title: name ? String(name) : 'Anbieter unbekannt',
+    text: kuerzelFuer(name),
+  })
 }

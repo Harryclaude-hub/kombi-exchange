@@ -104,6 +104,95 @@ export const BUCHMACHER = [
 /** Schneller Zugriff ueber den Schluessel. */
 export const BUCHMACHER_NACH_SCHLUESSEL = new Map(BUCHMACHER.map((b) => [b.schluessel, b]))
 
+/** Schneller Zugriff ueber den Anzeigenamen, klein geschrieben. */
+const NACH_NAME = new Map(BUCHMACHER.map((b) => [b.name.toLowerCase().trim(), b.schluessel]))
+
+/**
+ * Sucht den technischen Schluessel zu einem Anzeigenamen.
+ *
+ * WOZU: am Schein steht nur der Anzeigename, weil oberflaeche/aufnahme.js beim
+ * Lesen profil.name ablegt. Das Logo und die Hausfarbe haengen aber am
+ * Schluessel, denn der aendert sich nie, waehrend ein Anzeigename sich aendern
+ * kann. Ohne diesen Rueckweg findet die Anzeige kein Logo.
+ *
+ * Drei Stufen, von sicher nach unsicher:
+ *   1. Der Name steht genau so in der Liste.
+ *   2. Der Name trifft einen Schriftzug ("Bet 365" statt "bet365"). Karam kann
+ *      das Anbieterfeld von Hand ueberschreiben, und dann soll das Logo
+ *      trotzdem stehen.
+ *   3. Nichts trifft: null. Es wird NICHT geraten. Ein falsches Logo waere
+ *      schlimmer als gar keines, weil es eine Zuordnung behauptet, die es nicht
+ *      gibt (Projektregel 1).
+ *
+ * @param {string|null|undefined} name
+ * @returns {string|null}
+ */
+export function schluesselFuerName(name) {
+  if (typeof name !== 'string') return null
+  const sauber = name.trim()
+  if (sauber === '') return null
+
+  const genau = NACH_NAME.get(sauber.toLowerCase())
+  if (genau) return genau
+
+  for (const profil of BUCHMACHER) {
+    if (profil.schriftzug.some((muster) => muster.test(sauber))) return profil.schluessel
+  }
+  return null
+}
+
+/**
+ * Macht aus einem Anbieternamen ein kurzes Zeichen.
+ *
+ * WOZU: solange keine echten Logodateien vorliegen, traegt jeder Anbieter ein
+ * Kuerzel aus seinem eigenen Namen. Karam wollte, dass JEDER Anbieter mit einem
+ * Zeichen dasteht, nicht nur die fuenf, von denen es irgendwann Bilder gibt.
+ * Ein leerer Fleck in der Liste waere genau das, was er nicht wollte.
+ *
+ * Die Regeln, in dieser Reihenfolge:
+ *   "bet365"      -> B365   Buchstabe plus Zahl, die Zahl ist das Kennzeichen
+ *   "PS3838"      -> PS     Buchstaben vor der Zahl, die Zahl ist zu lang
+ *   "BetOnline"   -> BO     zwei Grossbuchstaben im Wort
+ *   "Betway"      -> BW     dito
+ *   "Stake"       -> ST     ein Wort ohne Binnengrossbuchstaben: erste zwei
+ *   "Mein Buchmacher" -> MB Anfangsbuchstaben zweier Woerter
+ *
+ * @param {string|null|undefined} name
+ * @returns {string} immer mindestens ein Zeichen, hoechstens vier
+ */
+export function kuerzelFuer(name) {
+  const sauber = typeof name === 'string' ? name.trim() : ''
+  if (sauber === '') return '?'
+
+  // Buchstaben, dann eine kurze Zahl: die Zahl gehoert zum Namen (bet365).
+  const mitZahl = sauber.match(/^([\p{L}]+)\s*([0-9]{1,3})$/u)
+  if (mitZahl && mitZahl[1] && mitZahl[2]) {
+    return (mitZahl[1][0] + mitZahl[2]).toUpperCase().slice(0, 4)
+  }
+
+  // Adressendungen gehoeren nicht zum Namen. Ohne diese Zeile wurde aus
+  // "SportsBetting.ag" das Kuerzel SA und aus "LowVig.ag" das Kuerzel LA:
+  // beide Male stand das A der Endung fuer den Anbieter.
+  const ENDUNGEN = new Set(['ag', 'eu', 'lv', 'com', 'net', 'de', 'at', 'io'])
+
+  // Mehrere Woerter: die Anfangsbuchstaben der ersten zwei.
+  const woerter = sauber
+    .split(/[\s.\-_]+/u)
+    .filter((w) => /\p{L}/u.test(w))
+    .filter((w) => !ENDUNGEN.has(w.toLowerCase()))
+  if (woerter.length >= 2) {
+    return (woerter[0]?.[0] ?? '' + woerter[1]?.[0] ?? '').toUpperCase().slice(0, 1) +
+      (woerter[1]?.[0] ?? '').toUpperCase()
+  }
+
+  const wort = woerter[0] ?? sauber
+  // Binnengrossbuchstaben verraten die Wortgrenze: BetOnline, MyBookie.
+  const grosse = [...wort].filter((z) => z === z.toUpperCase() && /\p{L}/u.test(z))
+  if (grosse.length >= 2) return (grosse[0] + grosse[1]).toUpperCase()
+
+  return wort.slice(0, 2).toUpperCase() || '?'
+}
+
 /**
  * @typedef {object} Buchmacherfund
  * @property {Buchmacherprofil|null} profil

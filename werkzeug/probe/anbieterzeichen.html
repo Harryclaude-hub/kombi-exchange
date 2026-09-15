@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: alle Anbieterzeichen</title>
+    <link rel="stylesheet" href="../../stil/marken.css" />
+    <link rel="stylesheet" href="../../stil/grund.css" />
+    <link rel="stylesheet" href="../../stil/bauteile.css" />
+    <link rel="stylesheet" href="../../stil/logos.css" />
+    <style>
+      /* Nur fuer diese Vorschau. Gehoert nicht zum Programm. */
+      body { padding: 1.5rem; }
+      .probeleiste {
+        display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+        margin-bottom: 1rem; padding: 0.75rem 1rem;
+        border: 1px solid var(--linie); border-radius: var(--rundung);
+        background: var(--flaeche);
+      }
+      .probeleiste p { margin: 0; font-size: var(--text-klein); color: var(--schrift-leise); max-width: 70ch; }
+      .zeichenraster {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+        gap: 0.5rem;
+      }
+      .zeichenzeile {
+        display: flex; align-items: center; gap: 0.6rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--linie); border-radius: var(--rundung);
+        background: var(--flaeche);
+      }
+      .zeichenname { font-weight: 600; flex: 1 1 auto; }
+      .zeichenschluessel {
+        font-family: var(--schriftart-zahl); font-size: var(--text-winzig);
+        color: var(--schrift-still);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="probeleiste">
+      <strong>Alle Anbieterzeichen</strong>
+      <button class="knopf knopf-klein" type="button" id="hell">Hell</button>
+      <button class="knopf knopf-klein" type="button" id="dunkel">Dunkel</button>
+      <button class="knopf knopf-klein" type="button" id="system">System</button>
+      <p>
+        So steht jeder Anbieter im Programm: Zeichen, Name, technischer Schluessel.
+        Der Schluessel ist zugleich der Dateiname fuer ein echtes Logo. Wer eines
+        einsetzen will, legt es als
+        <code>stil/logos/&lt;schluessel&gt;.png</code> ab und traegt eine Zeile
+        in <code>stil/logos.css</code> nach. Am Programm selbst aendert sich nichts.
+      </p>
+    </div>
+    <div id="ziel" class="zeichenraster"></div>
+
+    <script type="module">
+      import { BUCHMACHER, kuerzelFuer } from '../../kern/buchmacher.js'
+      import { anbieterzeichen } from '../../oberflaeche/werkzeug.js'
+
+      const ziel = document.getElementById('ziel')
+
+      // Zuerst die fuenf, mit denen Karam wirklich arbeitet.
+      const KARAMS = ['ps3838', 'betway', 'bet365', 'stake', 'betonline']
+      const sortiert = [...BUCHMACHER].sort((a, b) => {
+        const ra = KARAMS.indexOf(a.schluessel)
+        const rb = KARAMS.indexOf(b.schluessel)
+        if (ra !== rb) return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb)
+        return a.name.localeCompare(b.name, 'de')
+      })
+
+      for (const profil of sortiert) {
+        const zeile = document.createElement('div')
+        zeile.className = 'zeichenzeile'
+        zeile.append(anbieterzeichen(profil.name))
+
+        const name = document.createElement('span')
+        name.className = 'zeichenname'
+        name.textContent = profil.name
+        zeile.append(name)
+
+        const schluessel = document.createElement('span')
+        schluessel.className = 'zeichenschluessel'
+        schluessel.textContent = profil.schluessel
+        zeile.append(schluessel)
+
+        ziel.append(zeile)
+      }
+
+      // Und der Fall, den es auch geben muss: ein Anbieter, den die Liste nicht kennt.
+      const unbekannt = document.createElement('div')
+      unbekannt.className = 'zeichenzeile'
+      unbekannt.append(anbieterzeichen('Irgendein Buchmacher'))
+      const n = document.createElement('span')
+      n.className = 'zeichenname'
+      n.textContent = 'Irgendein Buchmacher (nicht in der Liste)'
+      unbekannt.append(n)
+      ziel.append(unbekannt)
+
+      const setze = (wert) => {
+        if (wert) document.documentElement.dataset.farbe = wert
+        else delete document.documentElement.dataset.farbe
+      }
+      document.getElementById('hell').addEventListener('click', () => setze('hell'))
+      document.getElementById('dunkel').addEventListener('click', () => setze('dunkel'))
+      document.getElementById('system').addEventListener('click', () => setze(''))
+    </script>
+  </body>
+</html>

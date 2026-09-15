@@ -10,7 +10,7 @@
  * statt in einer langen Liste unterzugehen.
  */
 
-import { el, fuelle, zeitText, sicherheitsstufe } from './werkzeug.js'
+import { el, fuelle, zeitText, sicherheitsstufe, anbieterzeichen } from './werkzeug.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { statusText } from '../bild/mosaik.js'
 import { barEinsatz } from '../kern/rechnung.js'
@@ -330,6 +330,9 @@ function gruppenwahl(schein, stand) {
 function textfeld(schein, feldname, platzhalter) {
   const feld = schein[feldname]
   return el('.zelle', {}, [
+    // Beim Anbieter steht sein Zeichen vor dem Feld. Ueberall sonst waere es
+    // sinnlos, deshalb genau hier und nirgends sonst.
+    feldname === 'buchmacher' ? anbieterzeichen(feld.wert) : null,
     el('input.feldeingabe', {
       type: 'text',
       value: feld.wert ?? '',

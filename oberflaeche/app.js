@@ -198,8 +198,14 @@ function zeichneHuelle() {
   if (!inhalt) {
     fuelle(wurzel, [
       el('.huelle', {}, [
-        el('header.kopfleiste', { id: 'kopfleiste' }),
-        el('nav.reiterleiste', { id: 'reiterleiste' }),
+        // Kopfzeile und Navigation gehoeren ZUSAMMEN, nicht untereinander als
+        // zwei fremde Leisten. Karam am 16.09.2026: "einfach das
+        // Navigationssystem in den Header". Beide Kennungen bleiben, damit
+        // zeichneKopf und zeichneReiter unveraendert weiterarbeiten.
+        el('header.kopfleiste', {}, [
+          el('.kopfoben', { id: 'kopfleiste' }),
+          el('nav.reiterleiste', { id: 'reiterleiste' }),
+        ]),
         el('main.inhalt', { id: 'inhalt' }),
         el('.meldungsecke', { id: 'meldungsecke' }),
         el('.arbeitsleiste', { id: 'arbeitsleiste' }),

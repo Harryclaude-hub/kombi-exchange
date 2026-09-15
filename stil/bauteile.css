@@ -2563,3 +2563,62 @@ li[data-schwere="info"] .hinweisart {
   line-height: 1.6;
   color: var(--schrift-leise);
 }
+
+/* ------------------------------------------------- Kopfzeile groesser */
+
+/*
+  Karam am 16.09.2026: "macht den Header ein bisschen groesser, dass die
+  Anzeigen oben eindeutig groesser sind. Nicht zu gross, aber einfach gross,
+  dass die Schrift auch lesbar ist und auch praesent in der Website ist."
+
+  Die Laufwerte oben sind die Zahlen, wegen derer man auf den Bildschirm
+  schaut: Einsatz, moegliche Auszahlung, Ergebnis. Sie standen in derselben
+  Groesse wie eine Beschriftung. Jetzt tragen sie die Zahlengroesse des
+  Programms, und der Name darueber bleibt klein, damit der Blick auf die Zahl
+  faellt und nicht auf das Wort.
+*/
+.kopfleiste .laufzahl {
+  font-size: var(--text-zahl);
+  line-height: 1.15;
+}
+
+.kopfleiste .laufname {
+  font-size: var(--text-klein);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.kopfleiste .laufwert {
+  gap: 2px;
+  border-left-width: 3px;
+  padding-left: var(--luft-4);
+}
+
+.kopfleiste .marke {
+  font-size: var(--text-gross);
+}
+
+/*
+  Die Reiter sind das Navigationssystem. Sie sitzen jetzt in der Kopfzeile und
+  duerfen deshalb auch aussehen wie Navigation: groessere Schrift, deutlicher
+  aktiver Reiter.
+*/
+.reiterleiste .reiter {
+  font-size: var(--text-gross);
+  padding: 0 var(--luft-5);
+  border-bottom-width: 3px;
+}
+
+.reiterleiste .reiter[data-aktiv="true"] {
+  background: var(--flaeche-hoch);
+}
+
+@media (max-width: 720px) {
+  .kopfleiste .laufzahl {
+    font-size: var(--text-gross);
+  }
+  .reiterleiste .reiter {
+    font-size: var(--text-normal);
+    padding: 0 var(--luft-3);
+  }
+}

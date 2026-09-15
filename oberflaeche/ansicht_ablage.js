@@ -30,7 +30,7 @@
  * keine Farben und keine Groessen, das steht in stil/.
  */
 
-import { el, fuelle, zeitText } from './werkzeug.js'
+import { el, fuelle, zeitText, anbieterzeichen } from './werkzeug.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { barEinsatz, realisierterRueckfluss, offenePotenzialauszahlung } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
@@ -215,9 +215,30 @@ function ordnerspalte(projekte) {
  */
 function ordnerzeile(schluessel, name, anzahl, zielFuerAblegen) {
   const aktiv = gewaehlterOrdner === schluessel
+
+  // Ein ECHTER Ordner laesst sich loeschen. "Alle", "Angepinnt" und "Ohne
+  // Ordner" sind keine Ordner, sondern Sichten: sie haben keinen Namen, den
+  // man entfernen koennte.
+  const echterOrdner = typeof schluessel === 'string' && schluessel !== '' && schluessel !== ORDNER_ANGEPINNT
+
+  const wegKnopf = echterOrdner
+    ? el('button.ordnerweg', {
+        type: 'button',
+        text: 'Loeschen',
+        title: `Den Ordner "${name}" aufloesen. Die Projekte bleiben.`,
+      })
+    : null
+  if (wegKnopf) {
+    wegKnopf.addEventListener('click', async (e) => {
+      e.stopPropagation()
+      await loescheOrdner(String(schluessel), anzahl)
+    })
+  }
+
   const zeile = el('.ordnerzeile', { daten: { aktiv: String(aktiv) } }, [
     el('.ordnername', { text: name }),
     el('.ordnerzahl', { text: String(anzahl) }),
+    wegKnopf,
   ])
 
   zeile.addEventListener('click', () => {
@@ -516,7 +537,10 @@ function kombiblock(titel, scheine, datum) {
       {},
       scheine.map((s) =>
         el('.scheinzeile', {}, [
-          el('.scheinanbieter', { text: s.buchmacher?.wert ?? 'Anbieter unbekannt' }),
+          el('.scheinanbieter', {}, [
+            anbieterzeichen(s.buchmacher?.wert),
+            el('span', { text: s.buchmacher?.wert ?? 'Anbieter unbekannt' }),
+          ]),
           el('.scheinzahl', { text: formatiere(barEinsatz(s), s.waehrung?.wert ?? 'UNBEKANNT') }),
           el('.scheinzahl', {
             text: s.quoteDezimal?.wert === null ? '-' : formatiereQuote(s.quoteDezimal.wert),
@@ -582,6 +606,50 @@ function setzePin(p, an) {
  * @param {string} projektId
  * @param {string} ordner
  */
+/**
+ * Loest einen Ordner auf. Die Projekte darin bleiben erhalten.
+ *
+ * WARUM DIE PROJEKTE BLEIBEN
+ *
+ * Ein Ordner ist hier kein Behaelter, sondern nur ein Name am Projekt (siehe
+ * den Kopf dieser Datei und supabase/migrations/0008). Ihn zu loeschen heisst
+ * deshalb: den Namen von allen Projekten entfernen. Die Projekte wandern nach
+ * "Ohne Ordner" und sind vollstaendig da.
+ *
+ * Das ist die sichere Lesart, und sie ist hier die richtige: einen Ordner
+ * raeumt man auf, weil die Einteilung nicht mehr passt, nicht weil die
+ * Wettscheine darin wertlos geworden sind. Wer die Projekte wirklich los sein
+ * will, waehlt sie rechts an und drueckt "Ausgewaehlte loeschen". Dafuer gibt
+ * es die Mehrfachauswahl.
+ *
+ * @param {string} name
+ * @param {number} anzahl
+ */
+async function loescheOrdner(name, anzahl) {
+  const frage =
+    anzahl === 0
+      ? `Den Ordner "${name}" aufloesen?`
+      : `Den Ordner "${name}" aufloesen?\n\n` +
+        `${anzahl === 1 ? 'Das Projekt darin wandert' : `Die ${anzahl} Projekte darin wandern`} nach ` +
+        '"Ohne Ordner". Es wird nichts geloescht.\n\n' +
+        'Sollen die Projekte selbst weg, waehle sie rechts an und nimm "Ausgewaehlte loeschen".'
+  if (!window.confirm(frage)) return
+
+  const betroffen = (Zustand.hole().projekte ?? []).filter((p) => (p.ordner ?? '') === name)
+  for (const p of betroffen) speichere({ ...p, ordner: '' })
+
+  // Der aufgeloeste Ordner darf nicht gewaehlt bleiben, sonst steht die Liste
+  // rechts leer da und niemand weiss, warum.
+  if (gewaehlterOrdner === name) gewaehlterOrdner = null
+  neuZeichnen()
+  Zustand.melde(
+    'erfolg',
+    betroffen.length === 0
+      ? `Ordner "${name}" aufgeloest.`
+      : `Ordner "${name}" aufgeloest, ${betroffen.length} Projekt(e) stehen jetzt unter "Ohne Ordner".`
+  )
+}
+
 function verschiebe(projektId, ordner) {
   const p = (Zustand.hole().projekte ?? []).find((x) => x.id === projektId)
   if (!p) return

@@ -10,7 +10,7 @@
  * Diese Datei stellt nur dar.
  */
 
-import { el, fuelle, zeitText } from './werkzeug.js'
+import { el, fuelle, zeitText, anbieterzeichen } from './werkzeug.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { statusText } from '../bild/mosaik.js'
 import { barEinsatz, realisierterRueckfluss } from '../kern/rechnung.js'
@@ -311,7 +311,10 @@ function anbieterbalken(rechnung) {
       {},
       rechnung.proBuchmacher.map((b) =>
         el('.anbieterzeile', {}, [
-          el('.anbietername', { text: b.buchmacher, title: b.konten.join(', ') }),
+          el('.anbietername', { title: b.konten.join(', ') }, [
+            anbieterzeichen(b.buchmacher),
+            el('span', { text: b.buchmacher }),
+          ]),
           el('.anbieterbalken', {}, [
             el('.balkenfuellung', { stil: { '--breite': `${(b.einsatz / groesster) * 100}%` } }),
           ]),
@@ -371,7 +374,10 @@ function scheinliste(riesenschein, scheine) {
         return el('.scheinkaertchen', { daten: { status: schein.status } }, [
           el('.kaertchennummer', { text: String(i + 1) }),
           el('.kaertcheninhalt', {}, [
-            el('.kaertchenanbieter', { text: schein.buchmacher.wert ?? 'Anbieter offen' }),
+            el('.kaertchenanbieter', {}, [
+              anbieterzeichen(schein.buchmacher.wert),
+              el('span', { text: schein.buchmacher.wert ?? 'Anbieter offen' }),
+            ]),
             schein.konto.wert ? el('.kaertchenkonto', { text: schein.konto.wert }) : null,
             el('.kaertchenzahlen', {}, [
               el('span.kaertcheneinsatz', { text: formatiere(barEinsatz(schein), w, 'de') }),

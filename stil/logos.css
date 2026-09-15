@@ -1,0 +1,154 @@
+/*
+  Designschicht: die Zeichen der Anbieter.
+
+  Karam am 16.09.2026: "es ist sehr wichtig, dass jeder Anbieter mit dem Logo
+  dasteht."
+
+  WIE DAS HIER FUNKTIONIERT
+
+  Das JavaScript setzt an jedem Zeichen nur zwei Dinge:
+
+      <span class="anbieterzeichen" data-anbieter="ps3838">PS</span>
+
+  Der Schluessel und das Kuerzel. Sonst nichts, keine Farbe und kein
+  Dateiname. Alles Uebrige steht hier.
+
+  ZWEI STUFEN
+
+  1. OHNE BILDDATEI (so ist es jetzt): der Kreis traegt die Hausfarbe des
+     Anbieters und das Kuerzel. Damit steht JEDER Anbieter mit einem Zeichen
+     da, auch die sechzig, von denen es nie ein Bild geben wird. Ein leerer
+     Fleck neben jedem zweiten Namen waere genau das, was Karam nicht wollte.
+
+  2. MIT BILDDATEI: eine Zeile je Anbieter genuegt, und das Bild legt sich
+     ueber das Kuerzel. So sieht das aus:
+
+         [data-anbieter="ps3838"] {
+           background-image: url("logos/ps3838.png");
+           color: transparent;
+         }
+
+     Die Datei gehoert nach stil/logos/<schluessel>.png, der Schluessel ist der
+     technische Name aus kern/buchmacher.js (ps3838, betway, bet365, stake,
+     betonline). Nichts am Programm muss dafuer geaendert werden.
+
+  WARUM DIE FARBEN HIER UND NICHT IM PROGRAMM
+
+  Projektregel 5: stil/ ist reines Design und loeschbar. Wird dieser Ordner
+  geloescht, steht das Kuerzel als schlichter Text da, und jede Zahl im
+  Programm bleibt dieselbe.
+
+  Die Farben sind die erkennbaren Hausfarben der Anbieter, nach Augenmass
+  gesetzt, damit sich die fuenf, mit denen Karam wirklich arbeitet, auf einen
+  Blick unterscheiden. Sie sind keine amtlichen Markenfarben.
+*/
+
+.anbieterzeichen {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--rundung);
+
+  font-family: var(--schriftart);
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+
+  /* Die Hausfarbe kommt je Anbieter aus den Regeln weiter unten. */
+  --anbieterfarbe: var(--schrift-still);
+  color: #fff;
+  background-color: var(--anbieterfarbe);
+
+  /* Vorbereitet fuer echte Bilddateien. Ohne Datei passiert hier nichts. */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 80% auto;
+
+  user-select: none;
+  vertical-align: middle;
+}
+
+/*
+  Wo das Zeichen neben einem Text steht, braucht es Luft. Die betroffenen
+  Behaelter bekommen sie hier, nicht im JavaScript.
+*/
+.scheinanbieter,
+.anbietername,
+.kaertchenanbieter {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  min-width: 0;
+}
+
+.scheinanbieter span,
+.anbietername span,
+.kaertchenanbieter span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* In der Scheineliste steht das Zeichen vor dem Eingabefeld. */
+.zelle .anbieterzeichen {
+  margin-right: var(--luft-2);
+}
+
+.zelle:has(> .anbieterzeichen) {
+  display: flex;
+  align-items: center;
+}
+
+/* ---------------------------------------------------------------- Karams fuenf */
+
+[data-anbieter="ps3838"] {
+  --anbieterfarbe: #c8102e;
+}
+
+[data-anbieter="betway"] {
+  --anbieterfarbe: #00a826;
+  color: #04150a;
+}
+
+[data-anbieter="bet365"] {
+  --anbieterfarbe: #027b5b;
+}
+
+[data-anbieter="stake"] {
+  --anbieterfarbe: #1a2c38;
+  color: #4ba3ff;
+}
+
+[data-anbieter="betonline"] {
+  --anbieterfarbe: #0b3d91;
+}
+
+/* ---------------------------------------------------------------- Die uebrigen */
+
+[data-anbieter="pinnacle"] { --anbieterfarbe: #e4002b; }
+[data-anbieter="bovada"] { --anbieterfarbe: #cf2030; }
+[data-anbieter="mybookie"] { --anbieterfarbe: #1f8a3b; }
+[data-anbieter="betus"] { --anbieterfarbe: #14477d; }
+[data-anbieter="everygame"] { --anbieterfarbe: #d81f26; }
+[data-anbieter="sportsbetting_ag"] { --anbieterfarbe: #1d4e89; }
+[data-anbieter="lowvig"] { --anbieterfarbe: #2f6f4e; }
+[data-anbieter="xbet"] { --anbieterfarbe: #b8272d; }
+[data-anbieter="heritage"] { --anbieterfarbe: #3a5a78; }
+[data-anbieter="betanysports"] { --anbieterfarbe: #7a1f2b; }
+[data-anbieter="pokerstars"] { --anbieterfarbe: #cb2027; }
+[data-anbieter="rabona"] { --anbieterfarbe: #2b6cb0; }
+
+/*
+  Ein Anbieter, den die Liste nicht kennt, oder ein leeres Feld. Das Zeichen
+  bleibt sichtbar und bleibt still: es soll gefunden werden, aber nicht
+  behaupten, es sei eine bestimmte Marke (Projektregel 1).
+*/
+[data-anbieter="unbekannt"] {
+  --anbieterfarbe: transparent;
+  color: var(--schrift-still);
+  border: 1px dashed var(--linie-hell);
+}
