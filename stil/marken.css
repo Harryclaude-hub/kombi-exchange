@@ -31,25 +31,35 @@
     Karam am 16.09.2026: "bitte die Buttons sehr sehr viel sichtbarer machen
     verglichen mit dem Hintergrund, das ist vielleicht eine eigene Farbe".
 
-    Vorher sassen die Knoepfe auf --flaeche-hoch (#232e40). Gegen den Grund
-    (#131b28) sind das gemessene 1,5 zu 1: ein Knopf war ein etwas helleres
-    Rechteck, mehr nicht. Knoepfe haben jetzt eine EIGENE Farbe, die weder
-    Grund noch Flaeche ist, und dazu eine helle Kante.
+    Erster Anlauf am 16.09.2026 war eine helle Flaeche (#5d739b). Karam
+    darauf: "es ist dir diesen ein bisschen zu hell, einfach vielleicht eine
+    Umrandung machen." Er hat recht: fuenfzehn helle Rechtecke auf einem
+    dunklen Handelsplatz ziehen das Auge von den Zahlen weg, und die Zahlen
+    sind der Grund, warum man herschaut.
+
+    ZWEITER ANLAUF, und so steht es jetzt: die FLAECHE bleibt dunkel und nah
+    am Grund, die KANTE traegt die Sichtbarkeit. Ein Knopf ist dann ein
+    umrandetes Feld und kein Leuchtfleck.
 
     Nachgerechnet (WCAG, relative Leuchtdichte):
-      Knopf auf Grund     3,61 zu 1     (Mindestmass fuer Bedienelemente: 3)
-      Knopf auf Flaeche   3,26 zu 1
-      Schrift auf Knopf   4,78 zu 1     (Mindestmass fuer Text: 4,5)
-    Alle drei liegen ueber der Grenze, keine knapp darunter.
+      Kante auf Grund       4,46 zu 1   (Mindestmass fuer Bedienelemente: 3)
+      Kante auf Flaeche     3,69 zu 1
+      Schrift auf Knopf    12,28 zu 1   (Mindestmass fuer Text: 4,5)
+    Die Kante allein traegt die Grenze, die Flaeche muss es gar nicht.
+    Deshalb ist sie in bauteile.css auch 2 Pixel stark und nicht 1.
   */
-  --knopf: #5d739b;
-  --knopf-heiss: #6d85b0;
-  --knopf-rand: #8298bd;
-  --knopf-schrift: #ffffff;
+  --knopf: #202b3d;
+  --knopf-heiss: #2c3a52;
+  --knopf-rand: #6b83a8;
+  --knopf-schrift: #e8eefa;
 
-  /* Der Hauptknopf einer Ansicht traegt die Betonungsfarbe und sticht heraus. */
-  --knopf-haupt: #2f7ae0;
-  --knopf-haupt-heiss: #4a90ee;
+  /*
+    Der Hauptknopf bleibt gefuellt. Es gibt hoechstens einen je Ansicht, und
+    genau deshalb darf er leuchten: er ist der Weg weiter, nicht einer von
+    fuenfzehn gleichen.
+  */
+  --knopf-haupt: #2468c8;
+  --knopf-haupt-heiss: #2f7ae0;
   --knopf-haupt-rand: #74b0f5;
   --knopf-haupt-schrift: #ffffff;
 
@@ -160,10 +170,17 @@
     --betonung: #1667c7;
     --betonung-tief: rgba(22, 103, 199, 0.1);
 
-    --knopf: #44566f;
-    --knopf-heiss: #33455c;
-    --knopf-rand: #2c3d52;
-    --knopf-schrift: #ffffff;
+    /*
+      Dieselbe Bauart wie in der dunklen Fassung: ruhige Flaeche, kraeftige
+      Kante. Zwei verschiedene Bauarten je Thema saehen aus wie zwei
+      verschiedene Programme.
+        Kante auf Flaeche    5,43 zu 1
+        Schrift auf Knopf   13,69 zu 1
+    */
+    --knopf: #eef2f8;
+    --knopf-heiss: #dde5f0;
+    --knopf-rand: #5a6b84;
+    --knopf-schrift: #1a2538;
 
     --knopf-haupt: #1258ad;
     --knopf-haupt-heiss: #0d4890;
@@ -217,10 +234,17 @@
   --betonung: #1667c7;
   --betonung-tief: rgba(22, 103, 199, 0.1);
 
-  --knopf: #44566f;
-  --knopf-heiss: #33455c;
-  --knopf-rand: #2c3d52;
-  --knopf-schrift: #ffffff;
+  /*
+    Dieselbe Bauart wie in der dunklen Fassung: ruhige Flaeche, kraeftige
+    Kante. Zwei verschiedene Bauarten je Thema saehen aus wie zwei
+    verschiedene Programme.
+      Kante auf Flaeche    5,43 zu 1
+      Schrift auf Knopf   13,69 zu 1
+  */
+  --knopf: #eef2f8;
+  --knopf-heiss: #dde5f0;
+  --knopf-rand: #5a6b84;
+  --knopf-schrift: #1a2538;
 
   --knopf-haupt: #1258ad;
   --knopf-haupt-heiss: #0d4890;

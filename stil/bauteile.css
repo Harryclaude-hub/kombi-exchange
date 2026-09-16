@@ -178,7 +178,13 @@
   padding: var(--luft-2) var(--luft-4);
   background: var(--knopf);
   color: var(--knopf-schrift);
-  border: 1px solid var(--knopf-rand);
+  /*
+    ZWEI Pixel, nicht einer. Seit die Flaeche dunkel und ruhig ist, traegt
+    allein die Kante die Erkennbarkeit. Bei einem Pixel verschwindet sie auf
+    einem Bildschirm mit hoher Punktdichte fast; bei zweien bleibt der Knopf
+    ein Knopf.
+  */
+  border: 2px solid var(--knopf-rand);
   border-radius: var(--rundung);
   font-size: var(--text-normal);
   font-weight: 600;
@@ -815,11 +821,39 @@ li[data-schwere="info"] .hinweisart {
 
 /* ---------------------------------------------------------------- Scheintabelle */
 
+/*
+  DIE TABELLE WIRD GESCHOBEN, NICHT ABGESCHNITTEN.
+
+  Vorher stand hier overflow: hidden, und die zwoelf Spalten verlangen
+  zusammen mindestens 1224 Pixel. Auf jedem Bildschirm darunter waren die
+  letzten Spalten nicht nur unsichtbar, sondern UNERREICHBAR: es gab keinen
+  Schieber dorthin. Bei sechzig Scheinen und zwanzigtausend Euro ist eine
+  Spalte, an die man nicht herankommt, kein Schoenheitsfehler.
+
+  overflow-x: auto statt hidden, und die Mindestbreite steht als eine Zahl da,
+  damit das Raster im Schieber nicht doch wieder zusammenfaellt.
+*/
 .scheintabelle {
   border: 1px solid var(--linie);
   border-radius: var(--rundung-gross);
-  overflow: hidden;
   background: var(--flaeche);
+  /*
+    BEIDE Achsen schieben, und zwar in DIESEM Kasten.
+
+    Warum nicht nur overflow-x: sobald eine Achse schiebt, wird die andere in
+    CSS von "visible" auf "auto" gehoben, und der Kasten ist der Schiebebereich.
+    Der Tabellenkopf haengt aber an position: sticky und richtete sich bisher
+    an der SEITE aus. Mit einem Schiebebereich dazwischen richtet er sich an
+    diesem aus, und weil der Kasten dann genau so hoch ist wie sein Inhalt,
+    bleibt der Kopf nie mehr stehen.
+
+    Deshalb bekommt der Kasten eine Hoehe: jetzt schiebt er wirklich senkrecht,
+    und der Kopf bleibt darin oben stehen. Bei sechzig Scheinen ist genau das
+    der Punkt, sonst weiss man in Zeile vierzig nicht mehr, welche Spalte
+    welche ist.
+  */
+  overflow: auto;
+  max-height: calc(100vh - var(--kopfhoehe) - var(--reiterhoehe) - 10rem);
 }
 
 .tabellenkopf,
@@ -828,15 +862,24 @@ li[data-schwere="info"] .hinweisart {
   grid-template-columns:
     44px minmax(140px, 1.4fr) minmax(110px, 1fr) minmax(90px, 0.9fr) minmax(100px, 0.9fr)
     minmax(130px, 1fr) minmax(110px, 0.9fr) 110px 96px 110px 96px 88px;
+  /*
+    Die Summe der Mindestbreiten. Steht sie nicht da, staucht der Schieber die
+    Spalten auf ihre Mindestbreite und der Zeilenumbruch faengt wieder an.
+  */
+  min-width: 1224px;
   align-items: center;
   gap: 0;
 }
 
+/*
+  Der Kopf bleibt im Schiebebereich oben stehen, also bei top: 0 und nicht
+  mehr unterhalb der Kopfzeile der Seite: der Kasten beginnt ja schon darunter.
+*/
 .tabellenkopf {
   background: var(--flaeche-heiss);
   border-bottom: 1px solid var(--linie);
   position: sticky;
-  top: calc(var(--kopfhoehe) + var(--reiterhoehe));
+  top: 0;
   z-index: 5;
 }
 
@@ -864,9 +907,26 @@ li[data-schwere="info"] .hinweisart {
 .tabellenzeile[data-schwere="warnung"] {
   box-shadow: inset 3px 0 0 var(--offen);
 }
+/*
+  Ein ausgeschlossener Schein bleibt LESBAR.
+
+  Vorher: opacity 0.45 plus Durchstreichen. Bei 45 Prozent Deckkraft faellt
+  jeder Kontrast unter die Haelfte, hier von 14,4 auf etwa 4,3 zu 1, und die
+  leisen Spalten darunter. Projektregel 9 sagt, Aussortiertes bleibt sichtbar,
+  und sichtbar heisst lesbar: gerade an einem Schein, den man aus der Rechnung
+  genommen hat, will man spaeter nachlesen koennen, WELCHER es war.
+
+  Statt der Deckkraft: ein Streifen an der Kante, eine ruhige Flaeche und das
+  Durchstreichen nur auf den Zahlen, nicht auf dem ganzen Text.
+*/
 .tabellenzeile[data-ausgeschlossen="true"] {
-  opacity: 0.45;
+  background: var(--stufe-keine);
+  box-shadow: inset 3px 0 0 var(--schrift-still);
+}
+
+.tabellenzeile[data-ausgeschlossen="true"] .zelle-zahl {
   text-decoration: line-through;
+  color: var(--schrift-still);
 }
 
 .zelle {
@@ -874,9 +934,18 @@ li[data-schwere="info"] .hinweisart {
   min-width: 0;
 }
 
+/*
+  TABELLENZIFFERN in allen Zahlenspalten.
+
+  font-variant-numeric: tabular-nums haelt jede Ziffer gleich breit. Ohne das
+  wandern die Stellen von Zeile zu Zeile, und genau darum geht es hier: bei
+  sechzig Betraegen untereinander soll man einen Ausreisser sehen, ohne jede
+  Zahl einzeln zu lesen.
+*/
 .zelle-nummer {
   font-family: var(--schriftart-zahl);
   font-size: var(--text-klein);
+  font-variant-numeric: tabular-nums;
   color: var(--schrift-still);
   text-align: right;
   padding-right: var(--luft-3);
@@ -888,6 +957,7 @@ li[data-schwere="info"] .hinweisart {
   gap: 4px;
   justify-content: flex-end;
   font-family: var(--schriftart-zahl);
+  font-variant-numeric: tabular-nums;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2287,7 +2357,7 @@ li[data-schwere="info"] .hinweisart {
 .kartenverbinden,
 .kartenweg {
   background: var(--knopf);
-  border: 1px solid var(--knopf-rand);
+  border: 2px solid var(--knopf-rand);
   border-radius: var(--rundung);
   color: var(--knopf-schrift);
   font: inherit;
@@ -2963,7 +3033,7 @@ li[data-schwere="info"] .hinweisart {
   padding: var(--luft-2) var(--luft-2);
   background: var(--knopf);
   color: var(--knopf-schrift);
-  border: 1px solid var(--knopf-rand);
+  border: 2px solid var(--knopf-rand);
   border-left: 3px solid transparent;
   border-radius: var(--rundung);
   font: inherit;
@@ -3410,7 +3480,7 @@ li[data-schwere="info"] .hinweisart {
   min-height: 40px;
   background: var(--knopf);
   color: var(--knopf-schrift);
-  border: 1px solid var(--knopf-rand);
+  border: 2px solid var(--knopf-rand);
   border-radius: var(--rundung);
   font: inherit;
   text-align: left;

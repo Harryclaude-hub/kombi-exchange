@@ -47,6 +47,7 @@
       <button class="knopf knopf-klein" type="button" id="system">System</button>
       <button class="knopf knopf-klein" type="button" id="zeigStart">Uebersicht</button>
       <button class="knopf knopf-klein" type="button" id="zeigRiesen">Riesenscheine</button>
+      <button class="knopf knopf-klein" type="button" id="zeigScheine">Scheine</button>
       <button class="knopf knopf-klein" type="button" id="hinweis">Hinweis ausloesen</button>
       <p>Echte Scheine aus dem Testkorpus, durch den echten Parser gelesen.</p>
     </div>
@@ -117,6 +118,9 @@
         )
         document.getElementById('zeigRiesen').addEventListener('click', () =>
           Zustand.aendere({ ansicht: 'positionen' })
+        )
+        document.getElementById('zeigScheine').addEventListener('click', () =>
+          Zustand.aendere({ ansicht: 'scheine' })
         )
         document.getElementById('hinweis').addEventListener('click', () =>
           Zustand.melde('fehler', 'Beispielhinweis: so sieht ein Fehler jetzt aus, unten im Fluss der Seite statt schwebend in der Ecke.')
