@@ -25,7 +25,9 @@ import { istAngeheftet, heftAn } from './nadeln.js'
 export function zeichne(ziel) {
   const stand = Zustand.hole()
 
-  if (stand.riesenscheine.length === 0) {
+  // Eine offene, noch leere Huelle ist KEIN Leerstand: sie wartet auf Fotos.
+  // Der Leerhinweis darunter wuerde sonst behaupten, es gaebe nichts.
+  if (stand.riesenscheine.length === 0 && !stand.huelle) {
     fuelle(ziel, [
       el('.leerhinweis', {}, [
         el('p.leer-titel', { text: 'Noch kein Riesenschein da.' }),
@@ -68,6 +70,23 @@ export function zeichne(ziel) {
   const mehrereWetten = stand.riesenscheine.length > 1
 
   fuelle(ziel, [
+    /*
+      DER KNOPF FUER EINEN NEUEN RIESENSCHEIN, ganz oben.
+
+      Karam am 16.09.2026: "die Buttons vor allem um das Erstellen eines neuen
+      Riesenscheines ist mir sehr wichtig. Es wird einfach taeglich mehrere
+      Riesenscheine gespielt."
+
+      Er hat sich bewusst fuer die leere Huelle entschieden: der Knopf macht
+      einen leeren, benannten Riesenschein auf, und ALLES, was danach gelesen
+      wird, landet darin.
+
+      Das schaltet die automatische Zuordnung fuer neue Scheine ab, und deshalb
+      steht darueber ein deutlicher Streifen, solange eine Huelle offen ist.
+      Wer das nicht sieht, wundert sich sonst, warum zwei verschiedene Wetten
+      in einem Riesenschein landen.
+    */
+    huellenleiste(stand),
     mehrereWetten ? projektkopf(gesamt) : null,
     // Die Liste links waehlt zwischen Riesenscheinen aus. Bei nur einem gibt es
     // nichts auszuwaehlen.
@@ -822,5 +841,68 @@ function zahlenpaar(name, wert, art) {
   return el('.kaertchenpaar', { daten: { art } }, [
     el('span.kaertchenwort', { text: name }),
     el('span.kaertchenzahl', { text: wert }),
+  ])
+}
+
+/**
+ * Der Knopf fuer einen neuen Riesenschein, und der Streifen, der sagt, dass
+ * gerade eine Huelle offen ist.
+ *
+ * @param {any} stand
+ * @returns {HTMLElement}
+ */
+function huellenleiste(stand) {
+  const huelle = stand.huelle
+  const drin = huelle
+    ? (stand.riesenscheine.find((r) => r.id === huelle.id)?.scheinIds.length ?? 0)
+    : 0
+
+  return el('.huellenleiste', { daten: { offen: String(Boolean(huelle)) } }, [
+    huelle
+      ? el('.huellentext', {}, [
+          el('span.huellenmarke', { text: 'OFFEN' }),
+          el('span.huellenname', { text: huelle.name }),
+          el('span.huellenhinweis', {
+            text:
+              drin === 0
+                ? 'Alles, was du jetzt aufnimmst, landet hier. Automatisch zugeordnet wird nichts.'
+                : `${drin} Schein(e) darin. Alles Weitere landet ebenfalls hier.`,
+          }),
+        ])
+      : el('span.huellenhinweis', {
+          text:
+            'Riesenscheine entstehen von selbst: gleiche Wetten wandern zusammen. ' +
+            'Fuer eine neue Wette kannst du vorher eine leere Huelle aufmachen.',
+        }),
+
+    el('.huellenknoepfe', {}, [
+      huelle
+        ? el('button.knopf.knopf-klein', {
+            type: 'button',
+            text: 'Huelle schliessen',
+            title:
+              'Neue Scheine werden danach wieder automatisch zugeordnet. ' +
+              'Was schon drin ist, bleibt als Riesenschein bestehen.',
+            onclick: () => Zustand.schliesseHuelle(),
+          })
+        : null,
+      el('button.knopf.knopf-haupt.huellenknopf', {
+        type: 'button',
+        text: 'Neuen Riesenschein',
+        title:
+          'Macht einen leeren, benannten Riesenschein auf. Alles, was du danach ' +
+          'aufnimmst, landet darin, bis du ihn schliesst.',
+        onclick: () => {
+          const vorschlag = `Wette ${stand.riesenscheine.length + 1} vom ${new Date().toLocaleDateString('de-DE')}`
+          const name = prompt('Wie soll der neue Riesenschein heissen?', vorschlag)
+          if (name === null) return
+          Zustand.macheHuelleAuf(name)
+          Zustand.melde(
+            'info',
+            `"${name.trim() || 'Neuer Riesenschein'}" ist offen. Alles, was du jetzt aufnimmst, landet darin.`
+          )
+        },
+      }),
+    ]),
   ])
 }

@@ -4134,3 +4134,76 @@ li[data-schwere="info"] .hinweisart {
   object-position: top;
   display: block;
 }
+
+/* --------------------------------------------- Die offene Huelle, 16.09.2026 */
+
+/*
+  Karam: "die Buttons vor allem um das Erstellen eines neuen Riesenscheines
+  ist mir sehr wichtig."
+
+  Der Streifen steht ganz oben, ueber allen Zahlen. Ist keine Huelle offen,
+  ist er ruhig und erklaert nur, wie Riesenscheine sonst entstehen. Ist eine
+  offen, faellt er auf: dann ist die automatische Zuordnung fuer neue Scheine
+  ABGESCHALTET, und das darf man nicht uebersehen.
+*/
+.huellenleiste {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--luft-3);
+  padding: var(--luft-3) var(--luft-4);
+  margin-bottom: var(--luft-4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+}
+
+.huellenleiste[data-offen='true'] {
+  background: var(--betonung-tief);
+  border-color: var(--betonung);
+  border-left: 4px solid var(--betonung);
+}
+
+.huellentext {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--luft-2) var(--luft-3);
+  min-width: 0;
+}
+
+.huellenmarke {
+  padding: 2px var(--luft-2);
+  border-radius: var(--rundung);
+  background: var(--betonung);
+  color: var(--knopf-haupt-schrift);
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.huellenname {
+  font-size: var(--text-gross);
+  font-weight: 700;
+}
+
+.huellenhinweis {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  max-width: 68ch;
+}
+
+.huellenknoepfe {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  flex-wrap: wrap;
+}
+
+/* Der wichtigste Knopf der Ansicht darf groesser sein als die anderen. */
+.huellenknopf {
+  font-size: var(--text-normal);
+  padding: var(--luft-2) var(--luft-5);
+  min-height: 44px;
+}

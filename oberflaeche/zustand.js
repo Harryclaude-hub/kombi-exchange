@@ -47,6 +47,7 @@ import { neueKennung, jetzt } from './werkzeug.js'
  * @property {import('../kern/gruppierung.js').Doppelfund[]} verdacht
  * @property {'start'|'aufnahme'|'scheine'|'positionen'|'ausgabe'|'ablage'|'hilfe'} ansicht
  * @property {string|null} hilfeZu
+ * @property {{id: string, name: string}|null} huelle
  * @property {string|null} auswahl
  * @property {number|null} fassung
  * @property {{laeuft: boolean, text: string, anteil: number}} arbeit
@@ -72,6 +73,24 @@ const stand = {
   verdacht: [],
   // Die Uebersicht ist die Startseite, seit dem 16.09.2026.
   // Karam: "Aufnahme soll bitte bleiben, aber nicht ins Mainpage."
+  /*
+    DIE OFFENE HUELLE.
+
+    Karam am 16.09.2026: "einen neuen Riesenschein erstellen, man speichert den
+    alten, der bleibt. Es wird taeglich mehrere Riesenscheine gespielt."
+
+    Riesenscheine entstehen sonst von selbst: gleiche Wetten wandern zusammen.
+    Eine Huelle dreht das um. Solange eine offen ist, landet JEDER neu gelesene
+    Schein darin, ohne Vergleich mit den anderen.
+
+    Das ist bewusst eine Ausnahme und deshalb sichtbar: die Ansicht sagt
+    deutlich, dass eine Huelle offen ist und automatisch nicht mehr gruppiert
+    wird. Wer das nicht sieht, wundert sich sonst, warum zwei verschiedene
+    Wetten in einem Riesenschein landen.
+
+    null heisst: es gibt keine, alles laeuft wie immer.
+  */
+  huelle: null,
   ansicht: 'start',
   auswahl: null,
   // Aus welcher Ansicht heraus die Erklaerung geoeffnet wurde. Damit springt
@@ -182,7 +201,50 @@ export function arbeite(laeuft, text = '', anteil = 0) {
  * @param {import('../kern/typen.js').Schein[]} neue
  */
 export function fuegeScheineHinzu(neue) {
-  ordneNeu([...stand.scheine, ...neue])
+  /*
+    IST EINE HUELLE OFFEN, LANDEN DIE NEUEN SCHEINE DARIN.
+
+    gruppeId gesetzt heisst in kern/gruppierung.js: von Hand festgelegt, wird
+    nie aufgebrochen (dort Abschnitt 1). Damit entsteht kein zweiter
+    Gruppierungsweg, es wird nur der vorhandene benutzt (Projektregel 8).
+
+    Die Sicherheitsnetze bleiben alle: der Pruefstein am einzelnen Schein, die
+    Ausreisserpruefung ueber die Quoten des Riesenscheins, und die Hinweise der
+    Schwere fehler nehmen einen Schein weiterhin aus der Summe.
+  */
+  const zugeordnet = stand.huelle
+    ? neue.map((s) => ({ ...s, gruppeId: stand.huelle?.id ?? null }))
+    : neue
+  ordneNeu([...stand.scheine, ...zugeordnet])
+}
+
+/**
+ * Macht einen neuen, leeren Riesenschein auf.
+ *
+ * Alles, was danach gelesen wird, wandert hinein, bis eine andere Huelle
+ * aufgemacht oder diese geschlossen wird. Der bisherige Riesenschein bleibt
+ * unveraendert im Projekt stehen.
+ *
+ * @param {string} name
+ * @returns {string} die Kennung der neuen Huelle
+ */
+export function macheHuelleAuf(name) {
+  const id = neueKennung()
+  aendere({ huelle: { id, name: String(name || '').trim() || 'Neuer Riesenschein' } })
+  // ordneNeu setzt die leere Huelle in die Liste, damit man sie sofort sieht.
+  ordneNeu()
+  return id
+}
+
+/**
+ * Schliesst die offene Huelle. Neue Scheine werden danach wieder automatisch
+ * zugeordnet. Hat die Huelle schon Scheine, bleibt sie als Riesenschein
+ * bestehen, sie nimmt nur nichts Neues mehr auf.
+ */
+export function schliesseHuelle() {
+  if (!stand.huelle) return
+  aendere({ huelle: null })
+  ordneNeu()
 }
 
 /**
@@ -230,6 +292,35 @@ export function ordneNeu(scheine) {
     }
   })
 
+  /*
+    DIE LEERE HUELLE UEBERLEBT DAS NEUORDNEN.
+
+    gruppiere() baut die Liste vollstaendig aus den Scheinen. Eine Gruppe ohne
+    Scheine entsteht dabei nicht, sie kann gar nicht entstehen. Eine Huelle,
+    die noch auf ihre Fotos wartet, waere also sofort wieder weg.
+
+    Deshalb wird sie hier wieder eingesetzt, und zwar GANZ VORNE: sie ist das,
+    woran gerade gearbeitet wird. Sobald der erste Schein hineinlaeuft, hat
+    gruppiere() sie selbst gebaut (die Scheine tragen ihre gruppeId), und dann
+    steht sie schon in der Liste und wird hier nicht noch einmal angehaengt.
+
+    Die Signatur bleibt leer: eine Huelle ohne Scheine hat keine Wette, ueber
+    die sich etwas sagen liesse. Nichts zu behaupten ist richtiger, als etwas
+    zu erfinden (Projektregel 1).
+  */
+  if (stand.huelle && !riesenscheine.some((r) => r.id === stand.huelle?.id)) {
+    const alteHuelle = alteNachId.get(stand.huelle.id)
+    riesenscheine.unshift({
+      id: stand.huelle.id,
+      name: stand.huelle.name,
+      signatur: '',
+      scheinIds: [],
+      notiz: alteHuelle?.notiz ?? '',
+      angelegtAm: alteHuelle?.angelegtAm ?? jetzt(),
+      geaendertAm: jetzt(),
+    })
+  }
+
   // Die Zugehoerigkeit auch auf den Scheinen vermerken, damit sie beim Speichern
   // mitgeht und beim naechsten Laden erhalten bleibt.
   for (const riesenschein of riesenscheine) {
@@ -239,8 +330,11 @@ export function ordneNeu(scheine) {
     }
   }
 
-  const auswahl =
-    stand.auswahl && riesenscheine.some((r) => r.id === stand.auswahl)
+  // Eine offene Huelle ist das, woran gerade gearbeitet wird, also ist sie auch
+  // die Auswahl. Sonst bleibt die bisherige, solange es sie noch gibt.
+  const auswahl = stand.huelle
+    ? stand.huelle.id
+    : stand.auswahl && riesenscheine.some((r) => r.id === stand.auswahl)
       ? stand.auswahl
       : (riesenscheine[0]?.id ?? null)
 
