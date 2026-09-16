@@ -3635,3 +3635,167 @@ li[data-schwere="info"] .hinweisart {
   color: var(--schrift-leise);
   line-height: 1.6;
 }
+
+/* ========================================================= Die Anleitung */
+
+/*
+  Karam am 16.09.2026: "wenn man sich das erste Mal mit diesem Browser
+  anmeldet, kann man eine Anleitung bekommen, was jeder Knopf macht und wie man
+  einen Riesenschein macht."
+
+  Sie liegt als <dialog> ueber der Seite. Das Abdunkeln, die Tastaturfalle und
+  die Esc-Taste bringt der Browser mit, hier steht nur, wie sie aussieht.
+
+  Die Breite ist an der Lesbarkeit gemessen und nicht am Bildschirm: ueber
+  etwa 75 Zeichen je Zeile verliert man beim Zurueckspringen die Zeile.
+*/
+.anleitung {
+  width: min(680px, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--luft-4);
+  padding: var(--luft-5);
+}
+
+.anleitungskopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--luft-3);
+  padding-bottom: var(--luft-3);
+  border-bottom: 1px solid var(--linie);
+}
+
+.anleitungsmarke {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--schrift-still);
+}
+
+.anleitungspunkte {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-1);
+}
+
+/*
+  Die Punkte zeigen, wie weit man ist. Sie sind KEIN Bedienelement: anklicken
+  kann man sie nicht, und sie geben auch nicht vor, es zu koennen. Wer
+  springen will, nimmt Zurueck und Weiter.
+*/
+.anleitungspunkt {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--linie-hell);
+}
+
+.anleitungspunkt[data-erledigt='true'] {
+  background: var(--gut);
+}
+
+.anleitungspunkt[data-an='true'] {
+  background: var(--betonung);
+  transform: scale(1.5);
+}
+
+.anleitungsinhalt {
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.anleitungstitel {
+  margin: 0 0 var(--luft-1);
+  font-size: var(--text-gross);
+  font-weight: 700;
+}
+
+.anleitungswo {
+  display: inline-block;
+  margin-bottom: var(--luft-3);
+  padding: 2px var(--luft-2);
+  background: var(--betonung-tief);
+  border-radius: var(--rundung);
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  color: var(--betonung);
+}
+
+.anleitungstext {
+  margin: 0 0 var(--luft-3);
+  color: var(--schrift-leise);
+  line-height: 1.65;
+}
+
+.anleitungsliste {
+  margin: 0 0 var(--luft-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--luft-2);
+}
+
+.anleitungsliste li {
+  position: relative;
+  padding-left: var(--luft-5);
+  font-size: var(--text-klein);
+  line-height: 1.6;
+}
+
+.anleitungsliste li::before {
+  content: '>';
+  position: absolute;
+  left: var(--luft-2);
+  color: var(--betonung);
+  font-weight: 700;
+}
+
+.anleitungsachtung {
+  padding: var(--luft-3);
+  background: var(--offen-tief);
+  border-left: 3px solid var(--offen);
+  border-radius: var(--rundung);
+  font-size: var(--text-klein);
+  line-height: 1.6;
+}
+
+/*
+  Ueberspringen steht LINKS und allein, die beiden Wege weiter stehen rechts.
+  Wer weiterblaettert, drueckt nie versehentlich auf Ueberspringen, weil die
+  Maus dabei nie ueber diesen Knopf laeuft.
+*/
+.anleitungsknoepfe {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  padding-top: var(--luft-3);
+  border-top: 1px solid var(--linie);
+}
+
+.anleitungszaehler {
+  margin-left: auto;
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  font-variant-numeric: tabular-nums;
+  color: var(--schrift-still);
+}
+
+/* Der Weg zur gefuehrten Anleitung, oben auf der Erklaerungsseite. */
+.hilfeanleitung {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--luft-3);
+  margin-top: var(--luft-4);
+  padding: var(--luft-3) var(--luft-4);
+  background: var(--betonung-tief);
+  border: 1px solid var(--betonung);
+  border-radius: var(--rundung);
+}
+
+.hilfeanleitung .hilfetext {
+  margin: 0;
+  flex: 1 1 24rem;
+}

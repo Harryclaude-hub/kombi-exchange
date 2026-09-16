@@ -23,6 +23,7 @@
 
 import { el, fuelle } from './werkzeug.js'
 import * as Zustand from './zustand.js'
+import * as Anleitung from './anleitung.js'
 
 /**
  * Zeichnet die Ansicht.
@@ -125,6 +126,23 @@ function einleitung() {
         'Du musst nichts abtippen. Aber du musst hinsehen: wo das Programm sich nicht sicher ist, ' +
         'sagt es das, und dann entscheidest du. Alles, was rot oder gelb ist, will angesehen werden.',
     }),
+
+    // Der Weg zur gefuehrten Anleitung, gleich oben auf der Erklaerung.
+    // Diese Seite ist zum Nachschlagen, die Anleitung fuehrt in neun Schritten
+    // durch den Weg. Wer hier landet und eigentlich das andere sucht, soll es
+    // finden, ohne die ganze Seite zu lesen.
+    el('.hilfeanleitung', {}, [
+      el('p.hilfetext', {
+        text:
+          'Lieber Schritt fuer Schritt durchgefuehrt werden? Die Anleitung geht in neun Schritten ' +
+          'durch den ganzen Weg, vom ersten Foto bis zur Buchhaltung ueber eine ganze Saison.',
+      }),
+      el('button.knopf.knopf-haupt', {
+        type: 'button',
+        text: 'Anleitung starten',
+        onclick: () => Anleitung.zeige(),
+      }),
+    ]),
   ])
 }
 

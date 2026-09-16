@@ -11,6 +11,7 @@ import { formatiere } from '../kern/geld.js'
 import { rechneProjekt } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
 import * as Nadeln from './nadeln.js'
+import * as Anleitung from './anleitung.js'
 import * as Datenbank from '../daten/datenbank.js'
 import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL, PROGRAMM_FASSUNG } from '../daten/einstellungen.js'
 import { merkeStand, holeStand, holeBilderZuProjekt, loescheBild } from '../daten/ablage.js'
@@ -333,6 +334,22 @@ function zeichneKopf() {
           const her = Zustand.hole().ansicht
           Zustand.aendere({ ansicht: 'hilfe', hilfeZu: her === 'hilfe' ? null : her })
         },
+      }),
+      /*
+        Die Anleitung laesst sich JEDERZEIT neu starten.
+
+        Karam am 16.09.2026: "man kann dieses Tutorial nochmal starten, wenn
+        man will." Sie laeuft von selbst beim ersten Anmelden in einem Browser;
+        wer sie danach noch einmal braucht, soll nicht suchen muessen.
+
+        Der Unterschied zur Erklaerung daneben: die Anleitung fuehrt in neun
+        Schritten durch den Weg, die Erklaerung ist die Seite zum Nachschlagen.
+      */
+      el('button.knopf.knopf-klein.anleitungsknopf', {
+        type: 'button',
+        text: 'Anleitung',
+        title: 'Die Anleitung noch einmal von vorne durchgehen.',
+        onclick: () => Anleitung.zeige(),
       }),
       el('span.verbindung', {
         daten: { an: String(stand.datenbankErreichbar) },
@@ -1241,6 +1258,12 @@ async function ladeAlles() {
     `${scheine.daten.length} Schein(e) geladen. Willkommen zurueck.`
   )
   zeichneHuelle()
+
+  // ZULETZT, nicht zuerst: die Anleitung legt sich ueber die Seite, und dahinter
+  // soll schon etwas stehen. Ueber einem leeren Bildschirm zu erklaeren, wo was
+  // liegt, hilft niemandem. Sie zeigt sich nur beim ERSTEN Mal in diesem
+  // Browser; oben im Kopf laesst sie sich jederzeit neu starten.
+  Anleitung.zeigeWennNeu()
 }
 
 /** Wenn die Datenbank nicht erreichbar ist: wenigstens das laden, was hier liegt. */
@@ -1263,6 +1286,11 @@ async function ladeNurOertlich() {
   }
   await ladeBilderVomGeraet(projekt.id)
   zeichneHuelle()
+
+  // Auch ohne Datenbank: wer zum ersten Mal in diesem Browser hereinkommt,
+  // bekommt die Anleitung. Sie erklaert die Oberflaeche, und die steht auch
+  // dann, wenn gerade nichts geladen werden konnte.
+  Anleitung.zeigeWennNeu()
 }
 
 /**

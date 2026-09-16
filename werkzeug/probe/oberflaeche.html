@@ -49,6 +49,7 @@
       <button class="knopf knopf-klein" type="button" id="zeigRiesen">Riesenscheine</button>
       <button class="knopf knopf-klein" type="button" id="zeigScheine">Scheine</button>
       <button class="knopf knopf-klein" type="button" id="hinweis">Hinweis ausloesen</button>
+      <button class="knopf knopf-klein" type="button" id="anleitung">Anleitung</button>
       <p>Echte Scheine aus dem Testkorpus, durch den echten Parser gelesen.</p>
     </div>
     <p class="probewarnung" id="warnung" hidden></p>
@@ -70,6 +71,7 @@
       import { gruppiere } from '../../kern/gruppierung.js'
       import * as Zustand from '../../oberflaeche/zustand.js'
       import { zeichneFuerProbe } from '../../oberflaeche/app.js'
+      import * as Anleitung from '../../oberflaeche/anleitung.js'
 
       const warnung = document.getElementById('warnung')
 
@@ -122,6 +124,7 @@
         document.getElementById('zeigScheine').addEventListener('click', () =>
           Zustand.aendere({ ansicht: 'scheine' })
         )
+        document.getElementById('anleitung').addEventListener('click', () => Anleitung.zeige())
         document.getElementById('hinweis').addEventListener('click', () =>
           Zustand.melde('fehler', 'Beispielhinweis: so sieht ein Fehler jetzt aus, unten im Fluss der Seite statt schwebend in der Ecke.')
         )
