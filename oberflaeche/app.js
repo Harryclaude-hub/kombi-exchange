@@ -10,12 +10,14 @@ import { el, fuelle, such, neueKennung, jetzt, verzoegert, zeitText } from './we
 import { formatiere } from '../kern/geld.js'
 import { rechneProjekt } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
+import * as Nadeln from './nadeln.js'
 import * as Datenbank from '../daten/datenbank.js'
 import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL, PROGRAMM_FASSUNG } from '../daten/einstellungen.js'
 import { merkeStand, holeStand, holeBilderZuProjekt, loescheBild } from '../daten/ablage.js'
 import { sorgeFuerAktuelleDateien } from '../daten/fassung.js'
 import { ladeBild } from '../bild/vorverarbeitung.js'
 
+import * as AnsichtStart from './ansicht_start.js'
 import * as AnsichtAufnahme from './ansicht_aufnahme.js'
 import * as AnsichtAblage from './ansicht_ablage.js'
 import * as AnsichtScheine from './ansicht_scheine.js'
@@ -23,13 +25,30 @@ import * as AnsichtPositionen from './ansicht_positionen.js'
 import * as AnsichtAusgabe from './ansicht_ausgabe.js'
 import * as AnsichtHilfe from './ansicht_hilfe.js'
 
+/*
+  Die Reiter, in der Reihenfolge, in der man sie braucht.
+
+  UEBERSICHT STEHT VORNE, seit dem 16.09.2026. Karam: "Aufnahme soll bitte
+  bleiben, aber nicht ins Mainpage. Ich will, dass eine Homepage, eine
+  Uebersicht gemacht wird."
+
+  Die Aufnahme ist nicht geloescht, sie ist nur nicht mehr das Erste, was man
+  sieht. Bilder hochladen ist der Handgriff von zehn Minuten in der Woche;
+  nachsehen, wie man steht, ist der Grund, warum man das Programm den Rest der
+  Woche aufmacht.
+
+  "zeichen" ist nur ein Textzeichen fuer das schmale Panel links. Es steht hier
+  und nicht im CSS, weil es Inhalt ist und kein Aussehen: auch ohne stil/ soll
+  in der Spur etwas stehen (Projektregel 5).
+*/
 const ANSICHTEN = [
-  { schluessel: 'aufnahme', name: 'Aufnahme', zeichne: AnsichtAufnahme.zeichne },
-  { schluessel: 'scheine', name: 'Scheine', zeichne: AnsichtScheine.zeichne },
-  { schluessel: 'positionen', name: 'Riesenscheine', zeichne: AnsichtPositionen.zeichne },
-  { schluessel: 'ausgabe', name: 'Ausgabe', zeichne: AnsichtAusgabe.zeichne },
-  { schluessel: 'ablage', name: 'Ablage', zeichne: AnsichtAblage.zeichne },
-  { schluessel: 'hilfe', name: 'Hilfe', zeichne: AnsichtHilfe.zeichne },
+  { schluessel: 'start', name: 'Uebersicht', zeichen: 'U', zeichne: AnsichtStart.zeichne },
+  { schluessel: 'positionen', name: 'Riesenscheine', zeichen: 'R', zeichne: AnsichtPositionen.zeichne },
+  { schluessel: 'scheine', name: 'Scheine', zeichen: 'S', zeichne: AnsichtScheine.zeichne },
+  { schluessel: 'aufnahme', name: 'Aufnahme', zeichen: 'A', zeichne: AnsichtAufnahme.zeichne },
+  { schluessel: 'ausgabe', name: 'Ausgabe', zeichen: 'E', zeichne: AnsichtAusgabe.zeichne },
+  { schluessel: 'ablage', name: 'Ablage', zeichen: 'L', zeichne: AnsichtAblage.zeichne },
+  { schluessel: 'hilfe', name: 'Erklaerung', zeichen: '?', zeichne: AnsichtHilfe.zeichne },
 ]
 
 /** @type {HTMLElement|null} */
@@ -62,6 +81,9 @@ export async function starte(ziel) {
   }
 
   Zustand.hoerZu(zeichneAlles)
+  // Eine Nadel aendert nur das Panel, nicht den Arbeitsstand. Deshalb ein
+  // eigener Zuhoerer und kein Umweg ueber den Zustand.
+  Nadeln.hoerZu(zeichnePanel)
   horcheAufAblage()
 
   const gemerkt = localStorage.getItem(SITZUNG_SCHLUESSEL) ?? ''
@@ -88,6 +110,32 @@ export async function starte(ziel) {
   }
 
   zeichneTor()
+}
+
+/**
+ * Einstieg fuer werkzeug/probe/oberflaeche.html.
+ *
+ * WOZU: alles ausser den Probeseiten liegt hinter dem Zugangscode. Wer am
+ * Design arbeitet und den Code nicht hat, konnte Uebersicht und Riesenscheine
+ * nicht ansehen, also genau die beiden Ansichten, um die es geht. Gestalten,
+ * ohne zu sehen, ist Raten (Projektregel 2).
+ *
+ * WARUM HIER UND NICHT IN EINER EIGENEN DATEI: die Probeseite soll DIESELBE
+ * Zeichenarbeit sehen wie das Programm. Ein eigener Nachbau waere eine zweite
+ * Fassung, die irgendwann anders aussieht als das Original, und dann gestaltet
+ * man am Nachbau (Projektregel 8).
+ *
+ * WAS SIE NICHT TUT: sie meldet niemanden an. Der Zuhoerer, der Projekte
+ * speichert, verlangt stand.angemeldet, und das bleibt auf der Probeseite
+ * falsch. Die Vorschau kann deshalb nichts in die Datenbank schreiben.
+ *
+ * @param {HTMLElement} ziel  Das Element, in dem die Huelle schon steht.
+ */
+export function zeichneFuerProbe(ziel) {
+  wurzel = ziel
+  Zustand.hoerZu(zeichneHuelle)
+  Nadeln.hoerZu(zeichnePanel)
+  zeichneHuelle()
 }
 
 /** Zeichnet den Zustand neu. */
@@ -206,8 +254,12 @@ function zeichneHuelle() {
           el('.kopfoben', { id: 'kopfleiste' }),
           el('nav.reiterleiste', { id: 'reiterleiste' }),
         ]),
+        // Das Panel links steht IMMER, auf jeder Ansicht.
+        el('aside.seitenpanel', { id: 'seitenpanel' }),
         el('main.inhalt', { id: 'inhalt' }),
-        el('.meldungsecke', { id: 'meldungsecke' }),
+        // Die Hinweisleiste ersetzt die alten Kaesten in der Ecke. Sie liegt
+        // im Fluss der Seite und verdeckt nichts.
+        el('.hinweisleiste', { id: 'hinweisleiste' }),
         el('.arbeitsleiste', { id: 'arbeitsleiste' }),
       ]),
     ])
@@ -216,7 +268,8 @@ function zeichneHuelle() {
 
   zeichneKopf()
   zeichneReiter()
-  zeichneMeldungen()
+  zeichnePanel()
+  zeichneHinweise()
   zeichneArbeit()
 
   const ansicht = ANSICHTEN.find((a) => a.schluessel === stand.ansicht) ?? ANSICHTEN[0]
@@ -261,6 +314,26 @@ function zeichneKopf() {
     projektwahl(stand),
 
     el('.kopfknoepfe', {}, [
+      /*
+        Der Erklaerungsknopf steht ZUERST und traegt die Hauptfarbe.
+
+        Karam am 16.09.2026: "oben in den Header einfach einen Button
+        hinzufuegen, der heisst Erklaerung, und zwar der erklaert jede einzelne
+        Seite in der Website, wie man das navigieren soll."
+
+        Er springt in die Erklaerung UND sagt ihr, wo man gerade war: wer auf
+        der Ablage steht und nicht weiss, was das ist, landet beim Absatz ueber
+        die Ablage und nicht am Anfang einer langen Seite.
+      */
+      el('button.knopf.knopf-haupt.erklaerknopf', {
+        type: 'button',
+        text: 'Erklaerung',
+        title: 'Erklaert jede Seite dieses Programms und wie man sich darin bewegt.',
+        onclick: () => {
+          const her = Zustand.hole().ansicht
+          Zustand.aendere({ ansicht: 'hilfe', hilfeZu: her === 'hilfe' ? null : her })
+        },
+      }),
       el('span.verbindung', {
         daten: { an: String(stand.datenbankErreichbar) },
         text: stand.datenbankErreichbar ? 'verbunden' : 'nur auf diesem Geraet',
@@ -841,40 +914,246 @@ function zeichneReiter() {
   )
 }
 
-function zeichneMeldungen() {
-  const ecke = such('#meldungsecke')
-  if (!ecke) return
+/*
+  DIE KAESTEN IN DER ECKE SIND WEG.
+
+  Karam am 16.09.2026: "es kommen immer Anzeigen von rechts oben, die ich
+  wegklicken muss, bitte entfernen, diese Anzeigen brauche ich nicht."
+
+  Er hat recht, und der Grund stand im Code: in zustand.js steht MELDUNG_DAUER
+  mit fehler: 0. Bestaetigungen verschwanden nach vier Sekunden von selbst,
+  FEHLER nie. Genau die musste er also wegklicken, und genau die kommen bei
+  sechzig Scheinen am haeufigsten.
+
+  EINFACH WEGLASSEN GEHT TROTZDEM NICHT. Projektregel 9 sagt: Aussortiertes
+  bleibt sichtbar. Ein Fehler, den niemand sieht, ist bei zwanzigtausend Euro
+  Einsatz teurer als einer, den man wegklicken muss.
+
+  Der Weg dazwischen: die schwebenden Kaesten fallen weg, an ihre Stelle tritt
+  eine ruhige Leiste unten im Fluss der Seite. Sie verdeckt nichts, sie huepft
+  nicht auf, sie will nicht weggeklickt werden. Es steht immer nur die neueste
+  Zeile da, daneben wie viele weitere anstehen. Ein Klick klappt alle auf.
+
+  Bestaetigungen erscheinen gar nicht mehr: dass etwas geklappt hat, sieht man
+  daran, dass es dasteht.
+*/
+
+/** Ob die Hinweisleiste gerade aufgeklappt ist. Reine Anzeige. */
+let hinweiseOffen = false
+
+function zeichneHinweise() {
+  const leiste = such('#hinweisleiste')
+  if (!leiste) return
   const stand = Zustand.hole()
 
-  // Hoechstens drei auf einmal, und Fehler zuerst.
-  //
-  // Karam am 16.09.2026: "es kommen zu viele Benachrichtigungen". Fuenf
-  // gleichzeitige Kaesten verdecken die halbe Ecke, und weil sie nie von selbst
-  // verschwanden, wuchs der Stapel den ganzen Tag. Die Dauer steht jetzt in
-  // zustand.js, hier steht nur, wie viele gleichzeitig Platz haben.
-  //
-  // Fehler nach vorn: wenn drei Bestaetigungen und ein Fehler zugleich
-  // anstehen, ist der Fehler der, den man sehen muss.
-  const wichtigZuerst = [...stand.meldungen].sort((a, b) => {
-    const rang = { fehler: 0, warnung: 1, info: 2, erfolg: 2 }
-    return (rang[a.art] ?? 3) - (rang[b.art] ?? 3)
-  })
+  // Nur was der Mensch wissen muss. Ein "gespeichert" braucht keine Zeile.
+  const wichtig = stand.meldungen.filter((m) => m.art === 'fehler' || m.art === 'warnung')
 
-  fuelle(
-    ecke,
-    wichtigZuerst.slice(0, 3).map((m) =>
-      el('.meldung', { daten: { art: m.art } }, [
-        el('span.meldungstext', { text: m.text }),
-        el('span.meldungszeit', { text: zeitText(m.zeit).slice(-5) }),
-        el('button.meldungweg', {
-          type: 'button',
-          text: 'x',
-          title: 'Ausblenden',
-          onclick: () => Zustand.meldungWeg(m.id),
+  if (wichtig.length === 0) {
+    fuelle(leiste, [])
+    leiste.dataset.an = 'false'
+    return
+  }
+
+  leiste.dataset.an = 'true'
+  leiste.dataset.offen = String(hinweiseOffen)
+
+  const neueste = wichtig[0]
+  const rest = wichtig.length - 1
+
+  fuelle(leiste, [
+    el(
+      'button.hinweiskopf',
+      {
+        type: 'button',
+        'aria-expanded': String(hinweiseOffen),
+        title: hinweiseOffen ? 'Zuklappen' : 'Alle Hinweise zeigen',
+        onclick: () => {
+          hinweiseOffen = !hinweiseOffen
+          zeichneHinweise()
+        },
+      },
+      [
+        el('span.hinweismarke', {
+          daten: { art: neueste.art },
+          text: neueste.art === 'fehler' ? 'FEHLER' : 'ACHTUNG',
         }),
-      ])
-    )
-  )
+        el('span.hinweistext', { text: neueste.text }),
+        rest > 0 ? el('span.hinweiszahl', { text: `und ${rest} weitere` }) : null,
+        el('span.hinweispfeil', { text: hinweiseOffen ? 'zu' : 'auf' }),
+      ]
+    ),
+
+    hinweiseOffen
+      ? el(
+          '.hinweisliste',
+          {},
+          wichtig.map((m) =>
+            el('.hinweiszeile', { daten: { art: m.art } }, [
+              el('span.hinweismarke', {
+                daten: { art: m.art },
+                text: m.art === 'fehler' ? 'FEHLER' : 'ACHTUNG',
+              }),
+              el('span.hinweistext', { text: m.text }),
+              el('span.hinweiszeit', { text: zeitText(m.zeit).slice(-5) }),
+              el('button.knopf.knopf-winzig', {
+                type: 'button',
+                text: 'x',
+                title: 'Diesen Hinweis erledigen',
+                onclick: () => Zustand.meldungWeg(m.id),
+              }),
+            ])
+          )
+        )
+      : null,
+
+    hinweiseOffen && wichtig.length > 1
+      ? el('button.knopf.knopf-klein.hinweisalle', {
+          type: 'button',
+          text: 'Alle erledigen',
+          onclick: () => {
+            for (const m of wichtig) Zustand.meldungWeg(m.id)
+          },
+        })
+      : null,
+  ])
+}
+
+/*
+  ------------------------------------------------------------------ Das Panel
+
+  Karam am 16.09.2026: "ich moechte, dass man links ein Panel hat, der ist
+  immer da, und dann kann man customizen, das ist einfach Shortcuts,
+  irgendwelche Dateien, Daten und so weiter."
+
+  Vier Gruppen, von oben nach unten:
+    Wege        jede Ansicht als Knopf, die offene hervorgehoben
+    Angeheftet  was Karam selbst dorthin gelegt hat
+    Projekt     an welchem er gerade arbeitet, mit den Stueckzahlen
+    Aufnehmen   der Weg, ein Foto nachzureichen, von jeder Ansicht aus
+
+  WAS "CUSTOMIZEN" HIER HEISST: an jedem Riesenschein sitzt eine Nadel. Was
+  angeheftet ist, steht oben im Panel und ist von jeder Ansicht aus einen Klick
+  entfernt. Die Nadeln liegen im Browser dieses Geraets, nicht in der
+  Datenbank: es ist eine Gewohnheit, keine Wahrheit ueber das Projekt, und auf
+  einem zweiten Rechner darf sie eine andere sein.
+
+  Eingeklappt bleibt die Spur mit den Zeichen stehen. Das Panel verschwindet
+  nie ganz, denn Karam hat gesagt: "der ist immer da".
+*/
+
+/** Ob das Panel eingeklappt ist. */
+const PANEL_SCHMAL_SCHLUESSEL = 'kombi-panel-schmal'
+
+function panelSchmal() {
+  try {
+    return localStorage.getItem(PANEL_SCHMAL_SCHLUESSEL) === 'ja'
+  } catch {
+    return false
+  }
+}
+
+function zeichnePanel() {
+  const panel = such('#seitenpanel')
+  if (!panel) return
+  const stand = Zustand.hole()
+  const schmal = panelSchmal()
+
+  panel.dataset.schmal = String(schmal)
+
+  const angeheftet = Nadeln.alle()
+  const angehefteteWetten = stand.riesenscheine.filter((r) => angeheftet.includes(r.id))
+
+  fuelle(panel, [
+    el('.panelkopf', {}, [
+      schmal ? null : el('span.paneltitel', { text: 'Schnellzugriff' }),
+      el('button.knopf.knopf-winzig.panelfalten', {
+        type: 'button',
+        text: schmal ? '>' : '<',
+        title: schmal ? 'Panel aufklappen' : 'Panel einklappen, die Spur bleibt stehen',
+        'aria-label': schmal ? 'Panel aufklappen' : 'Panel einklappen',
+        onclick: () => {
+          try {
+            localStorage.setItem(PANEL_SCHMAL_SCHLUESSEL, schmal ? 'nein' : 'ja')
+          } catch {
+            // ohne Gedaechtnis eben nur fuer dieses Fenster
+          }
+          zeichnePanel()
+        },
+      }),
+    ]),
+
+    el('nav.panelgruppe', { 'aria-label': 'Wege durch das Programm' }, [
+      schmal ? null : el('.panelgruppentitel', { text: 'Wege' }),
+      ...ANSICHTEN.map((a) =>
+        el(
+          'button.panelknopf',
+          {
+            type: 'button',
+            daten: { offen: String(stand.ansicht === a.schluessel) },
+            title: a.name,
+            onclick: () => Zustand.aendere({ ansicht: a.schluessel }),
+          },
+          [
+            el('span.panelzeichen', { text: a.zeichen }),
+            schmal ? null : el('span.panelname', { text: a.name }),
+          ]
+        )
+      ),
+    ]),
+
+    el('.panelgruppe', {}, [
+      schmal ? null : el('.panelgruppentitel', { text: 'Angeheftet' }),
+      angehefteteWetten.length === 0 && !schmal
+        ? el('p.panelleer', {
+            text:
+              'Noch nichts angeheftet. Klick die Nadel an einem Riesenschein an, ' +
+              'dann steht er hier und ist von ueberall aus einen Klick entfernt.',
+          })
+        : null,
+      ...angehefteteWetten.map((r) =>
+        el(
+          'button.panelknopf.panelknopf-wette',
+          {
+            type: 'button',
+            daten: {
+              offen: String(stand.ansicht === 'positionen' && stand.auswahl === r.id),
+            },
+            title: r.name || 'Ohne Namen',
+            onclick: () => Zustand.aendere({ ansicht: 'positionen', auswahl: r.id }),
+          },
+          [
+            el('span.panelzeichen', { text: '*' }),
+            schmal ? null : el('span.panelname', { text: r.name || 'Ohne Namen' }),
+          ]
+        )
+      ),
+    ]),
+
+    el('.panelgruppe', {}, [
+      schmal ? null : el('.panelgruppentitel', { text: 'Dieses Projekt' }),
+      schmal
+        ? null
+        : el('.panelprojekt', {}, [
+            el('.panelprojektname', { text: stand.projekt?.name || 'Kein Projekt' }),
+            el('.panelprojektzahl', {
+              text: `${stand.riesenscheine.length} Riesenscheine, ${stand.scheine.length} Scheine`,
+            }),
+          ]),
+      el(
+        'button.panelknopf',
+        {
+          type: 'button',
+          title: 'Ein Foto aufnehmen und daraus einen Schein machen',
+          onclick: () => Zustand.aendere({ ansicht: 'aufnahme' }),
+        },
+        [
+          el('span.panelzeichen', { text: '+' }),
+          schmal ? null : el('span.panelname', { text: 'Foto hinzufuegen' }),
+        ]
+      ),
+    ]),
+  ])
 }
 
 function zeichneArbeit() {

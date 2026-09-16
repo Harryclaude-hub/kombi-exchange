@@ -17,6 +17,7 @@ import { barEinsatz, realisierterRueckfluss } from '../kern/rechnung.js'
 import { rechneProjekt } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
 import { fotoknoepfe } from './fotoknoepfe.js'
+import { istAngeheftet, heftAn } from './nadeln.js'
 
 /**
  * @param {HTMLElement} ziel
@@ -184,6 +185,17 @@ function einzelheit(riesenscheinId) {
   const w = rechnung.waehrung
 
   return el('.positionsdetail', {}, [
+    // Der Kopf des Riesenscheins, neu am 16.09.2026.
+    //
+    // Karam: "ich moechte, dass jeder Riesenschein oben hat, eine Anzeige, zu
+    // welchem Projekt der gehoert. Projekte koennen ueber Monate oder ueber
+    // Jahre gehen." Und: "man hat einen Button rechts oben, den kann man
+    // einfach ein Bildschirmfoto, ein Foto hinzufuegen."
+    //
+    // Beides steht deshalb in EINER Zeile ganz oben: links die Herkunft,
+    // rechts der Weg, etwas hinzuzufuegen.
+    riesenkopf(riesenschein, stand),
+
     el('.detailkopf', {}, [
       el('input.namenfeld', {
         type: 'text',
@@ -467,5 +479,58 @@ function scheinliste(riesenschein, scheine) {
         ])
       })
     ),
+  ])
+}
+
+/**
+ * Die Zeile ganz oben am Riesenschein: woher er kommt und was man mit ihm tun
+ * kann.
+ *
+ * WOHER DIE PROJEKTANGABE KOMMT: aus stand.projekt, also aus dem Projekt, das
+ * gerade offen ist. Alle Riesenscheine im Arbeitsstand gehoeren zu diesem
+ * einen Projekt; es gibt keine zweite Zuordnung, die hier gelesen oder
+ * geschrieben wuerde.
+ *
+ * @param {import('../kern/typen.js').Riesenschein} riesenschein
+ * @param {any} stand
+ * @returns {HTMLElement}
+ */
+function riesenkopf(riesenschein, stand) {
+  const p = stand.projekt
+  const von = p?.angelegtAm ? zeitText(p.angelegtAm) : ''
+  const bis = p?.geaendertAm ? zeitText(p.geaendertAm) : ''
+  // Eine Spanne nur dann, wenn es wirklich zwei Tage sind. Sonst stuende dort
+  // "16.09.2026 bis 16.09.2026", und das sagt weniger als ein Datum.
+  const spanne = von && bis && von.slice(0, 10) !== bis.slice(0, 10) ? `${von} bis ${bis}` : von || bis
+
+  const angeheftet = istAngeheftet(riesenschein.id)
+
+  return el('.riesenkopf', {}, [
+    el('.riesenkopf-links', {}, [
+      el('.riesenkopf-projekt', {}, [
+        el('span', { text: 'Projekt' }),
+        el('span', { text: p?.name || 'ohne Projekt' }),
+        spanne ? el('span.riesenkopf-zeit', { text: spanne }) : null,
+      ]),
+      el('.riesenkopf-name', { text: riesenschein.name || 'Ohne Namen' }),
+    ]),
+
+    el('.riesenkopf-rechts', {}, [
+      // Die Nadel legt den Riesenschein ins Panel links. Von dort ist er aus
+      // jeder Ansicht einen Klick entfernt.
+      el('button.knopf.knopf-klein.riesennadel', {
+        type: 'button',
+        daten: { an: String(angeheftet) },
+        text: angeheftet ? 'Angeheftet' : 'Anheften',
+        title: angeheftet
+          ? 'Steht im Panel links. Klicken nimmt ihn wieder heraus.'
+          : 'Legt diesen Riesenschein ins Panel links, dann ist er von ueberall aus einen Klick entfernt.',
+        onclick: () => heftAn(riesenschein.id),
+      }),
+      // Derselbe Weg wie im Reiter Aufnahme, aus fotoknoepfe.js. Ein Foto
+      // hier wird genauso gelesen wie eines dort, und der gelesene Schein
+      // taucht unten in der Liste auf.
+      fotoknoepfe({ kompakt: true, titel: 'Foto hinzufuegen' }),
+    ]),
   ])
 }

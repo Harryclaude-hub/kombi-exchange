@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: Probe der Oberflaeche</title>
+    <link rel="stylesheet" href="../../stil/marken.css" />
+    <link rel="stylesheet" href="../../stil/grund.css" />
+    <link rel="stylesheet" href="../../stil/bauteile.css" />
+    <link rel="stylesheet" href="../../stil/buehne.css" />
+    <link rel="stylesheet" href="../../stil/logos.css" />
+    <style>
+      /* Nur fuer diese Vorschau. Gehoert nicht zum Programm. */
+      .probeleiste {
+        display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--linie);
+        background: var(--flaeche);
+      }
+      .probeleiste p { margin: 0; font-size: var(--text-klein); color: var(--schrift-leise); }
+      .probewarnung {
+        padding: 0.75rem 1rem; margin: 0;
+        background: var(--offen-tief); border-bottom: 1px solid var(--offen);
+        font-size: var(--text-klein); color: var(--schrift);
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      WOZU DIESE SEITE
+
+      Alles ausser den Probeseiten liegt hinter dem Zugangscode. Wer am Design
+      arbeitet und den Code nicht hat, konnte die Uebersicht und die
+      Riesenscheine bisher NICHT ansehen, also genau die beiden Ansichten, die
+      der Kern des Programms sind. Gestalten, ohne zu sehen, ist Raten, und
+      Projektregel 2 sagt, dass gruene Tests nicht fertig sind.
+
+      Die Scheine hier sind keine erfundenen Objekte. Sie laufen durch
+      denselben kern/parser.js und dieselbe kern/gruppierung.js wie im
+      Programm, aus den Zeilen des Testkorpus. Was hier steht, ist deshalb
+      gerechnet und nicht gemalt.
+    -->
+    <div class="probeleiste">
+      <strong>Probe der Oberflaeche</strong>
+      <button class="knopf knopf-klein" type="button" id="hell">Hell</button>
+      <button class="knopf knopf-klein" type="button" id="dunkel">Dunkel</button>
+      <button class="knopf knopf-klein" type="button" id="system">System</button>
+      <button class="knopf knopf-klein" type="button" id="zeigStart">Uebersicht</button>
+      <button class="knopf knopf-klein" type="button" id="zeigRiesen">Riesenscheine</button>
+      <button class="knopf knopf-klein" type="button" id="hinweis">Hinweis ausloesen</button>
+      <p>Echte Scheine aus dem Testkorpus, durch den echten Parser gelesen.</p>
+    </div>
+    <p class="probewarnung" id="warnung" hidden></p>
+
+    <div class="huelle">
+      <header class="kopfleiste">
+        <div class="kopfoben" id="kopfleiste"></div>
+        <nav class="reiterleiste" id="reiterleiste"></nav>
+      </header>
+      <aside class="seitenpanel" id="seitenpanel"></aside>
+      <main class="inhalt" id="inhalt"></main>
+      <div class="hinweisleiste" id="hinweisleiste"></div>
+      <div class="arbeitsleiste" id="arbeitsleiste"></div>
+    </div>
+
+    <script type="module">
+      import { KORPUS } from '../../test/scheinkorpus.mjs'
+      import { leseSchein } from '../../kern/parser.js'
+      import { gruppiere } from '../../kern/gruppierung.js'
+      import * as Zustand from '../../oberflaeche/zustand.js'
+      import { zeichneFuerProbe } from '../../oberflaeche/app.js'
+
+      const warnung = document.getElementById('warnung')
+
+      try {
+        // Die Scheine entstehen genau so wie im Programm: Zeilen hinein,
+        // kern/parser.js darueber, dann kern/gruppierung.js. Kein Wert wird
+        // hier von Hand gesetzt.
+        const scheine = KORPUS.map((fall, i) => {
+          const schein = leseSchein(fall.zeilen, fall.umgebung ?? {})
+          return { ...schein, id: `probe-${i}`, bildId: `bild-${i}` }
+        })
+
+        const ergebnis = gruppiere(scheine, { gruppenId: (n) => `gruppe-${n}` })
+
+        const riesenscheine = ergebnis.gruppen.map((gruppe, i) => ({
+          id: gruppe.id ?? `gruppe-${i}`,
+          name: gruppe.name ?? `Riesenschein ${i + 1}`,
+          signatur: gruppe.signatur ?? `sig-${i}`,
+          scheinIds: gruppe.scheinIds ?? [],
+          notiz: '',
+        }))
+
+        // angemeldet bleibt FALSCH: sonst wuerde der Zuhoerer in app.js
+        // versuchen, dieses erfundene Projekt in die Datenbank zu
+        // schreiben. Die Vorschau darf nichts speichern.
+        Zustand.aendere({
+          scheine,
+          riesenscheine,
+          restposten: ergebnis.restposten ?? [],
+          auswahl: riesenscheine[0]?.id ?? null,
+          ansicht: 'start',
+          projekt: {
+            id: 'probe',
+            name: 'NFL Saison 2026/27',
+            notiz: 'Erfundenes Projekt fuer die Vorschau. Die Zahlen darin sind echt gerechnet.',
+            waehrung: 'UNBEKANNT',
+            angelegtAm: '2026-09-07T18:00:00.000Z',
+            geaendertAm: '2026-09-16T11:30:00.000Z',
+          },
+        })
+
+        zeichneFuerProbe(document.body)
+
+        document.getElementById('zeigStart').addEventListener('click', () =>
+          Zustand.aendere({ ansicht: 'start' })
+        )
+        document.getElementById('zeigRiesen').addEventListener('click', () =>
+          Zustand.aendere({ ansicht: 'positionen' })
+        )
+        document.getElementById('hinweis').addEventListener('click', () =>
+          Zustand.melde('fehler', 'Beispielhinweis: so sieht ein Fehler jetzt aus, unten im Fluss der Seite statt schwebend in der Ecke.')
+        )
+      } catch (fehler) {
+        // Ein Fehler hier darf nicht in eine leere weisse Seite muenden:
+        // dann suchte man lange und saehe nichts (Projektregel 9).
+        warnung.hidden = false
+        warnung.textContent = `Die Vorschau konnte nicht aufgebaut werden: ${fehler && fehler.message ? fehler.message : fehler}`
+        console.error(fehler)
+      }
+
+      const setze = (wert) => {
+        if (wert) document.documentElement.dataset.farbe = wert
+        else delete document.documentElement.dataset.farbe
+      }
+      document.getElementById('hell').addEventListener('click', () => setze('hell'))
+      document.getElementById('dunkel').addEventListener('click', () => setze('dunkel'))
+      document.getElementById('system').addEventListener('click', () => setze(''))
+    </script>
+  </body>
+</html>

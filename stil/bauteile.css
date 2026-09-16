@@ -85,11 +85,30 @@
   border-left-color: var(--offen);
 }
 
+/*
+  Die Knoepfe rechts im Kopf: Erklaerung, Fassung, Ansicht, Code wechseln,
+  Abmelden.
+
+  UMBRUCH ERLAUBT, seit dem 16.09.2026. Vorher stand hier flex: 0 0 auto ohne
+  flex-wrap. Am Handy gemessen: die Reihe war 620 Pixel breit auf einem 390
+  Pixel breiten Schirm, und "Code wechseln" und "Abmelden" standen ausserhalb
+  des Fensters. Da der Kopf die ganze Breite spannt und body ein
+  overflow-x: hidden traegt, gab es auch keinen Schieber dorthin: die beiden
+  Knoepfe waren schlicht nicht erreichbar.
+
+  flex: 0 1 auto statt 0 0 auto, damit die Reihe nachgeben DARF, und
+  flex-wrap, damit sie dabei umbricht statt die Knoepfe zu quetschen. Die
+  Knoepfe selbst geben nicht nach (flex-shrink: 0 an .knopf), also bleibt
+  jede Aufschrift lesbar.
+*/
 .kopfknoepfe {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--luft-2);
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .verbindung {
@@ -157,18 +176,41 @@
   justify-content: center;
   gap: var(--luft-2);
   padding: var(--luft-2) var(--luft-4);
-  background: var(--flaeche-hoch);
-  color: var(--schrift);
-  border: 1px solid var(--linie-hell);
+  background: var(--knopf);
+  color: var(--knopf-schrift);
+  border: 1px solid var(--knopf-rand);
   border-radius: var(--rundung);
   font-size: var(--text-normal);
   font-weight: 600;
+  /*
+    Ein Knopf ist mindestens 40 Pixel hoch.
+
+    Gemessen am 16.09.2026 an der Probeseite: die Knoepfe des Umschalters waren
+    23 Pixel hoch. Auf einem Tastbildschirm ist das kein Ziel mehr, man trifft
+    daneben. 44 waere das Lehrbuchmass, 40 ist der Kompromiss fuer eine dichte
+    Zahlenansicht, in der sonst zu wenig auf den Schirm passt.
+  */
+  min-height: 40px;
+  /*
+    Ein Knopf wird NIE schmaler als seine Beschriftung.
+
+    Am 16.09.2026 gemessen: "Neu" und "Leeren" standen beide auf genau 32
+    Pixel Breite. Beide sind Rasterkinder einer Flex-Zeile im Kopf, und
+    Flex-Kinder geben von sich aus nach, wenn der Platz knapp wird. "Leeren"
+    braucht etwa 50 Pixel, hatte 32, und die Beschriftung war abgeschnitten.
+    Ein Knopf, dessen Aufschrift man nicht lesen kann, ist kein Knopf mehr.
+
+    Statt nachzugeben, bricht die Kopfzeile jetzt um (flex-wrap weiter unten
+    an .kopfoben). Umbrechen kostet Hoehe, Abschneiden kostet die Bedeutung.
+  */
+  flex-shrink: 0;
+  white-space: nowrap;
   transition: background var(--takt), border-color var(--takt), transform var(--takt);
 }
 
 .knopf:hover:not(:disabled) {
-  background: var(--flaeche-heiss);
-  border-color: var(--schrift-still);
+  background: var(--knopf-heiss);
+  border-color: var(--schrift);
 }
 
 .knopf:active:not(:disabled) {
@@ -180,27 +222,62 @@
   cursor: not-allowed;
 }
 
+/*
+  Der Fokusring, den es bisher an keinem einzigen Knopf gab.
+
+  Nachgezaehlt am 16.09.2026: in der ganzen Designschicht stand genau EINE
+  Regel mit :focus-visible, und die galt einem Ordnerweg. Jeder Knopf hing
+  damit an dem, was der Browser von sich aus zeichnet. Wer mit der Tastatur
+  durch die Seite geht, sah je nach Untergrund nichts.
+
+  :focus-visible und nicht :focus: beim Klicken mit der Maus soll der Ring
+  nicht aufblitzen, beim Wandern mit der Tabulatortaste schon.
+*/
+.knopf:focus-visible,
+.reiter:focus-visible,
+.panelknopf:focus-visible,
+.projektzeile:focus-visible,
+.ordnerzeile:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--betonung);
+  outline-offset: 2px;
+  border-radius: var(--rundung);
+}
+
 .knopf-haupt {
-  background: var(--gut);
-  border-color: var(--gut);
-  color: #03150e;
+  background: var(--knopf-haupt);
+  border-color: var(--knopf-haupt-rand);
+  color: var(--knopf-haupt-schrift);
 }
 
 .knopf-haupt:hover:not(:disabled) {
-  background: var(--gut);
-  filter: brightness(1.1);
+  background: var(--knopf-haupt-heiss);
+  border-color: var(--schrift);
 }
 
+/*
+  Die kleinen Fassungen behalten ihre eigene Hoehe.
+
+  Ein Pfeilknopf mit 40 Pixeln Hoehe und 15 Pixeln Breite waere ein Strich,
+  kein Knopf. Sie werden deshalb QUADRATISCH gehalten: min-width so gross wie
+  min-height. Damit bleiben sie klein und trotzdem treffbar.
+*/
 .knopf-klein {
-  padding: 2px var(--luft-2);
+  padding: var(--luft-1) var(--luft-3);
   font-size: var(--text-klein);
-  font-weight: 500;
+  font-weight: 600;
+  min-height: 32px;
+  min-width: 32px;
 }
 
 .knopf-winzig {
-  padding: 0 5px;
+  padding: 0 var(--luft-2);
   font-size: var(--text-klein);
   line-height: 1.6;
+  min-height: 28px;
+  min-width: 28px;
 }
 
 /* ---------------------------------------------------------------- Tor */
@@ -311,11 +388,6 @@
   color: var(--gut);
   font-size: var(--text-riesig);
   line-height: 1;
-}
-
-.ablage-titel {
-  font-size: var(--text-gross);
-  font-weight: 600;
 }
 
 .ablage-text {
@@ -1424,63 +1496,19 @@ li[data-schwere="info"] .hinweisart {
 
 /* ---------------------------------------------------------------- Meldungen */
 
-.meldungsecke {
-  position: fixed;
-  right: var(--luft-4);
-  bottom: var(--luft-4);
-  z-index: 40;
-  display: grid;
-  gap: var(--luft-2);
-  max-width: min(420px, calc(100vw - 2rem));
-}
+/*
+  HIER STAND DIE MELDUNGSECKE. Sie ist am 16.09.2026 entfallen.
 
-.meldung {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--luft-2);
-  padding: var(--luft-2) var(--luft-3);
-  background: var(--flaeche-hoch);
-  border: 1px solid var(--linie-hell);
-  border-left: 3px solid var(--schrift-still);
-  border-radius: var(--rundung);
-  box-shadow: var(--schatten);
-  font-size: var(--text-klein);
-}
+  Karam: "es kommen immer Anzeigen von rechts oben, die ich wegklicken muss,
+  bitte entfernen." Die Kaesten schwebten rechts unten (position: fixed) und
+  mussten bei einem Fehler von Hand geschlossen werden.
 
-.meldung[data-art="erfolg"] {
-  border-left-color: var(--gut);
-}
-.meldung[data-art="warnung"] {
-  border-left-color: var(--offen);
-}
-.meldung[data-art="fehler"] {
-  border-left-color: var(--schlecht);
-}
-.meldung[data-art="info"] {
-  border-left-color: var(--betonung);
-}
-
-.meldungstext {
-  flex: 1 1 auto;
-}
-
-.meldungszeit {
-  font-family: var(--schriftart-zahl);
-  font-size: var(--text-winzig);
-  color: var(--schrift-still);
-}
-
-.meldungweg {
-  border: 0;
-  background: transparent;
-  color: var(--schrift-still);
-  padding: 0 2px;
-  line-height: 1;
-}
-
-.meldungweg:hover {
-  color: var(--schrift);
-}
+  An ihre Stelle ist .hinweisleiste getreten, weiter unten in dieser Datei.
+  Die Regeln hier sind geloescht und nicht nur auskommentiert: sonst haetten
+  wir zwei Fassungen desselben Bauteils, und irgendwann aendert jemand die
+  falsche (Projektregel 8). Was die Leiste stattdessen tut und warum sie nicht
+  einfach weggelassen wurde, steht in oberflaeche/app.js ueber zeichneHinweise.
+*/
 
 /* ---------------------------------------------------------------- Arbeitsleiste */
 
@@ -1853,11 +1881,6 @@ li[data-schwere="info"] .hinweisart {
   margin-bottom: var(--luft-4);
 }
 
-.ablage-titel {
-  font-size: var(--text-gross);
-  font-weight: 600;
-}
-
 .ablage-zahl {
   color: var(--schrift-leise);
   font-size: var(--text-klein);
@@ -2085,10 +2108,18 @@ li[data-schwere="info"] .hinweisart {
   color: var(--schrift);
 }
 
+/*
+  Der angepinnte Zustand wird GEFUELLT gezeigt, nicht nur eingefaerbt.
+
+  Seit die Knoepfe eine eigene Flaeche haben, sass die alte Fassung (oranger
+  Text auf der Knopffarbe) bei gemessenen 2,3 zu 1. Gefuellt sind es 9,1 zu 1
+  in der dunklen und 4,5 zu 1 in der hellen Fassung. Welche Schriftfarbe auf
+  Orange lesbar ist, haengt am Thema, deshalb ein eigenes Merkmal.
+*/
 .projektpin[data-an='true'] {
   border-color: var(--offen);
-  color: var(--offen);
-  background: var(--offen-tief);
+  color: var(--auf-offen);
+  background: var(--offen);
 }
 
 /* ------------------------------------------------------- Inhalt des Projekts */
@@ -2221,12 +2252,14 @@ li[data-schwere="info"] .hinweisart {
   werden.
 */
 .knopf-weg {
+  background: transparent;
   color: var(--schlecht);
   border-color: var(--schlecht);
 }
 
-.knopf-weg:hover {
+.knopf-weg:hover:not(:disabled) {
   background: var(--schlecht-tief);
+  border-color: var(--schlecht);
 }
 
 /* ------------------------------------------------- Knoepfe sichtbar machen */
@@ -2253,14 +2286,15 @@ li[data-schwere="info"] .hinweisart {
 .kartenteilen,
 .kartenverbinden,
 .kartenweg {
-  background: var(--flaeche-hoch);
-  border: 1px solid var(--linie-hell);
+  background: var(--knopf);
+  border: 1px solid var(--knopf-rand);
   border-radius: var(--rundung);
-  color: var(--schrift);
+  color: var(--knopf-schrift);
   font: inherit;
   font-size: var(--text-klein);
   font-weight: 600;
   padding: var(--luft-2) var(--luft-3);
+  min-height: 32px;
   cursor: pointer;
   white-space: nowrap;
   transition: background var(--takt), border-color var(--takt);
@@ -2276,17 +2310,11 @@ li[data-schwere="info"] .hinweisart {
 .kartenteilen:hover,
 .kartenverbinden:hover,
 .kartenweg:hover {
-  background: var(--flaeche-heiss);
-  border-color: var(--betonung);
+  background: var(--knopf-heiss);
+  border-color: var(--schrift);
 }
 
 /* Ein angepinntes Projekt zeigt das am Knopf selbst. */
-.projektpin[data-an="true"] {
-  color: var(--offen);
-  border-color: var(--offen);
-  background: var(--offen-tief);
-}
-
 /*
   Die wichtigsten Knoepfe sind die, mit denen man weiterkommt: lesen, Excel,
   neues Projekt. Sie bekommen die Signalfarbe, damit das Auge sie zuerst
@@ -2323,7 +2351,16 @@ li[data-schwere="info"] .hinweisart {
   color: var(--schrift);
 }
 
-.projektwahl {
+/*
+  Das Ankreuzkaestchen an einer Projektzeile in der Ablage.
+
+  HIESS BIS ZUM 16.09.2026 .projektwahl, genau wie die Leiste in der Kopfzeile
+  mit Auswahlfeld, "Neu" und "Leeren". Zwei verschiedene Bauteile unter einem
+  Namen, und weil diese Regel weiter unten steht, gewann sie: die LEISTE IN DER
+  KOPFZEILE bekam width: 18px und height: 18px und war auf ein Quadrat
+  zusammengedrueckt. Genau davor warnt Projektregel 8.
+*/
+.projektkaestchen {
   flex: 0 0 auto;
   width: 18px;
   height: 18px;
@@ -2733,6 +2770,15 @@ li[data-schwere="info"] .hinweisart {
   font-size: var(--text-klein);
 }
 
+/*
+  Die Ueberschrift der Ablage.
+
+  STAND BIS ZUM 16.09.2026 DREIMAL in dieser Datei, zweimal mit
+  var(--text-gross) und einmal hier mit var(--text-zahl). Gewonnen hat immer
+  diese, weil sie am weitesten unten steht. Die beiden anderen sahen aus, als
+  wuerden sie etwas tun, und taten nichts: wer die Groesse aendern wollte und
+  eine der oberen erwischte, suchte lange (Projektregel 8).
+*/
 .ablage-titel {
   font-size: var(--text-zahl);
   font-weight: 800;
@@ -2779,17 +2825,21 @@ li[data-schwere="info"] .hinweisart {
   oft braucht, aber im Zweifelsfall der wichtigste auf der Seite, weil er die
   Frage "sehe ich ueberhaupt den neuen Stand" in einem Blick beantwortet.
 */
+/*
+  Die Fassungsnummer ist ein KNOPF und sieht seit dem 16.09.2026 auch so aus.
+
+  Vorher war sie durchsichtig und in leiser Schrift gesetzt: sie sah aus wie
+  eine Bemerkung. Dabei ist sie der Knopf, den Karam am haeufigsten braucht,
+  wenn er seine Aenderungen nicht sieht, denn ein Klick darauf umgeht den
+  Zwischenspeicher des Browsers. Genau das war am 16.09. das Problem, und ein
+  Knopf, den niemand als Knopf erkennt, hilft dabei nicht.
+
+  Die Zahlenschrift bleibt: eine Fassungsnummer liest sich besser in fester
+  Zeichenbreite.
+*/
 .fassungschip {
   font-family: var(--schriftart-zahl);
   font-size: var(--text-winzig);
-  color: var(--schrift-still);
-  background: transparent;
-  border-color: var(--linie);
-}
-
-.fassungschip:hover {
-  color: var(--schrift);
-  border-color: var(--betonung);
 }
 
 /*
@@ -2799,4 +2849,719 @@ li[data-schwere="info"] .hinweisart {
 .feldeingabe[data-fehler="true"] {
   border-color: var(--schlecht);
   background: var(--schlecht-tief);
+}
+
+/* ========================================================== Das Panel links */
+
+/*
+  Karam am 16.09.2026: "ich moechte, dass man links ein Panel hat, der ist
+  immer da, und dann kann man customizen, das ist einfach Shortcuts,
+  irgendwelche Dateien, Daten und so weiter."
+
+  IMMER DA heisst: auch eingeklappt bleibt die Spur mit den Zeichen stehen.
+  Das Panel wird schmal, es verschwindet nicht. Wer es zuklappt, soll den Weg
+  zurueck sehen koennen, ohne ihn zu suchen.
+
+  position: sticky und eine eigene Hoehe: die Wege bleiben beim Blaettern
+  stehen. Bei sechzig Scheinen in der Mitte ist das der Unterschied zwischen
+  "einen Klick entfernt" und "erst wieder ganz nach oben".
+*/
+.seitenpanel {
+  width: var(--panelbreite);
+  flex-shrink: 0;
+  background: var(--grund-tief);
+  border-right: 1px solid var(--linie);
+  padding: var(--luft-3) var(--luft-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--luft-4);
+  position: sticky;
+  top: calc(var(--kopfhoehe) + var(--reiterhoehe));
+  align-self: start;
+  max-height: calc(100vh - var(--kopfhoehe) - var(--reiterhoehe));
+  overflow-y: auto;
+  transition: width var(--takt-lang);
+}
+
+.seitenpanel[data-schmal='true'] {
+  width: var(--panelbreite-schmal);
+  padding: var(--luft-3) var(--luft-1);
+}
+
+/*
+  Auf einem schmalen Bildschirm bleibt nur die Spur des Panels stehen.
+
+  Es verschwindet NICHT: Karam hat gesagt, es soll immer da sein, und in der
+  Spur sind die Wege weiterhin mit dem Daumen erreichbar.
+
+  DIESE REGEL MUSS HIER STEHEN, nicht in grund.css. Beide Auswahlen sind
+  gleich stark (.seitenpanel), und grund.css wird vorher geladen. Stand sie
+  dort, gewann die Grundbreite weiter oben in DIESER Datei, und das Panel blieb
+  auf dem Handy 260 Pixel breit.
+*/
+@media (max-width: 720px) {
+  .seitenpanel {
+    width: var(--panelbreite-schmal);
+    padding: var(--luft-3) var(--luft-1);
+  }
+
+  .seitenpanel .paneltitel,
+  .seitenpanel .panelname,
+  .seitenpanel .panelgruppentitel,
+  .seitenpanel .panelprojekt,
+  .seitenpanel .panelleer {
+    display: none;
+  }
+}
+
+.panelkopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--luft-2);
+  padding: 0 var(--luft-2) var(--luft-2);
+  border-bottom: 1px solid var(--linie);
+}
+
+.paneltitel {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+.panelgruppe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--luft-1);
+}
+
+.panelgruppentitel {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+  padding: 0 var(--luft-2) var(--luft-1);
+}
+
+/*
+  Ein Weg im Panel ist ein Knopf und sieht auch so aus.
+
+  Karam am 16.09.2026: "bitte die Buttons sehr sehr viel sichtbarer machen."
+  Auch hier: Flaeche, Rand, volle Schriftfarbe. Die offene Ansicht traegt
+  zusaetzlich die Betonungsfarbe UND einen Balken an der Kante, damit sie sich
+  nicht allein an der Farbe erkennen laesst.
+*/
+.panelknopf {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-3);
+  width: 100%;
+  min-height: 40px;
+  padding: var(--luft-2) var(--luft-2);
+  background: var(--knopf);
+  color: var(--knopf-schrift);
+  border: 1px solid var(--knopf-rand);
+  border-left: 3px solid transparent;
+  border-radius: var(--rundung);
+  font: inherit;
+  font-size: var(--text-klein);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--takt), border-color var(--takt);
+}
+
+.panelknopf:hover {
+  background: var(--knopf-heiss);
+  border-color: var(--schrift);
+}
+
+.panelknopf[data-offen='true'] {
+  background: var(--knopf-haupt);
+  border-color: var(--knopf-haupt-rand);
+  border-left-color: var(--schrift);
+  color: var(--knopf-haupt-schrift);
+}
+
+.panelzeichen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--rundung);
+  background: rgba(255, 255, 255, 0.18);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  font-weight: 700;
+}
+
+.panelname {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panelleer {
+  margin: 0;
+  padding: 0 var(--luft-2);
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  line-height: 1.5;
+}
+
+.panelprojekt {
+  padding: var(--luft-2);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+}
+
+.panelprojektname {
+  font-size: var(--text-klein);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panelprojektzahl {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+/* ===================================================== Die Hinweisleiste */
+
+/*
+  Sie ersetzt die Kaesten, die frueher rechts unten schwebten. Warum, steht
+  ausfuehrlich in oberflaeche/app.js ueber zeichneHinweise.
+
+  Kurz: sie verdeckt nichts, sie huepft nicht auf, und sie will nicht
+  weggeklickt werden. Sie bleibt unten stehen, solange etwas offen ist.
+*/
+.hinweisleiste {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  grid-column: 1 / -1;
+  display: none;
+  flex-direction: column;
+  background: var(--flaeche);
+  border-top: 2px solid var(--schlecht);
+  box-shadow: var(--schatten);
+}
+
+.hinweisleiste[data-an='true'] {
+  display: flex;
+}
+
+.hinweiskopf {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--luft-2) var(--luft-4);
+  background: transparent;
+  border: 0;
+  color: var(--schrift);
+  font: inherit;
+  font-size: var(--text-klein);
+  text-align: left;
+  cursor: pointer;
+}
+
+.hinweiskopf:hover {
+  background: var(--flaeche-heiss);
+}
+
+.hinweismarke {
+  flex-shrink: 0;
+  padding: 2px var(--luft-2);
+  border-radius: var(--rundung);
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.hinweismarke[data-art='fehler'] {
+  background: var(--schlecht);
+  color: var(--grund-tief);
+}
+
+.hinweismarke[data-art='warnung'] {
+  background: var(--offen);
+  color: var(--auf-offen);
+}
+
+.hinweistext {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hinweiszahl,
+.hinweiszeit {
+  flex-shrink: 0;
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+.hinweispfeil {
+  flex-shrink: 0;
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  color: var(--schrift-still);
+}
+
+.hinweisliste {
+  display: flex;
+  flex-direction: column;
+  max-height: 40vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--linie);
+}
+
+.hinweiszeile {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-3);
+  padding: var(--luft-2) var(--luft-4);
+  border-bottom: 1px solid var(--linie);
+}
+
+.hinweiszeile .hinweistext {
+  white-space: normal;
+}
+
+.hinweisalle {
+  align-self: flex-end;
+  margin: var(--luft-2) var(--luft-4);
+}
+
+/* ======================================================== Die Uebersicht */
+
+/*
+  Die Startseite. Karam: "ich will, dass eine Homepage, eine Uebersicht
+  gemacht wird."
+
+  Aufbau von oben nach unten, nach der Frage, die man beim Aufmachen hat:
+    Wo bin ich?       die Projektfahne
+    Wie stehe ich?    drei grosse Zahlen
+    Was habe ich?     die Riesenscheine als Kacheln
+    Was kann ich?     die Wege
+*/
+
+.projektfahne {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--luft-2) var(--luft-3);
+  padding: var(--luft-3) var(--luft-4);
+  margin-bottom: var(--luft-5);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 4px solid var(--betonung);
+  border-radius: var(--rundung);
+}
+
+.projektfahne-marke {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--schrift-still);
+}
+
+.projektfahne-name {
+  font-size: var(--text-gross);
+  font-weight: 700;
+}
+
+.projektfahne-zeit {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.projektfahne-notiz {
+  flex-basis: 100%;
+  font-size: var(--text-klein);
+  color: var(--schrift-still);
+}
+
+.startzahlen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--luft-4);
+  margin-bottom: var(--luft-6);
+}
+
+.startkachel {
+  padding: var(--luft-4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  box-shadow: var(--schatten-flach);
+}
+
+.startkachelname {
+  font-size: var(--text-klein);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+/*
+  Die Zahl ist der Grund, warum man die Seite aufmacht. Sie darf gross sein.
+
+  font-variant-numeric: tabular-nums haelt alle Ziffern gleich breit. Ohne das
+  wandern die Stellen, wenn sich eine Zahl aendert, und zwei Betraege
+  untereinander lassen sich nicht mehr auf einen Blick vergleichen.
+*/
+.startkachelwert {
+  margin: var(--luft-2) 0;
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-riesig);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.startkachel[data-art='gut'] .startkachelwert {
+  color: var(--gut);
+}
+
+.startkachel[data-art='schlecht'] .startkachelwert {
+  color: var(--schlecht);
+}
+
+.startkachel[data-art='offen'] .startkachelwert {
+  color: var(--offen);
+}
+
+.startkachelhilfe {
+  font-size: var(--text-klein);
+  color: var(--schrift-still);
+  line-height: 1.5;
+}
+
+.startkachel-fehler {
+  border-color: var(--schlecht);
+  background: var(--schlecht-tief);
+}
+
+.startkachel-fehler .startkachelwert {
+  color: var(--schlecht);
+  font-size: var(--text-gross);
+}
+
+.startbereich {
+  margin-bottom: var(--luft-6);
+}
+
+.startbereichtitel {
+  margin: 0 0 var(--luft-1);
+  font-size: var(--text-gross);
+  font-weight: 700;
+}
+
+.startbereichtext {
+  margin: 0 0 var(--luft-4);
+  font-size: var(--text-klein);
+  color: var(--schrift-still);
+}
+
+.startwetten {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--luft-4);
+}
+
+.startwette {
+  display: flex;
+  flex-direction: column;
+  gap: var(--luft-2);
+  padding: var(--luft-4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung-gross);
+  color: var(--schrift);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--takt), background var(--takt), transform var(--takt);
+}
+
+.startwette:hover {
+  border-color: var(--betonung);
+  background: var(--flaeche-hoch);
+  transform: translateY(-2px);
+}
+
+.startwette-projekt {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+.startwette-name {
+  font-size: var(--text-gross);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.startwette-anbieter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--luft-1);
+}
+
+.startwette-mehr {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  color: var(--schrift-still);
+}
+
+.startwette-zahlen {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--luft-2);
+  padding-top: var(--luft-2);
+  border-top: 1px solid var(--linie);
+}
+
+.startwert {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.startwertname {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+.startwertzahl {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.startwert[data-art='gut'] .startwertzahl {
+  color: var(--gut);
+}
+
+.startwette-fuss {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+.startleer {
+  padding: var(--luft-6);
+  margin-bottom: var(--luft-6);
+  background: var(--flaeche);
+  border: 1px dashed var(--linie-hell);
+  border-radius: var(--rundung-gross);
+  text-align: center;
+}
+
+.startleertitel {
+  margin: 0 0 var(--luft-3);
+  font-size: var(--text-gross);
+}
+
+.startleertext {
+  max-width: 62ch;
+  margin: 0 auto var(--luft-5);
+  color: var(--schrift-leise);
+  line-height: 1.6;
+}
+
+.startleerknoepfe {
+  display: flex;
+  justify-content: center;
+}
+
+.startwege {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--luft-3);
+}
+
+.startweg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--luft-1);
+  padding: var(--luft-3) var(--luft-4);
+  min-height: 40px;
+  background: var(--knopf);
+  color: var(--knopf-schrift);
+  border: 1px solid var(--knopf-rand);
+  border-radius: var(--rundung);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--takt), border-color var(--takt);
+}
+
+.startweg:hover {
+  background: var(--knopf-heiss);
+  border-color: var(--schrift);
+}
+
+.startwegname {
+  font-size: var(--text-normal);
+  font-weight: 700;
+}
+
+.startwegtext {
+  font-size: var(--text-klein);
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+/* ============================================ Der Kopf eines Riesenscheins */
+
+/*
+  Karam: "ich moechte, dass jeder Riesenschein oben hat, eine Anzeige, zu
+  welchem Projekt der gehoert. Projekte koennen ueber Monate oder ueber Jahre
+  gehen."
+
+  Deshalb steht die Zugehoerigkeit AM Riesenschein, nicht nur oben auf der
+  Seite: wer ihn in einem halben Jahr wieder aufmacht, sieht sie mit.
+*/
+.riesenkopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--luft-3);
+  padding: var(--luft-3) var(--luft-4);
+  margin-bottom: var(--luft-4);
+  background: var(--flaeche-hoch);
+  border: 1px solid var(--linie);
+  border-left: 4px solid var(--betonung);
+  border-radius: var(--rundung);
+}
+
+.riesenkopf-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--luft-1);
+  min-width: 0;
+}
+
+.riesenkopf-projekt {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+.riesenkopf-zeit {
+  font-family: var(--schriftart-zahl);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+}
+
+.riesenkopf-name {
+  font-size: var(--text-gross);
+  font-weight: 700;
+}
+
+/*
+  Die Knoepfe oben RECHTS am Riesenschein.
+
+  Karam: "man hat einen Button rechts oben, den kann man einfach ein
+  Bildschirmfoto, ein Foto hinzufuegen. Das ist ein Schein zu erstellen. Der
+  wird eingelesen, der Schein, und dann kommt ein kleiner Schein."
+
+  Die Wege dahinter sind dieselben wie im Reiter Aufnahme, sie stehen in
+  oberflaeche/fotoknoepfe.js. Zweimal gebaut waere zweimal zu pflegen
+  (Projektregel 8).
+*/
+.riesenkopf-rechts {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  flex-wrap: wrap;
+}
+
+.riesennadel[data-an='true'] {
+  background: var(--offen);
+  border-color: var(--offen);
+  color: var(--auf-offen);
+}
+
+/*
+  Der Abschnitt, aus dem Karam gerade gekommen ist.
+
+  Der Erklaerungsknopf im Kopf merkt sich die Seite, auf der man stand, und
+  die Erklaerung springt dorthin. Damit man SIEHT, dass man richtig gelandet
+  ist, wird der Abschnitt hervorgehoben. Ohne die Markierung sieht ein Sprung
+  aus wie eine Seite, die zufaellig in der Mitte anfaengt.
+*/
+.hilfe-bereich[data-hervor='true'] {
+  border-color: var(--betonung);
+  border-left: 4px solid var(--betonung);
+  background: var(--betonung-tief);
+  scroll-margin-top: calc(var(--kopfhoehe) + var(--reiterhoehe) + var(--luft-4));
+}
+
+/* Jeder Abschnitt bekommt den Abstand, damit die Kopfzeile ihn nie verdeckt. */
+.hilfe-bereich {
+  scroll-margin-top: calc(var(--kopfhoehe) + var(--reiterhoehe) + var(--luft-4));
+}
+
+/*
+  Die Erklaerzeile am Kopf einer Seite.
+
+  Karam am 16.09.2026: "Ausgabe, Ablage bitte mehr erklaeren, was das ist."
+  Zwei Saetze an der Stelle, an der die Frage aufkommt. Sie ist ruhig gesetzt
+  und faengt das Auge nicht: wer die Seite kennt, liest darueber hinweg.
+*/
+.erklaerzeile {
+  padding: var(--luft-3) var(--luft-4);
+  margin-bottom: var(--luft-4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 4px solid var(--schrift-still);
+  border-radius: var(--rundung);
+}
+
+.erklaerzeile-titel {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+  margin-bottom: var(--luft-1);
+}
+
+.erklaerzeile-text {
+  margin: 0;
+  max-width: 88ch;
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  line-height: 1.6;
 }

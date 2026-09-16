@@ -124,6 +124,7 @@ export function zeichne(ziel) {
     document.activeElement.classList.contains('ablage-suche')
 
   fuelle(ziel, [
+    erklaerzeile(),
     kopfleiste(projekte),
     el('.ablage-raster', {}, [ordnerspalte(projekte), projektspalte(projekte, stand)]),
     inhalt(stand),
@@ -368,7 +369,7 @@ function projektzeile(p, stand) {
   // dem Blick eine Spalte nach unten abhaken kann, statt jede Zeile einzeln zu
   // suchen. Ein Klick darauf darf das Projekt NICHT oeffnen, deshalb ueberall
   // stopPropagation.
-  const kaestchen = el('input.projektwahl', {
+  const kaestchen = el('input.projektkaestchen', {
     type: 'checkbox',
     checked: gewaehlteProjekte.has(p.id) ? 'checked' : null,
     title: 'Dieses Projekt auswaehlen',
@@ -690,4 +691,30 @@ function neuerOrdner() {
  */
 function speichere(projekt) {
   window.dispatchEvent(new CustomEvent('kombi-projekt-speichern', { detail: { projekt } }))
+}
+
+/**
+ * Zwei Saetze darueber, wozu diese Seite da ist.
+ *
+ * Karam am 16.09.2026: "Ausgabe, Ablage bitte mehr erklaeren, was das ist."
+ *
+ * Besonders die Frage, was ein Projekt und was ein Ordner ist, laesst sich
+ * nicht raten: ein Ordner ist hier keine eigene Sache, sondern nur eine
+ * Beschriftung am Projekt. Wer das nicht weiss, sucht einen Knopf "Ordner
+ * anlegen", den es nicht gibt und nicht geben muss.
+ *
+ * @returns {HTMLElement}
+ */
+function erklaerzeile() {
+  return el('.erklaerzeile', {}, [
+    el('.erklaerzeile-titel', { text: 'Was diese Seite ist' }),
+    el('p.erklaerzeile-text', {
+      text:
+        'Dein Archiv. Ein PROJEKT ist eine Runde: alles, was du in einem Zeitraum gesetzt hast, ' +
+        'mit allen Fotos, Scheinen und Riesenscheinen darin. Es darf eine Woche umfassen oder eine ' +
+        'ganze Saison. Ein ORDNER ist nur eine Schublade dafuer: er entsteht, sobald du ein Projekt ' +
+        'hineinziehst, und verschwindet von selbst, wenn du das letzte herausnimmst. Du musst ihn ' +
+        'nicht anlegen und nicht aufraeumen.',
+    }),
+  ])
 }

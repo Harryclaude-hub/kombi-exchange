@@ -30,14 +30,82 @@ import * as Zustand from './zustand.js'
  * @param {HTMLElement} ziel
  */
 export function zeichne(ziel) {
+  // Aus welcher Ansicht heraus die Erklaerung geoeffnet wurde. Der
+  // Erklaerungsknopf im Kopf schreibt das hinein. Ist es leer, faengt die
+  // Seite von vorne an.
+  const herkunft = Zustand.hole().hilfeZu ?? null
+
   fuelle(ziel, [
     el('.hilfeseite', {}, [
       einleitung(),
+      wieManSichBewegt(),
       derWeg(),
-      ...BEREICHE.map((b) => bereich(b)),
+      ...BEREICHE.map((b) => bereich(b, b.schluessel === herkunft)),
       begriffe(),
       wennEtwasNichtStimmt(),
     ]),
+  ])
+
+  // Zu dem Abschnitt springen, aus dem Karam gekommen ist. Ohne das landet er
+  // ganz oben und muss eine lange Seite herunterblaettern, um zu lesen, was
+  // die Seite erklaert, auf der er eben noch stand.
+  if (herkunft) {
+    const ziel2 = ziel.querySelector('[data-bereich="' + herkunft + '"]')
+    // scrollIntoView und keine gerechnete Position: die Hoehe der Kopfzeile
+    // haengt am Design, und die darf hier nicht nachgebaut werden
+    // (Projektregel 5).
+    if (ziel2 && typeof ziel2.scrollIntoView === 'function') {
+      ziel2.scrollIntoView({ block: 'start' })
+    }
+  }
+}
+
+/**
+ * Wie man sich im Programm bewegt.
+ *
+ * Karam am 16.09.2026: "der erklaert jede einzelne Seite in der Website, wie
+ * man das navigieren soll." Das ist der zweite Teil davon: nicht was auf einer
+ * Seite steht, sondern wie man ueberhaupt von einer zur naechsten kommt.
+ *
+ * @returns {HTMLElement}
+ */
+function wieManSichBewegt() {
+  const wege = [
+    [
+      'Das Panel links',
+      'Steht immer da, auf jeder Seite. Oben die Wege zu allen Seiten, darunter das, was du dir angeheftet hast. Der Knopf oben im Panel klappt es schmal, dann bleiben nur die Zeichen stehen. Ganz weg geht es nie.',
+    ],
+    [
+      'Die Reiter im Kopf',
+      'Dieselben Wege noch einmal, als Reiter. Die Zahl neben einem Reiter sagt, wie viel dort liegt.',
+    ],
+    [
+      'Anheften',
+      'An jedem Riesenschein sitzt oben rechts der Knopf "Anheften". Was angeheftet ist, steht im Panel links und ist von jeder Seite aus einen Klick entfernt. Bei sechzig Scheinen ist das der Unterschied zwischen Suchen und Finden.',
+    ],
+    [
+      'Die drei Zahlen ganz oben',
+      'Sie stehen ueber jeder Seite und aendern sich nie mit der Seite: gesetzt, moeglich, und was schon feststeht oder noch im Risiko ist.',
+    ],
+    [
+      'Der Knopf mit dem Datum',
+      'Oben rechts steht die Fassung, mit der dieses Fenster laeuft. Siehst du eine Aenderung nicht, obwohl sie fertig sein soll, klick darauf: die Seite wird dann wirklich neu geholt und nicht aus dem Zwischenspeicher des Browsers.',
+    ],
+    [
+      'Hinweise',
+      'Stimmt etwas nicht, erscheint unten eine ruhige Leiste statt eines Kastens, den du wegklicken musst. Ein Klick darauf klappt alle Hinweise auf.',
+    ],
+  ]
+
+  return el('.hilfeblock', {}, [
+    el('h2.hilfetitel', { text: 'Wie du dich bewegst' }),
+    el('p.hilfetext', {
+      text: 'Es gibt zwei Wege zu jeder Seite, und einen Weg, dir zu merken, was du oft brauchst.',
+    }),
+    el('dl.hilfebegriffe', {}, wege.flatMap(([wort, was]) => [
+      el('dt.hilfewort', { text: wort }),
+      el('dd.hilfeerklaerung', { text: was }),
+    ])),
   ])
 }
 
@@ -161,9 +229,41 @@ function schaubild(kaesten) {
   return svg
 }
 
-/** Die Beschreibung der fuenf Reiter. */
+/*
+  Die Beschreibung jedes Reiters.
+
+  "schluessel" ist derselbe wie in ANSICHTEN in oberflaeche/app.js. Daran
+  erkennt die Erklaerung, aus welcher Ansicht Karam gekommen ist, und hebt
+  genau diesen Abschnitt hervor. Karam am 16.09.2026: "oben in den Header
+  einfach einen Button hinzufuegen, der heisst Erklaerung, und zwar der
+  erklaert jede einzelne Seite in der Website, wie man das navigieren soll."
+*/
 const BEREICHE = [
   {
+    schluessel: 'start',
+    reiter: 'Uebersicht',
+    wofuer: 'Die Startseite: wo du stehst, in einem Blick.',
+    bild: [
+      { x: 8, y: 8, b: 304, h: 22, name: 'PROJEKT  NFL Saison 2026/27  Sep bis Feb', betont: true },
+      { x: 8, y: 36, b: 98, h: 44, name: 'gesetzt' },
+      { x: 111, y: 36, b: 98, h: 44, name: 'kann zurueck' },
+      { x: 214, y: 36, b: 98, h: 44, name: 'im Risiko' },
+      { x: 8, y: 86, b: 150, h: 54, name: 'Riesenschein 1' },
+      { x: 162, y: 86, b: 150, h: 54, name: 'Riesenschein 2' },
+    ],
+    machen: [
+      'Ganz oben steht, in welchem Projekt du gerade bist, und ueber welchen Zeitraum es laeuft. Ein Projekt darf Monate oder Jahre umfassen.',
+      'Darunter die drei Zahlen: wie viel insgesamt gesetzt ist, was zurueckkommen kann, und was noch im Risiko steht.',
+      'Dann jeder Riesenschein als Kachel. Ein Klick darauf oeffnet ihn ganz, mit allen Einzelscheinen.',
+      'Ganz unten die Wege: jeder Reiter mit einem Satz dazu, was er tut.',
+    ],
+    achtung:
+      'Steht neben den Zahlen der rote Kasten "Waehrungen gemischt", sind Euro, Dollar und Krypto ' +
+      'in derselben Summe gelandet. Dann sind die Zahlen daneben keine Summen, und du darfst dich ' +
+      'nicht auf sie verlassen. Das Programm rechnet Waehrungen NIE um.',
+  },
+  {
+    schluessel: 'aufnahme',
     reiter: 'Aufnahme',
     wofuer: 'Hier kommen die Bildschirmfotos herein und werden gelesen.',
     bild: [
@@ -185,6 +285,7 @@ const BEREICHE = [
       'einen Rahmen um die Wettliste ziehen, sonst landet Text aus der Menueleiste in den Scheinen.',
   },
   {
+    schluessel: 'scheine',
     reiter: 'Scheine',
     wofuer: 'Jeder gelesene Wettschein als eine Zeile, zum Nachsehen und Berichtigen.',
     bild: [
@@ -206,6 +307,7 @@ const BEREICHE = [
       'nachgerechnet, und darauf ist Verlass.',
   },
   {
+    schluessel: 'positionen',
     reiter: 'Riesenscheine',
     wofuer: 'Dieselbe Wette, viele Male gesetzt, als eine Position.',
     bild: [
@@ -229,24 +331,31 @@ const BEREICHE = [
       'Krypto werden nie zusammengezaehlt und nie umgerechnet.',
   },
   {
+    schluessel: 'ausgabe',
     reiter: 'Ausgabe',
-    wofuer: 'Alles als Excel-Mappe oder CSV herunterladen.',
+    wofuer:
+      'Deine Zahlen aus dem Programm herausholen: als Excel-Mappe zum Aufheben und Weiterrechnen.',
     bild: [
       { x: 8, y: 8, b: 148, h: 34, name: 'Excel: dieser Riesenschein', betont: true },
       { x: 164, y: 8, b: 148, h: 34, name: 'Excel: ganzes Projekt', betont: true },
       { x: 8, y: 50, b: 304, h: 90, name: 'Vorschau der Tabelle' },
     ],
     machen: [
+      'WOFUER DAS GUT IST: das Programm behaelt deine Zahlen, aber es ist kein Archiv fuer die Steuer und kein Werkzeug zum Weiterrechnen. Die Excel-Mappe ist beides. Du kannst sie aufheben, verschicken und eigene Spalten daneben rechnen.',
       'Ein Knopf fuer den gerade gewaehlten Riesenschein, einer fuer das ganze Projekt.',
-      'Die Mappe hat mehrere Blaetter: jeder Schein eine Zeile, jede Wette eine Zeile, dazu Anbieter und Hinweise.',
+      'Die Mappe hat mehrere Blaetter: jeder einzelne Schein eine Zeile, jede zusammengefasste Wette eine Zeile, dazu ein Blatt je Anbieter und eines mit allen Hinweisen.',
+      'CSV ist dasselbe als einfache Textdatei, fuer Programme, die kein Excel lesen.',
+      'Die Vorschau darunter zeigt, was in der Datei stehen wird, bevor du sie herunterlaedst.',
     ],
     achtung:
       'Die Summenzeile ist nur bei einer einzigen Waehrung aussagekraeftig. Steht eine Warnung ' +
       'darunter, sind Euro und Dollar in derselben Spalte gelandet.',
   },
   {
+    schluessel: 'ablage',
     reiter: 'Ablage',
-    wofuer: 'Alle Projekte, in Ordnern, wie im Explorer.',
+    wofuer:
+      'Dein Archiv: alle Projekte in Ordnern, wie im Explorer. Hier liegt, was du frueher gemacht hast.',
     bild: [
       { x: 8, y: 8, b: 88, h: 132, name: 'Ordner' },
       { x: 102, y: 8, b: 210, h: 22, name: 'Auswahlleiste, wenn angehakt', betont: true },
@@ -255,6 +364,8 @@ const BEREICHE = [
       { x: 102, y: 100, b: 210, h: 40, name: 'Inhalt des offenen Projekts' },
     ],
     machen: [
+      'WAS EIN PROJEKT IST: eine Runde. Alles, was du in einem Zeitraum gesetzt hast, mit allen Fotos, allen Scheinen und allen Riesenscheinen darin. Ein Projekt darf eine Woche umfassen oder eine ganze Saison.',
+      'WAS EIN ORDNER IST: nur eine Schublade fuer Projekte. Ein Ordner besteht, solange ein Projekt darin liegt, und verschwindet von selbst, wenn du das letzte herausziehst. Du musst ihn nicht anlegen und nicht aufraeumen.',
       'Ein Klick auf ein Projekt oeffnet es. Doppelklick auf den Namen benennt um.',
       'Mit der Maus auf einen Ordner ziehen verschiebt das Projekt dorthin.',
       'Angepinntes steht immer oben, egal wie sortiert wird.',
@@ -268,10 +379,11 @@ const BEREICHE = [
 
 /**
  * @param {typeof BEREICHE[number]} b
+ * @param {boolean} hervor  Ob Karam gerade von dieser Seite gekommen ist.
  * @returns {HTMLElement}
  */
-function bereich(b) {
-  return el('.hilfeblock.hilfe-bereich', {}, [
+function bereich(b, hervor = false) {
+  return el('.hilfeblock.hilfe-bereich', { daten: { bereich: b.schluessel, hervor: String(hervor) } }, [
     el('h2.hilfetitel', {}, [
       el('span.hilfereiter', { text: b.reiter }),
       el('span.hilfewofuer', { text: b.wofuer }),

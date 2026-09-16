@@ -28,6 +28,7 @@ export function zeichne(ziel) {
 
   if (stand.riesenscheine.length === 0) {
     fuelle(ziel, [
+      erklaerzeile(),
       el('.leerhinweis', {}, [
         el('p.leer-titel', { text: 'Noch nichts auszugeben.' }),
         el('p.leer-text', { text: 'Erst Bilder lesen, dann entsteht hier der Riesenschein.' }),
@@ -39,6 +40,7 @@ export function zeichne(ziel) {
   const gewaehlt = stand.auswahl ?? stand.riesenscheine[0]?.id ?? ''
 
   fuelle(ziel, [
+    erklaerzeile(),
     el('.ausgabekopf', {}, [
       el('span.feldname', { text: 'Riesenschein' }),
       el(
@@ -303,4 +305,27 @@ function ladeCsvHerunter() {
   const datei = baueCsv(kopf, zeilen, { gebiet: 'de' })
   biete(datei, `Kombi_Scheine_${zeitstempel()}.csv`)
   Zustand.melde('erfolg', 'Die CSV-Datei wurde heruntergeladen.')
+}
+
+/**
+ * Zwei Saetze darueber, wozu diese Seite da ist.
+ *
+ * Karam am 16.09.2026: "Ausgabe, Ablage bitte mehr erklaeren, was das ist."
+ *
+ * Die ausfuehrliche Fassung steht im Reiter Erklaerung. Hier stehen zwei
+ * Saetze an der Stelle, an der die Frage wirklich aufkommt: auf der Seite.
+ *
+ * @returns {HTMLElement}
+ */
+function erklaerzeile() {
+  return el('.erklaerzeile', {}, [
+    el('.erklaerzeile-titel', { text: 'Was diese Seite ist' }),
+    el('p.erklaerzeile-text', {
+      text:
+        'Hier holst du deine Zahlen aus dem Programm heraus. Die Excel-Mappe enthaelt jeden ' +
+        'einzelnen Schein als Zeile, jede zusammengefasste Wette als Zeile, dazu ein Blatt je ' +
+        'Anbieter und eines mit allen Hinweisen. Zum Aufheben, zum Verschicken und um eigene ' +
+        'Spalten daneben zu rechnen. CSV ist dasselbe als einfache Textdatei.',
+    }),
+  ])
 }

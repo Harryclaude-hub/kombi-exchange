@@ -81,26 +81,43 @@ img {
 /* ---------------------------------------------------------------- Huelle */
 
 /*
-  Zwei Reihen, nicht drei: die Navigation sitzt seit dem 16.09.2026 IN der
-  Kopfzeile. Die Kopfzeile nimmt sich ihre Hoehe selbst (auto), damit die
-  groesseren Zahlen oben nicht abgeschnitten werden.
+  Das Raster der Huelle.
+
+  ZWEI REIHEN: die Navigation sitzt seit dem 16.09.2026 IN der Kopfzeile, nicht
+  als zweite fremde Leiste darunter. Die Kopfzeile nimmt sich ihre Hoehe selbst,
+  damit die groesseren Zahlen oben nicht abgeschnitten werden.
+
+  ZWEI SPALTEN, neu am 16.09.2026: das Panel links.
+
+  Karam: "ich moechte, dass man links ein Panel hat, der ist immer da."
+
+  Die Kopfzeile laeuft ueber beide Spalten, darunter stehen Panel und Inhalt
+  nebeneinander. Das Panel nimmt sich seine Breite selbst (auto), damit das
+  Ein- und Ausklappen keine zweite Zahl braucht, die mit --panelbreite
+  auseinanderlaufen koennte.
+
+  minmax(0, 1fr) und nicht 1fr: eine Rasterspalte ist von sich aus mindestens
+  so breit wie ihr breitester Inhalt. Ohne die Null waere eine lange Tabelle
+  im Inhalt staerker als das Raster, und die ganze Seite bekaeme einen
+  waagerechten Schieber.
 */
 .huelle {
   display: grid;
   grid-template-rows: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   min-height: 100vh;
 }
 
 /*
-  Die Kopfzeile traegt jetzt BEIDES: oben Marke, Laufwerte und Knoepfe, darunter
-  die Navigation. Karam am 16.09.2026: "einfach das Navigationssystem in den
+  Die Kopfzeile traegt BEIDES: oben Marke, Laufwerte und Knoepfe, darunter die
+  Navigation. Karam am 16.09.2026: "einfach das Navigationssystem in den
   Header. Und macht den Header ein bisschen groesser, dass die Anzeigen oben
   eindeutig groesser sind."
 
-  Deshalb keine feste Hoehe mehr, sondern zwei Reihen, die sich ihre Hoehe
-  nehmen. Die Zahlen oben sind in bauteile.css groesser gesetzt.
+  Sie laeuft ueber BEIDE Rasterspalten, also auch ueber das Panel links.
 */
 .kopfleiste {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   background: var(--grund-tief);
@@ -110,10 +127,22 @@ img {
   z-index: 20;
 }
 
+.seitenpanel {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+/*
+  flex-wrap seit dem 16.09.2026: die Knoepfe im Kopf geben nicht mehr nach,
+  wenn der Platz knapp wird (siehe .knopf in bauteile.css). Ohne Umbruch
+  liefen sie sonst aus dem Fenster heraus. Die Kopfzeile hat keine feste
+  Hoehe, sondern eine Mindesthoehe, sie darf also wachsen.
+*/
 .kopfoben {
   display: flex;
   align-items: center;
-  gap: var(--luft-4);
+  flex-wrap: wrap;
+  gap: var(--luft-3) var(--luft-4);
   padding: var(--luft-3) var(--luft-4);
   min-height: var(--kopfhoehe);
 }
@@ -135,6 +164,8 @@ img {
 }
 
 .inhalt {
+  grid-row: 2;
+  grid-column: 2;
   padding: var(--luft-5) var(--luft-4) var(--luft-7);
   max-width: 1800px;
   width: 100%;
@@ -238,4 +269,17 @@ img {
     gap: var(--luft-2);
     padding: 0 var(--luft-2);
   }
+  /*
+    Auf einem schmalen Bildschirm bleibt nur die Spur des Panels stehen.
+    Es verschwindet NICHT: Karam hat gesagt, es soll immer da sein, und in der
+    Spur sind die Wege weiterhin mit einem Daumen erreichbar.
+  */
+  /*
+    Das Panel wird auf schmalen Bildschirmen zur Spur. Die Regel dafuer steht
+    in bauteile.css beim Bauteil selbst und NICHT hier: grund.css wird vor
+    bauteile.css geladen, und bei gleicher Staerke gewinnt die spaetere Regel.
+    Am 16.09.2026 stand das Panel deshalb auf einem 390 Pixel breiten Schirm
+    weiter mit 260 Pixeln da und nahm zwei Drittel der Breite weg, obwohl die
+    Medienabfrage nachweislich griff.
+  */
 }

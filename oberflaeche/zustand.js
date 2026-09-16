@@ -45,7 +45,8 @@ import { neueKennung, jetzt } from './werkzeug.js'
  * @property {import('../kern/typen.js').Riesenschein[]} riesenscheine
  * @property {import('../kern/typen.js').Restposten[]} restposten
  * @property {import('../kern/gruppierung.js').Doppelfund[]} verdacht
- * @property {'aufnahme'|'scheine'|'positionen'|'ausgabe'|'ablage'|'hilfe'} ansicht
+ * @property {'start'|'aufnahme'|'scheine'|'positionen'|'ausgabe'|'ablage'|'hilfe'} ansicht
+ * @property {string|null} hilfeZu
  * @property {string|null} auswahl
  * @property {number|null} fassung
  * @property {{laeuft: boolean, text: string, anteil: number}} arbeit
@@ -69,8 +70,13 @@ const stand = {
   riesenscheine: [],
   restposten: [],
   verdacht: [],
-  ansicht: 'aufnahme',
+  // Die Uebersicht ist die Startseite, seit dem 16.09.2026.
+  // Karam: "Aufnahme soll bitte bleiben, aber nicht ins Mainpage."
+  ansicht: 'start',
   auswahl: null,
+  // Aus welcher Ansicht heraus die Erklaerung geoeffnet wurde. Damit springt
+  // die Erklaerung an die richtige Stelle. null heisst: von vorne.
+  hilfeZu: null,
   arbeit: { laeuft: false, text: '', anteil: 0 },
   meldungen: [],
   einstellungen: { gruendlich: true, sprachen: 'eng', bewegung: 1 },
