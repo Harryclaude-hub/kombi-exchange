@@ -294,6 +294,78 @@ export function rechne(scheine) {
 
   const gewinnschwelle = quoteOffen !== null && quoteOffen > 0 ? 1 / quoteOffen : null
 
+  /*
+    DER ZWEITE PRUEFSTEIN: eine Quote, die aus der Reihe faellt.
+
+    Karam am 16.09.2026: "da wird sehr viel gesetzt, taeglich wirklich ueber
+    100. Und da muss einfach wirklich fehlerfrei immer die Quote erkannt
+    werden. Die Quoten sind natuerlich auch immer aehnlich bei jedem
+    Riesenschein."
+
+    Der zweite Satz ist der wertvolle. Ein Riesenschein ist DIESELBE Wette bei
+    vielen Buchmachern. Die Quoten unterscheiden sich, weil Buchmacher sich
+    unterscheiden, aber sie liegen beieinander. Eine Quote von 184 zwischen
+    sechzig Quoten um 1,9 herum ist kein Buchmacherunterschied, das ist ein
+    verlesener Punkt.
+
+    WARUM DAS EIN EIGENER PRUEFSTEIN IST, und nicht dasselbe wie der erste:
+    Einsatz mal Quote gleich Auszahlung greift nur, wenn beide Betraege auf dem
+    Schein stehen. Bei Karams Tabellenansichten steht oft keine Auszahlung da.
+    Und der beste Fall fuer diesen hier ist der, den der erste NIE fangen kann:
+    liegen Einsatz UND Auszahlung um denselben Faktor daneben (der Fall
+    "1,000.00 wird als 1,000,00 gelesen", UEBERGABE.md), stimmt ihr Verhaeltnis
+    weiter, und der erste Pruefstein schweigt. Die Nachbarn merken es trotzdem.
+
+    ER BERICHTIGT NICHTS (Projektregel 1). Aus sechzig Quoten laesst sich nicht
+    beweisen, wie die einundsechzigste lauten MUSS, nur dass sie nicht passt.
+    Also wird gewarnt und der Mensch sieht nach.
+
+    WARUM DER MEDIAN UND NICHT DER MITTELWERT: ein einziger Ausreisser von 184
+    zieht einen Mittelwert ueber sechzig Werte um drei nach oben, und danach
+    faellt er selbst nicht mehr auf, dafuer aber die gesunden Werte. Der Median
+    laesst sich von einzelnen Ausreissern nicht bewegen.
+
+    WARUM DIE GRENZE AM MEDIAN HAENGT UND NICHT FEST IST: bei Quoten um 1,9
+    sind 35 Prozent Abstand viel, bei einer Aussenseiterquote von 12,0 waeren
+    sie normal. Das Verhaeltnis ist das richtige Mass, nicht die Differenz.
+    Die 1,5 ist bewusst weit gesetzt: sie soll verlesene Punkte und
+    Zehnerfehler fangen, nicht Buchmacherunterschiede. Gemessen an hundert
+    Scheinen zwischen 1,80 und 2,00 schlaegt sie nicht an.
+
+    AB DREI QUOTEN: bei zweien gibt es keine Mitte, der eine Wert ist so gut
+    wie der andere, und eine Warnung waere geraten.
+  */
+  if (alleQuotenPosten.length >= 3) {
+    const sortiert = [...alleQuotenPosten].map((p) => p.quote).sort((a, b) => a - b)
+    const mitte = sortiert.length % 2 === 1
+      ? sortiert[(sortiert.length - 1) / 2]
+      : ((sortiert[sortiert.length / 2 - 1] ?? 0) + (sortiert[sortiert.length / 2] ?? 0)) / 2
+
+    if (mitte !== undefined && mitte > 0) {
+      const GRENZE = 1.5
+      const auffaellig = alleQuotenPosten.filter((p) => {
+        const verhaeltnis = p.quote > mitte ? p.quote / mitte : mitte / p.quote
+        return verhaeltnis > GRENZE
+      })
+
+      if (auffaellig.length > 0) {
+        const genannt = auffaellig.slice(0, 5).map((p) => p.quote).join(', ')
+        const rest = auffaellig.length > 5 ? ` und ${auffaellig.length - 5} weitere` : ''
+        hinweise.push({
+          code: 'quote_reisst_aus',
+          schwere: 'warnung',
+          feld: 'quoteDezimal',
+          text:
+            `${auffaellig.length} Quote(n) liegen weit neben den anderen: ${genannt}${rest}. ` +
+            `Die mittlere Quote dieses Riesenscheins ist ${mitte}. Dieselbe Wette hat bei ` +
+            'verschiedenen Buchmachern aehnliche Quoten, deshalb ist das meist ein verlesener ' +
+            'Punkt oder eine Ziffer zu viel. Bitte nachsehen und von Hand berichtigen. ' +
+            'Das Programm aendert hier von sich aus nichts.',
+        })
+      }
+    }
+  }
+
   if (alleQuotenPosten.length < mitEinsatz.filter((s) => barEinsatz(s) > 0).length) {
     const fehlend = mitEinsatz.filter((s) => barEinsatz(s) > 0).length - alleQuotenPosten.length
     hinweise.push({
