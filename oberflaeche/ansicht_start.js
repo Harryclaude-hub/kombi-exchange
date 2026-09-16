@@ -90,7 +90,19 @@ function projektkopfzeile(stand) {
  */
 function grossezahlen(gesamt) {
   const w = gesamt.waehrung
-  const etwasEntschieden = Math.abs(gesamt.ergebnisRealisiert) > 0.005
+  /*
+    EINE BILANZ VON GENAU NULL IST EINE AUSSAGE, KEIN LEERSTAND.
+
+    Vorher stand hier Math.abs(...) > 0.005. Heben sich Gewinn und Verlust
+    genau auf, ist das Ergebnis 0,00, die Bedingung faellt durch, und statt
+    "ERGEBNIS 0,00" stand dort "NOCH IM RISIKO". Das ist doppelt falsch: es
+    verschweigt, dass entschieden wurde, und es zeigt ein Risiko, das es nicht
+    mehr gibt.
+
+    Richtig ist die Frage, ob ueberhaupt etwas entschieden ist, und die
+    beantwortet einsatzEntschieden aus kern/rechnung.js.
+  */
+  const etwasEntschieden = gesamt.einsatzEntschieden > 0.005
 
   return el('.startzahlen', {}, [
     startkachel(

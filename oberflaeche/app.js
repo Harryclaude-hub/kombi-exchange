@@ -361,7 +361,8 @@ function zeichneKopf() {
       laufwert('MOEGLICH', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut'),
       // Solange nichts entschieden ist, sagt eine Null nichts. Dann ist
       // interessanter, was noch auf dem Spiel steht.
-      Math.abs(gesamt.ergebnisRealisiert) > 0.005
+      // Siehe ansicht_start.js: null ist eine Aussage, kein Leerstand.
+      gesamt.einsatzEntschieden > 0.005
         ? laufwert(
             'ERGEBNIS',
             formatiere(gesamt.ergebnisRealisiert, w, 'de'),

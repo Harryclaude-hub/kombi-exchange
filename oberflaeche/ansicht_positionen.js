@@ -13,7 +13,7 @@
 import { el, fuelle, zeitText, anbieterzeichen } from './werkzeug.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { statusText } from '../bild/mosaik.js'
-import { barEinsatz, realisierterRueckfluss } from '../kern/rechnung.js'
+import { barEinsatz, realisierterRueckfluss, offenePotenzialauszahlung } from '../kern/rechnung.js'
 import { rechneProjekt } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
 import { fotoknoepfe } from './fotoknoepfe.js'
@@ -123,7 +123,19 @@ export function zeichne(ziel) {
  */
 function projektkopf(gesamt) {
   const w = gesamt.waehrung
-  const etwasEntschieden = Math.abs(gesamt.ergebnisRealisiert) > 0.005
+  /*
+    EINE BILANZ VON GENAU NULL IST EINE AUSSAGE, KEIN LEERSTAND.
+
+    Vorher stand hier Math.abs(...) > 0.005. Heben sich Gewinn und Verlust
+    genau auf, ist das Ergebnis 0,00, die Bedingung faellt durch, und statt
+    "ERGEBNIS 0,00" stand dort "NOCH IM RISIKO". Das ist doppelt falsch: es
+    verschweigt, dass entschieden wurde, und es zeigt ein Risiko, das es nicht
+    mehr gibt.
+
+    Richtig ist die Frage, ob ueberhaupt etwas entschieden ist, und die
+    beantwortet einsatzEntschieden aus kern/rechnung.js.
+  */
+  const etwasEntschieden = gesamt.einsatzEntschieden > 0.005
 
   return el('.projektkopf', {}, [
     kachel('Gesamteinsatz', formatiere(gesamt.einsatzGesamt, w, 'de'), 'neutral',
@@ -663,10 +675,40 @@ function ausgangsknopf(riesenschein, ausgang) {
 
   const beschriftung = { gewonnen: 'Gewonnen', verloren: 'Verloren', offen: 'Wieder offen' }[ausgang]
 
-  // Was der Klick bedeutet, in Geld. Genau diese Zahlen stehen in der
-  // Rueckfrage, damit man vor dem Ja sieht, worum es geht.
+  /*
+    WAS DER KLICK BEDEUTET, IN GELD.
+
+    HIER STAND EIN FEHLER, gefunden am 16.09.2026 wenige Stunden nachdem ich
+    ihn gebaut hatte. Es stand rechnung.auszahlungMoeglich da, und das ist
+    NICHT, was nach dem Klick herauskommt.
+
+    auszahlungMoeglich zaehlt, was aus den NOCH OFFENEN Scheinen kommen kann,
+    plus das schon Realisierte. Ein Schein, der bereits auf verloren steht,
+    steuert null bei. Der Klick setzt aber ALLE auf gewonnen, auch diesen, und
+    dann zahlt er eben doch.
+
+    Nachgerechnet an einem Riesenschein aus einem verlorenen Schein zu 500 und
+    einem offenen zu 500 bei Quote 1,8:
+
+      versprochen war          900,00
+      zurueck kamen         1.800,00
+      Abweichung              900,00, also das Doppelte
+
+    Das ist genau die Zahl, nach der Karam entscheidet. Richtig ist die Summe
+    ueber ALLE Scheine so, als waeren sie offen, und die liefert
+    offenePotenzialauszahlung aus kern/rechnung.js. Gerechnet wird also
+    weiterhin im Kern, hier wird nur zusammengezaehlt (Projektregel 8).
+
+    Bei "verloren" war einsatzGesamt von Anfang an richtig: der tatsaechliche
+    Geldaufwand haengt nicht am Stand.
+  */
+  const alsWaerenAlleOffen = scheine.reduce((summe, sch) => {
+    const moeglich = offenePotenzialauszahlung({ ...sch, status: 'offen' })
+    return summe + (moeglich.wert ?? 0)
+  }, 0)
+
   const folge = {
-    gewonnen: `${formatiere(rechnung.auszahlungMoeglich, w, 'de')} kommen zurueck`,
+    gewonnen: `${formatiere(alsWaerenAlleOffen, w, 'de')} kommen zurueck`,
     verloren: `${formatiere(rechnung.einsatzGesamt, w, 'de')} sind verloren, es kommt nichts zurueck`,
     offen: 'zaehlt wieder als noch nicht entschieden',
   }[ausgang]
