@@ -69,6 +69,7 @@
     dunkle Schrift, auf dem dunklen Bernstein der hellen Fassung weisse.
   */
   --auf-offen: #0d141f;
+  --auf-schlecht: #1a0206;
 
   /* ---- Bedeutungen ---- */
   --gut: #18c98a;
@@ -159,12 +160,25 @@
 
     --schrift: #0e1522;
     --schrift-leise: #4c5a6f;
-    --schrift-still: #65728a;
+    /*
+      Am 16.09.2026 in der hellen Fassung DURCHGEMESSEN, mit richtiger
+      Behandlung durchscheinender Flaechen. Elf Textstellen lagen unter
+      4,5 zu 1, und es waren immer dieselben drei Merkmale schuld.
+    
+        --schrift-still  4,10 zu 1   jetzt 4,85
+        --gut            3,84 zu 1   jetzt 5,59
+        --schlecht       3,89 zu 1   jetzt 5,74 auf der eigenen Tonflaeche
+    
+      Die dunkle Fassung war bis auf eine Stelle sauber und bleibt, wie sie
+      ist. Helle Oberflaechen verzeihen weniger: auf Weiss braucht eine Farbe
+      deutlich mehr Tiefe als dieselbe Farbe auf Dunkel.
+    */
+    --schrift-still: #5a6779;
 
-    --gut: #00875a;
-    --gut-tief: rgba(0, 135, 90, 0.1);
-    --schlecht: #d03547;
-    --schlecht-tief: rgba(208, 53, 71, 0.1);
+    --gut: #006e4a;
+    --gut-tief: rgba(0, 110, 74, 0.1);
+    --schlecht: #b02133;
+    --schlecht-tief: rgba(176, 33, 51, 0.1);
     --offen: #9a5b00;
     --offen-tief: rgba(154, 91, 0, 0.1);
     --betonung: #1667c7;
@@ -188,10 +202,11 @@
     --knopf-haupt-schrift: #ffffff;
 
     --auf-offen: #ffffff;
+    --auf-schlecht: #ffffff;
 
     --stufe-mittel: rgba(154, 91, 0, 0.14);
-    --stufe-niedrig: rgba(208, 53, 71, 0.14);
-    --stufe-keine: rgba(119, 134, 155, 0.12);
+    --stufe-niedrig: rgba(176, 33, 51, 0.14);
+    --stufe-keine: rgba(90, 103, 121, 0.12);
 
     --schatten: 0 1px 2px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.08);
     --schatten-flach: 0 1px 2px rgba(16, 24, 40, 0.08);
@@ -223,12 +238,25 @@
 
   --schrift: #0e1522;
   --schrift-leise: #4c5a6f;
-  --schrift-still: #65728a;
+  /*
+    Am 16.09.2026 in der hellen Fassung DURCHGEMESSEN, mit richtiger
+    Behandlung durchscheinender Flaechen. Elf Textstellen lagen unter
+    4,5 zu 1, und es waren immer dieselben drei Merkmale schuld.
+  
+      --schrift-still  4,10 zu 1   jetzt 4,85
+      --gut            3,84 zu 1   jetzt 5,59
+      --schlecht       3,89 zu 1   jetzt 5,74 auf der eigenen Tonflaeche
+  
+    Die dunkle Fassung war bis auf eine Stelle sauber und bleibt, wie sie
+    ist. Helle Oberflaechen verzeihen weniger: auf Weiss braucht eine Farbe
+    deutlich mehr Tiefe als dieselbe Farbe auf Dunkel.
+  */
+  --schrift-still: #5a6779;
 
-  --gut: #00875a;
-  --gut-tief: rgba(0, 135, 90, 0.1);
-  --schlecht: #d03547;
-  --schlecht-tief: rgba(208, 53, 71, 0.1);
+  --gut: #006e4a;
+  --gut-tief: rgba(0, 110, 74, 0.1);
+  --schlecht: #b02133;
+  --schlecht-tief: rgba(176, 33, 51, 0.1);
   --offen: #9a5b00;
   --offen-tief: rgba(154, 91, 0, 0.1);
   --betonung: #1667c7;
@@ -252,10 +280,11 @@
   --knopf-haupt-schrift: #ffffff;
 
   --auf-offen: #ffffff;
+  --auf-schlecht: #ffffff;
 
   --stufe-mittel: rgba(154, 91, 0, 0.14);
-  --stufe-niedrig: rgba(208, 53, 71, 0.14);
-  --stufe-keine: rgba(119, 134, 155, 0.12);
+  --stufe-niedrig: rgba(176, 33, 51, 0.14);
+  --stufe-keine: rgba(90, 103, 121, 0.12);
 
   --schatten: 0 1px 2px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.08);
   --schatten-flach: 0 1px 2px rgba(16, 24, 40, 0.08);

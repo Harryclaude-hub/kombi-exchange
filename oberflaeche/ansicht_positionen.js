@@ -66,13 +66,22 @@ export function zeichne(ziel) {
     // Die Liste links faellt weg, wenn es nur einen Riesenschein gibt: dann
     // gaebe es nichts auszuwaehlen. Die Spalte rechts bleibt immer, denn dort
     // liegt der Weg, ein Foto nachzureichen.
-    el('.positionsspalten', { daten: { einzeln: String(!mehrereWetten) } }, [
-      mehrereWetten
-        ? el('.positionsliste', {}, [
-            el('.spaltentitel', { text: `${stand.riesenscheine.length} Riesenscheine` }),
-            ...stand.riesenscheine.map((r, i) => listeneintrag(r, rechnungen[i], r.id === gewaehlt)),
-          ])
-        : null,
+    /*
+      ZWEI SPALTEN, seit dem 16.09.2026, vorher drei.
+
+      Karam: "vor allem bei Riesenscheinen soll dieser linke Panel dafuer sein,
+      alle Scheine aufzulisten. Und den grossen Schein einfach hier in der
+      Mitte. Und da rechts einfach alle Minischeine."
+
+      Die Auswahlliste stand vorher als eigene Spalte hier drin, und links
+      daneben lag NOCH das Panel des Programms. Das waren vier Spalten, zwei
+      davon nur zum Auswaehlen. Die Liste ist jetzt im Panel (zeichnePanel in
+      app.js), und was hier bleibt, sind die beiden, um die es geht:
+
+        Mitte   der offene Riesenschein mit seinen Zahlen
+        rechts  die einzelnen Scheine darin
+    */
+    el('.positionsspalten', {}, [
       gewaehlt ? einzelheit(gewaehlt) : null,
       gewaehlt ? scheinpanel(gewaehlt) : null,
     ]),
@@ -135,46 +144,6 @@ function kachel(name, wert, art, hilfe) {
   ])
 }
 
-/**
- * @param {import('../kern/typen.js').Riesenschein} riesenschein
- * @param {import('../kern/typen.js').Rechnung|undefined} rechnung
- * @param {boolean} gewaehlt
- * @returns {HTMLElement}
- */
-function listeneintrag(riesenschein, rechnung, gewaehlt) {
-  if (!rechnung) return el('div')
-  const w = rechnung.waehrung
-
-  return el(
-    '.positionskarte',
-    {
-      daten: { gewaehlt: String(gewaehlt) },
-      onclick: () => Zustand.aendere({ auswahl: riesenschein.id }),
-    },
-    [
-      el('.positionsname', { text: riesenschein.name, title: riesenschein.name }),
-      el('.positionszahlen', {}, [
-        el('span.positionswert', { text: formatiere(rechnung.einsatzGesamt, w, 'de') }),
-        el('span.positionsunterzeile', {
-          text: `${rechnung.anzahlScheine} Scheine / ${rechnung.anzahlBuchmacher} Anbieter`,
-        }),
-      ]),
-      el('.positionsquote', {
-        text: formatiereQuote(rechnung.quoteEffektiv, 'dezimal', 'de'),
-        title: 'Einsatzgewichtete Gesamtquote',
-      }),
-      el('.positionsergebnis', { daten: { art: rechnung.imRisiko > 0 ? 'offen' : rechnung.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht' } }, [
-        rechnung.imRisiko > 0
-          ? `offen: ${formatiere(rechnung.imRisiko, w, 'de')}`
-          : formatiere(rechnung.ergebnisRealisiert, w, 'de'),
-      ]),
-      rechnung.hinweise.some((h) => h.schwere === 'fehler')
-        ? el('span.anmerkung', { daten: { schwere: 'fehler' }, text: '!' })
-        : null,
-    ]
-  )
-}
-
 function einzelheit(riesenscheinId) {
   const stand = Zustand.hole()
   const riesenschein = stand.riesenscheine.find((r) => r.id === riesenscheinId)
@@ -195,18 +164,6 @@ function einzelheit(riesenscheinId) {
     // Beides steht deshalb in EINER Zeile ganz oben: links die Herkunft,
     // rechts der Weg, etwas hinzuzufuegen.
     riesenkopf(riesenschein, stand),
-
-    el('.detailkopf', {}, [
-      el('input.namenfeld', {
-        type: 'text',
-        value: riesenschein.name,
-        onchange: (e) =>
-          Zustand.benenneUm(riesenscheinId, /** @type {HTMLInputElement} */ (e.target).value),
-      }),
-      el('.detailzeit', {
-        text: scheine[0]?.gesetztAm.wert ? `gesetzt ${zeitText(scheine[0].gesetztAm.wert)}` : '',
-      }),
-    ]),
 
     // Die vier Zahlen, wegen derer man herschaut. Mehr nicht.
     //
@@ -421,8 +378,49 @@ function rechnungshinweise(rechnung) {
  * @returns {HTMLElement}
  */
 function scheinliste(riesenschein, scheine) {
+  /*
+    DIE REIHENFOLGE HAT JETZT EINE BEDEUTUNG.
+
+    Karam am 16.09.2026: "da rechts einfach alle Minischeine, alle Kombis, mit
+    Anbieter und Einsatz, und das muss immer eine Reihenfolge geben, wann er
+    was gesetzt hat."
+
+    Die gespeicherte Reihenfolge (riesenschein.scheinIds) bleibt die Wahrheit:
+    sie bestimmt, wie das Blatt und die Excel-Mappe aussehen, und sie gehoert
+    Karam. Der Knopf unten sortiert sie nach dem Zeitpunkt, an dem gesetzt
+    wurde, und ruft dafuer dasselbe setzeReihenfolge auf, das auch die Pfeile
+    benutzen. Es wird also nichts neu gerechnet und nichts nebenher sortiert.
+
+    Scheine ohne Zeitpunkt wandern ans Ende statt an den Anfang: sonst stuende
+    das Unbekannte vor dem Bekannten, und das liest sich wie eine Aussage.
+  */
+  const mitZeit = scheine.filter((s) => s.gesetztAm.wert).length
+
   return el('.scheinbereich', {}, [
-    el('.teiltitel', { text: 'In der Reihenfolge des Blattes' }),
+    el('.scheinbereichkopf', {}, [
+      el('.teiltitel', { text: 'In der Reihenfolge des Blattes' }),
+      mitZeit > 1
+        ? el('button.knopf.knopf-winzig', {
+            type: 'button',
+            text: 'nach Zeit',
+            title:
+              `Nach dem Zeitpunkt sortieren, an dem gesetzt wurde. ` +
+              `Bei ${scheine.length - mitZeit} Schein(en) steht keiner auf dem Bild, ` +
+              'die wandern ans Ende.',
+            onclick: () => {
+              const sortiert = [...scheine].sort((a, b) => {
+                const za = a.gesetztAm.wert ?? ''
+                const zb = b.gesetztAm.wert ?? ''
+                if (za === zb) return 0
+                if (!za) return 1
+                if (!zb) return -1
+                return za < zb ? -1 : 1
+              })
+              Zustand.setzeReihenfolge(riesenschein.id, sortiert.map((s) => s.id))
+            },
+          })
+        : null,
+    ]),
     el(
       '.scheinreihe',
       {},
@@ -437,6 +435,19 @@ function scheinliste(riesenschein, scheine) {
               el('span', { text: schein.buchmacher.wert ?? 'Anbieter offen' }),
             ]),
             schein.konto.wert ? el('.kaertchenkonto', { text: schein.konto.wert }) : null,
+
+            // Wann gesetzt wurde. Steht es nicht auf dem Bild, steht hier
+            // auch nichts: eine erfundene Zeit waere schlimmer als keine.
+            schein.gesetztAm.wert
+              ? el('.kaertchenzeit', {
+                  text: zeitText(schein.gesetztAm.wert),
+                  title: 'Zeitpunkt, an dem gesetzt wurde, so wie er auf dem Schein steht',
+                })
+              : el('.kaertchenzeit.kaertchenzeit-leer', {
+                  text: 'ohne Zeit',
+                  title: 'Auf diesem Schein steht kein Zeitpunkt.',
+                }),
+
             el('.kaertchenzahlen', {}, [
               el('span.kaertcheneinsatz', { text: formatiere(barEinsatz(schein), w, 'de') }),
               el('span.kaertchenquote', {
@@ -447,12 +458,40 @@ function scheinliste(riesenschein, scheine) {
             rueckfluss.bekannt && rueckfluss.wert !== null
               ? el('.kaertchenrueckfluss', { text: `zurueck ${formatiere(rueckfluss.wert, w, 'de')}` })
               : null,
+
+            /*
+              NOTIZ AN JEDEM EINZELNEN SCHEIN.
+
+              Karam am 16.09.2026: "man kann auch zu jeder Kombi eine Notiz
+              hinzufuegen."
+
+              Es gibt sie schon, aber nur im Reiter Scheine, aufgeklappt unter
+              "mehr". Wer hier auf den Riesenschein sieht, wollte deshalb bisher
+              woanders hin, um eine Zeile dazuzuschreiben.
+
+              Dasselbe Feld, derselbe setzeScheinNotiz. Zugeklappt, damit
+              sechzig leere Felder nicht die Spalte fuellen, und offen, sobald
+              etwas drinsteht.
+            */
+            el('details.kaertchennotiz', { open: schein.notiz ? 'open' : null }, [
+              el('summary', { text: schein.notiz ? 'Notiz' : 'Notiz hinzufuegen' }),
+              el('textarea.notizfeld.notizfeld-klein', {
+                rows: '2',
+                placeholder: 'Warum dieser Schein, was ist aufgefallen',
+                text: schein.notiz ?? '',
+                onchange: (e) =>
+                  Zustand.setzeScheinNotiz(
+                    schein.id,
+                    /** @type {HTMLTextAreaElement} */ (e.target).value
+                  ),
+              }),
+            ]),
           ]),
           el('.kaertchenknoepfe', {}, [
             i > 0
               ? el('button.knopf.knopf-winzig', {
                   type: 'button',
-                  text: '◀',
+                  text: '<',
                   title: 'nach vorne',
                   onclick: () => {
                     const reihe = [...riesenschein.scheinIds]
@@ -465,7 +504,7 @@ function scheinliste(riesenschein, scheine) {
             i < scheine.length - 1
               ? el('button.knopf.knopf-winzig', {
                   type: 'button',
-                  text: '▶',
+                  text: '>',
                   title: 'nach hinten',
                   onclick: () => {
                     const reihe = [...riesenschein.scheinIds]
@@ -512,7 +551,33 @@ function riesenkopf(riesenschein, stand) {
         el('span', { text: p?.name || 'ohne Projekt' }),
         spanne ? el('span.riesenkopf-zeit', { text: spanne }) : null,
       ]),
-      el('.riesenkopf-name', { text: riesenschein.name || 'Ohne Namen' }),
+      /*
+        DER NAME STEHT HIER UND IST AENDERBAR.
+
+        Karam am 16.09.2026: "den aktuellen Riesenschein, den man gerade anhat,
+        das soll auch angezeigt werden, welcher Schein das ist. Man kann ihn
+        auch immer benennen."
+
+        Das Feld stand vorher weiter unten in einer eigenen Zeile, unter den
+        Kacheln. Jetzt steht es ganz oben und gross, direkt unter der Herkunft:
+        WO bin ich, und WELCHER ist es. Das sind die beiden Fragen, die man beim
+        Aufmachen hat.
+
+        Ein Eingabefeld und keine Ueberschrift mit Stift daneben: man sieht
+        sofort, dass man hineinschreiben darf, und braucht keinen Klick vorher.
+      */
+      el('input.riesenkopf-name', {
+        type: 'text',
+        value: riesenschein.name,
+        placeholder: 'Diesem Riesenschein einen Namen geben',
+        'aria-label': 'Name des Riesenscheins',
+        title: 'Hineinschreiben benennt den Riesenschein um.',
+        onchange: (e) =>
+          Zustand.benenneUm(riesenschein.id, /** @type {HTMLInputElement} */ (e.target).value),
+      }),
+      el('.riesenkopf-zahl', {
+        text: `${riesenschein.scheinIds.length === 1 ? '1 Schein' : `${riesenschein.scheinIds.length} Scheine`} darin`,
+      }),
     ]),
 
     el('.riesenkopf-rechts', {}, [

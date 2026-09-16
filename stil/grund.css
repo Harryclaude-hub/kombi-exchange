@@ -198,42 +198,35 @@ img {
 /* ---------------------------------------------------------------- Raster */
 
 /*
-  Drei Spalten: Auswahl, offener Riesenschein, seine Scheine.
+  ZWEI Spalten: der offene Riesenschein, seine Scheine.
 
-  Karam am 16.09.2026: "rechts einfach ein Panel bei den Riesenscheinen, und
-  dann hat man den offenen Schein in der Main, und links das Panel, da sind
-  alle Scheine drinnen."
+  Bis zum 16.09.2026 waren es drei, die erste war die Auswahlliste. Karam
+  danach: "vor allem bei Riesenscheinen soll dieser linke Panel dafuer sein,
+  alle Scheine aufzulisten."
 
-  Die Mitte bekommt den Rest (1fr) und ist damit immer die breiteste Spalte.
-  Das ist Absicht: dort stehen die Zahlen, wegen derer man herschaut.
+  Die Liste steht deshalb jetzt im Panel des Programms, und diese Ansicht hat
+  eine Spalte weniger. Vorher lagen zwei Auswahllisten nebeneinander, das Panel
+  und die Spalte, und man musste erst herausfinden, dass sie Verschiedenes
+  tun.
+
+  Die Mitte bekommt den Rest (1fr) und ist die breitere. Das ist Absicht: dort
+  stehen die Zahlen, wegen derer man herschaut.
 */
 .positionsspalten {
   display: grid;
-  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr) minmax(280px, 380px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
   gap: var(--luft-4);
   align-items: start;
 }
 
-/* Nur ein Riesenschein: keine Auswahlliste, aber die Scheine bleiben rechts. */
-.positionsspalten[data-einzeln='true'] {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
-}
-
-/* Schmaler Bildschirm: die Scheine ruecken unter die Zahlen. */
-@media (max-width: 1400px) {
-  .positionsspalten,
-  .positionsspalten[data-einzeln='true'] {
-    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-  }
-  .scheinpanel {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 1000px) {
-  .positionsspalten,
-  .positionsspalten[data-einzeln='true'] {
-    grid-template-columns: 1fr;
+/*
+  Schmaler Bildschirm: die Scheine ruecken UNTER die Zahlen statt daneben.
+  Bei 980 Pixeln und weniger blieben fuer die Mitte sonst unter 600 uebrig, und
+  dort stehen vierstellige Betraege nebeneinander.
+*/
+@media (max-width: 980px) {
+  .positionsspalten {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

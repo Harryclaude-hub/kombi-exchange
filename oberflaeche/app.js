@@ -1149,9 +1149,19 @@ function zeichnePanel() {
   const angeheftet = Nadeln.alle()
   const angehefteteWetten = stand.riesenscheine.filter((r) => angeheftet.includes(r.id))
 
+  // Bei den Riesenscheinen traegt das Panel die LISTE, sonst den Schnellzugriff.
+  const beiRiesenscheinen = stand.ansicht === 'positionen' && stand.riesenscheine.length > 0
+  const gewaehlt = stand.auswahl ?? stand.riesenscheine[0]?.id ?? null
+
   fuelle(panel, [
     el('.panelkopf', {}, [
-      schmal ? null : el('span.paneltitel', { text: 'Schnellzugriff' }),
+      schmal
+        ? null
+        : el('span.paneltitel', {
+            text: beiRiesenscheinen
+              ? `${stand.riesenscheine.length} Riesenscheine`
+              : 'Schnellzugriff',
+          }),
       el('button.knopf.knopf-winzig.panelfalten', {
         type: 'button',
         text: schmal ? '>' : '<',
@@ -1168,52 +1178,93 @@ function zeichnePanel() {
       }),
     ]),
 
-    el('nav.panelgruppe', { 'aria-label': 'Wege durch das Programm' }, [
-      schmal ? null : el('.panelgruppentitel', { text: 'Wege' }),
-      ...ANSICHTEN.map((a) =>
-        el(
-          'button.panelknopf',
-          {
-            type: 'button',
-            daten: { offen: String(stand.ansicht === a.schluessel) },
-            title: a.name,
-            onclick: () => Zustand.aendere({ ansicht: a.schluessel }),
-          },
-          [
-            el('span.panelzeichen', { text: a.zeichen }),
-            schmal ? null : el('span.panelname', { text: a.name }),
-          ]
-        )
-      ),
-    ]),
+    /*
+      DIE LISTE DER RIESENSCHEINE, wenn man dort steht.
 
-    el('.panelgruppe', {}, [
-      schmal ? null : el('.panelgruppentitel', { text: 'Angeheftet' }),
-      angehefteteWetten.length === 0 && !schmal
-        ? el('p.panelleer', {
-            text:
-              'Noch nichts angeheftet. Klick die Nadel an einem Riesenschein an, ' +
-              'dann steht er hier und ist von ueberall aus einen Klick entfernt.',
+      Karam am 16.09.2026: "vor allem bei Riesenscheinen soll dieser linke Panel
+      dafuer sein, alle Scheine aufzulisten. Und den grossen Schein einfach hier
+      in der Mitte."
+
+      Vorher stand die Liste als eigene Spalte IN der Ansicht, und links daneben
+      lag noch das Panel mit den Wegen. Das waren vier Spalten, zwei davon zum
+      Auswaehlen. Jetzt traegt das Panel die Liste, und die Ansicht hat eine
+      Spalte weniger und mehr Platz fuer die Zahlen.
+    */
+    beiRiesenscheinen
+      ? el(
+          'nav.panelgruppe',
+          { 'aria-label': 'Alle Riesenscheine' },
+          stand.riesenscheine.map((r, i) => {
+            const rechnung = Zustand.rechnungVon(r.id)
+            const offen = r.id === gewaehlt
+            return el(
+              'button.panelknopf.panelknopf-wette',
+              {
+                type: 'button',
+                daten: { offen: String(offen) },
+                title: r.name || 'Ohne Namen',
+                onclick: () => Zustand.aendere({ ansicht: 'positionen', auswahl: r.id }),
+              },
+              [
+                el('span.panelzeichen', { text: String(i + 1) }),
+                schmal
+                  ? null
+                  : el('span.panelwette', {}, [
+                      el('span.panelname', { text: r.name || 'Ohne Namen' }),
+                      el('span.panelzahl', {
+                        text: formatiere(rechnung.einsatzGesamt, rechnung.waehrung, 'de'),
+                      }),
+                    ]),
+              ]
+            )
           })
-        : null,
-      ...angehefteteWetten.map((r) =>
-        el(
-          'button.panelknopf.panelknopf-wette',
-          {
-            type: 'button',
-            daten: {
-              offen: String(stand.ansicht === 'positionen' && stand.auswahl === r.id),
-            },
-            title: r.name || 'Ohne Namen',
-            onclick: () => Zustand.aendere({ ansicht: 'positionen', auswahl: r.id }),
-          },
-          [
-            el('span.panelzeichen', { text: '*' }),
-            schmal ? null : el('span.panelname', { text: r.name || 'Ohne Namen' }),
-          ]
         )
-      ),
-    ]),
+      : null,
+
+    /*
+      DER SCHNELLZUGRIFF, ueberall sonst.
+
+      Karam am 16.09.2026: "jetzt hast du irgendwie oben und unten zwei
+      identische Symbole."
+
+      Er hat recht: das Panel fuehrte dieselben sieben Wege noch einmal, die
+      oben schon als Reiter stehen. Zweimal dieselbe Navigation ist keine
+      Hilfe, sondern die Frage, ob die beiden dasselbe tun. Die Wege stehen
+      jetzt nur noch oben im Kopf, so wie Karam es am 16.09. selbst wollte
+      ("einfach das Navigationssystem in den Header").
+
+      Was das Panel dafuer traegt, gibt es oben NICHT: das Angeheftete und das
+      offene Projekt.
+    */
+    beiRiesenscheinen
+      ? null
+      : el('.panelgruppe', {}, [
+          schmal ? null : el('.panelgruppentitel', { text: 'Angeheftet' }),
+          angehefteteWetten.length === 0 && !schmal
+            ? el('p.panelleer', {
+                text:
+                  'Noch nichts angeheftet. Klick die Nadel an einem Riesenschein an, ' +
+                  'dann steht er hier und ist von ueberall aus einen Klick entfernt.',
+              })
+            : null,
+          ...angehefteteWetten.map((r) =>
+            el(
+              'button.panelknopf.panelknopf-wette',
+              {
+                type: 'button',
+                daten: {
+                  offen: String(stand.ansicht === 'positionen' && stand.auswahl === r.id),
+                },
+                title: r.name || 'Ohne Namen',
+                onclick: () => Zustand.aendere({ ansicht: 'positionen', auswahl: r.id }),
+              },
+              [
+                el('span.panelzeichen', { text: '*' }),
+                schmal ? null : el('span.panelname', { text: r.name || 'Ohne Namen' }),
+              ]
+            )
+          ),
+        ]),
 
     el('.panelgruppe', {}, [
       schmal ? null : el('.panelgruppentitel', { text: 'Dieses Projekt' }),

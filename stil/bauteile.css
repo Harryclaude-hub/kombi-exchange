@@ -1,4 +1,21 @@
 /*
+  MERKSATZ, 16.09.2026: KEIN UEBERGANG AUF FARBEN.
+
+  Ein transition auf background oder border-color laeuft NICHT neu an, wenn
+  sich nur das CSS-Merkmal dahinter aendert. Beim Umschalten von Dunkel auf
+  Hell behielt jeder Knopf seine alte dunkle Flaeche, waehrend die Schrift
+  sofort hell wurde: dunkle Schrift auf dunkler Flaeche, gemessene 1,08 zu 1.
+
+  Nachgewiesen im Browser: mit transition: none stand sofort die richtige
+  Farbe da, mit Uebergang blieb die alte auch nach zweimaligem Umschalten
+  stehen.
+
+  Deshalb wechseln Farben und Kanten hart. Bewegung (transform) darf weich
+  bleiben, die haengt an keinem Merkmal. Wer hier wieder ein "background
+  var(--takt)" einbaut, baut den Fehler wieder ein.
+*/
+
+/*
   Designschicht, Teil 3 von 4: die Bauteile.
 
   Jede Klasse, die das JavaScript setzt, bekommt hier ihr Aussehen.
@@ -146,7 +163,7 @@
   font-size: var(--text-normal);
   font-weight: 600;
   white-space: nowrap;
-  transition: color var(--takt), border-color var(--takt), background var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .reiter:hover {
@@ -211,7 +228,7 @@
   */
   flex-shrink: 0;
   white-space: nowrap;
-  transition: background var(--takt), border-color var(--takt), transform var(--takt);
+  transition: transform var(--takt);
 }
 
 .knopf:hover:not(:disabled) {
@@ -375,7 +392,7 @@ summary:focus-visible,
   border: 2px dashed var(--linie-hell);
   border-radius: var(--rundung-gross);
   text-align: center;
-  transition: border-color var(--takt), background var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .ablage:hover,
@@ -883,18 +900,24 @@ li[data-schwere="info"] .hinweisart {
   z-index: 5;
 }
 
+/*
+  --schrift-leise statt --schrift-still: mit der stillen Schrift lag der
+  Tabellenkopf in der dunklen Fassung bei 4,43 zu 1 und damit knapp unter der
+  Grenze. Bei sechzig Zeilen ist der Kopf die Zeile, zu der man am oeftesten
+  hinaufsieht.
+*/
 .kopfzelle {
   padding: var(--luft-2) var(--luft-2);
   font-size: var(--text-winzig);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--schrift-still);
+  color: var(--schrift-leise);
   font-weight: 700;
 }
 
 .tabellenzeile {
   border-bottom: 1px solid var(--linie);
-  transition: background var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .tabellenzeile:hover {
@@ -977,7 +1000,7 @@ li[data-schwere="info"] .hinweisart {
   border: 1px solid transparent;
   border-radius: 4px;
   font-size: var(--text-klein);
-  transition: border-color var(--takt), background var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .feldeingabe:hover,
@@ -1045,13 +1068,23 @@ li[data-schwere="info"] .hinweisart {
   color: var(--schrift-leise);
 }
 
+/*
+  ZWEI FESTE FARBEN STANDEN HIER (#1a0206 und #1a1000), und beide waren nach
+  dem Nachschaerfen der hellen Fassung falsch: dort ist --schlecht jetzt ein
+  dunkles Rot, und dunkle Schrift darauf ergab gemessene 3,46 zu 1.
+
+  Welche Schrift auf einer gefuellten Bedeutungsfarbe lesbar ist, dreht sich mit
+  dem Thema um. Das gehoert deshalb in ein Merkmal und nicht hierher
+  (Projektregel 5). Jetzt 6,27 zu 1 in der dunklen und 6,76 in der hellen
+  Fassung.
+*/
 .anmerkung[data-schwere="fehler"] {
   background: var(--schlecht);
-  color: #1a0206;
+  color: var(--auf-schlecht);
 }
 .anmerkung[data-schwere="warnung"] {
   background: var(--offen);
-  color: #1a1000;
+  color: var(--auf-offen);
 }
 
 .feldwahl[data-status="gewonnen"] {
@@ -1233,33 +1266,17 @@ li[data-schwere="info"] .hinweisart {
 
 /* ---------------------------------------------------------------- Positionen */
 
-.positionsliste {
-  display: grid;
-  gap: var(--luft-2);
-  align-content: start;
-}
+/*
+  HIER STAND .positionsliste, in zwei Fassungen an zwei Stellen dieser Datei.
 
-.positionskarte {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px var(--luft-2);
-  padding: var(--luft-3);
-  background: var(--flaeche);
-  border: 1px solid var(--linie);
-  border-left: 3px solid transparent;
-  border-radius: var(--rundung);
-  cursor: pointer;
-  transition: border-color var(--takt), background var(--takt);
-}
+  Die Auswahlspalte in der Ansicht Riesenscheine ist am 16.09.2026 entfallen,
+  die Liste steht jetzt im Panel links (zeichnePanel in oberflaeche/app.js).
+  Das Element wird also nirgends mehr erzeugt.
 
-.positionskarte:hover {
-  background: var(--flaeche-hoch);
-}
-
-.positionskarte[data-gewaehlt="true"] {
-  border-left-color: var(--gut);
-  background: var(--flaeche-hoch);
-}
+  Geloescht und nicht auskommentiert: eine Regel, die auf nichts zeigt, sieht
+  beim naechsten Lesen aus wie etwas, das kaputt ist, und zwei Fassungen
+  davon erst recht (Projektregel 8).
+*/
 
 .positionsname {
   grid-column: 1 / -1;
@@ -1827,7 +1844,7 @@ li[data-schwere="info"] .hinweisart {
   color: var(--schrift);
   font: inherit;
   cursor: pointer;
-  transition: border-color var(--takt), background var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .aufnahmeknopf:hover {
@@ -2061,7 +2078,7 @@ li[data-schwere="info"] .hinweisart {
   border-radius: var(--rundung);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background var(--takt), border-color var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .ordnerzeile:hover {
@@ -2108,7 +2125,7 @@ li[data-schwere="info"] .hinweisart {
   border-radius: var(--rundung);
   background: var(--grund);
   cursor: pointer;
-  transition: border-color var(--takt), background var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .projektzeile:hover {
@@ -2367,7 +2384,7 @@ li[data-schwere="info"] .hinweisart {
   min-height: 32px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--takt), border-color var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .projektknopf:hover,
@@ -2776,14 +2793,6 @@ li[data-schwere="info"] .hinweisart {
   width: auto;
 }
 
-.positionsliste {
-  display: grid;
-  gap: var(--luft-2);
-  align-content: start;
-  max-height: calc(100vh - var(--kopfhoehe) - var(--reiterhoehe) - 4rem);
-  overflow-y: auto;
-}
-
 /* ---- Fotoknoepfe, ueberall gleich ---- */
 
 .fotoknoepfe {
@@ -2877,7 +2886,7 @@ li[data-schwere="info"] .hinweisart {
   font-size: var(--text-winzig);
   cursor: pointer;
   opacity: 0;
-  transition: opacity var(--takt), color var(--takt), border-color var(--takt);
+  transition: opacity var(--takt);
 }
 
 .ordnerzeile:hover .ordnerweg,
@@ -3041,7 +3050,7 @@ li[data-schwere="info"] .hinweisart {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: background var(--takt), border-color var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .panelknopf:hover {
@@ -3366,7 +3375,7 @@ li[data-schwere="info"] .hinweisart {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--takt), background var(--takt), transform var(--takt);
+  transition: transform var(--takt);
 }
 
 .startwette:hover {
@@ -3485,7 +3494,7 @@ li[data-schwere="info"] .hinweisart {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--takt), border-color var(--takt);
+  /* kein Uebergang: die Farben haengen an Merkmalen, siehe unten */
 }
 
 .startweg:hover {
@@ -3863,4 +3872,154 @@ li[data-schwere="info"] .hinweisart {
   font-size: var(--text-winzig);
   user-select: all;
   overflow-x: auto;
+}
+
+/* ------------------------------------- Panel und Riesenschein, 16.09.2026 */
+
+/*
+  Ein Eintrag im Panel, der einen Riesenschein zeigt: Name oben, Einsatz
+  darunter in Zahlenschrift. Zwei Zeilen und nicht eine, weil ein Name lang
+  sein darf und die Zahl trotzdem lesbar bleiben soll.
+*/
+.panelwette {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.panelwette .panelname {
+  font-size: var(--text-klein);
+}
+
+.panelzahl {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/*
+  Das Zeichen im Panelknopf bekommt eine FESTE Flaeche.
+
+  Vorher lag dort ein durchscheinendes Weiss (18 Prozent) ueber der
+  Knopffarbe. In der dunklen Fassung waren das gemessene 3,83 zu 1 und damit
+  die einzige Stelle, die dort durchfiel. Ein fester Ton laesst sich
+  nachrechnen, ein durchscheinender haengt davon ab, worauf er gerade liegt.
+*/
+.panelzeichen {
+  background: var(--knopf-heiss);
+  color: var(--knopf-schrift);
+  border: 1px solid var(--knopf-rand);
+}
+
+/*
+  --knopf-haupt statt --knopf-haupt-heiss: die hellere Fassung ergab mit
+  weisser Schrift 4,22 zu 1, die dunklere ergibt 5,40.
+*/
+.panelknopf[data-offen='true'] .panelzeichen {
+  background: var(--knopf-haupt);
+  border-color: var(--knopf-haupt-rand);
+  color: var(--knopf-haupt-schrift);
+}
+
+/*
+  Der Name des offenen Riesenscheins: ein Eingabefeld, das wie eine
+  Ueberschrift aussieht. Man sieht, dass man hineinschreiben darf, ohne dass
+  ein Stiftzeichen daneben erklaeren muss, was zu tun ist.
+*/
+.riesenkopf-name {
+  width: 100%;
+  padding: var(--luft-1) var(--luft-2);
+  margin-left: calc(var(--luft-2) * -1);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--rundung);
+  font: inherit;
+  font-size: var(--text-zahl);
+  font-weight: 700;
+  color: var(--schrift);
+}
+
+.riesenkopf-name:hover {
+  border-color: var(--linie-hell);
+}
+
+.riesenkopf-name:focus {
+  outline: 3px solid var(--betonung);
+  outline-offset: 1px;
+  background: var(--flaeche);
+}
+
+.riesenkopf-name::placeholder {
+  color: var(--schrift-still);
+  font-weight: 400;
+}
+
+.riesenkopf-zahl {
+  font-size: var(--text-klein);
+  color: var(--schrift-still);
+}
+
+/* Kopf der Scheinliste: Titel links, der Sortierknopf rechts. */
+.scheinbereichkopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--luft-2);
+  margin-bottom: var(--luft-2);
+}
+
+.scheinbereichkopf .teiltitel {
+  margin: 0;
+}
+
+/*
+  Wann gesetzt wurde. In Zahlenschrift, damit sechzig Zeitpunkte untereinander
+  eine Spalte ergeben und kein Flattersatz.
+*/
+.kaertchenzeit {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  font-variant-numeric: tabular-nums;
+  color: var(--schrift-leise);
+}
+
+/*
+  Steht auf dem Schein keine Zeit, wird das GESAGT und nicht verschwiegen
+  (Projektregel 9). Eine leere Stelle liest sich wie ein Anzeigefehler, der
+  Satz "ohne Zeit" wie eine Angabe.
+*/
+.kaertchenzeit-leer {
+  color: var(--schrift-still);
+  font-style: italic;
+}
+
+/* Die Notiz am einzelnen Schein, zugeklappt solange sie leer ist. */
+.kaertchennotiz {
+  margin-top: var(--luft-2);
+}
+
+.kaertchennotiz summary {
+  cursor: pointer;
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  padding: var(--luft-1) 0;
+}
+
+.kaertchennotiz summary:hover {
+  color: var(--schrift);
+}
+
+.kaertchennotiz summary:focus-visible {
+  outline: 3px solid var(--betonung);
+  outline-offset: 2px;
+  border-radius: var(--rundung);
+}
+
+.notizfeld-klein {
+  width: 100%;
+  margin-top: var(--luft-1);
+  font-size: var(--text-winzig);
 }
