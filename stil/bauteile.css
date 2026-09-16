@@ -3751,11 +3751,28 @@ li[data-schwere="info"] .hinweisart {
   font-weight: 700;
 }
 
+/*
+  Der Achtung-Kasten bekommt eine EIGENE Schriftfarbe, damit er nicht davon
+  abhaengt, was der Dialog gerade vererbt. Ausgerechnet dieser Kasten traegt
+  die Saetze, die Geld kosten, wenn man sie ueberliest.
+
+  MERKSATZ AUS DEM NACHMESSEN am 16.09.2026: eine durchscheinende Farbe muss
+  man UEBER DEN UNTERGRUND LEGEN, bevor man den Kontrast rechnet. Mein erstes
+  Messwerkzeug hat aus rgba(245, 165, 36, 0.12) einfach die Zahlen 245, 165, 36
+  genommen und die 0,12 weggelassen. Heraus kamen 3,37 zu 1 in der hellen und
+  1,88 in der dunklen Fassung, also ein Fehler, den es nicht gab. Richtig
+  gerechnet sind es 15,2 und 10,1.
+
+  Wer hier misst: erst die Schichten von oben nach unten zusammenlegen, dann
+  die Leuchtdichte. Sonst repariert man etwas Heiles und glaubt, es sei besser
+  geworden.
+*/
 .anleitungsachtung {
   padding: var(--luft-3);
   background: var(--offen-tief);
   border-left: 3px solid var(--offen);
   border-radius: var(--rundung);
+  color: var(--schrift);
   font-size: var(--text-klein);
   line-height: 1.6;
 }
