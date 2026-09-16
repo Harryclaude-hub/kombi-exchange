@@ -694,7 +694,20 @@ function projektwahl(stand) {
       text: 'Neu',
       title: 'Neues Projekt anlegen',
       onclick: async () => {
-        const name = prompt('Wie soll das neue Projekt heissen?', `Runde vom ${new Date().toLocaleDateString('de-DE')}`)
+        /*
+          Karam am 16.09.2026: "er soll bitte statt Runde vom 16.09. immer
+          Projekt und dann Name dazu. Und dieser Projekt wird auch
+          wahrscheinlich ueber Monate gehen, ueber eine ganze Saison."
+
+          "Runde vom 16.09." war fuer einen Spieltag gedacht. Ein Projekt, das
+          eine Saison traegt, heisst nicht nach dem Tag, an dem es angelegt
+          wurde. Vorgeschlagen wird deshalb "Projekt " mit dem Jahr, den Rest
+          schreibt Karam dazu.
+        */
+        const name = prompt(
+          'Wie soll das neue Projekt heissen?',
+          `Projekt ${new Date().getFullYear()} `
+        )
         if (!name) return
         await legeProjektAn(name.trim())
       },

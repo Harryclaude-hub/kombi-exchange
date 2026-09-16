@@ -224,3 +224,37 @@ export function anbieterzeichen(name) {
     text: kuerzelFuer(name),
   })
 }
+
+/**
+ * Zeigt nur den Ausschnitt des Quellbildes, aus dem ein Schein gelesen wurde.
+ *
+ * Karam am 16.09.2026: "bei den Riesenscheinen moechte ich, dass da immer ein
+ * Foto dabei ist, das Foto immer angezeigt wird."
+ *
+ * STEHT HIER UND NICHT IN EINER ANSICHT, weil jetzt zwei Ansichten dasselbe
+ * brauchen: die Scheineliste und die Riesenscheine. Zweimal gebaut hiesse,
+ * dass eines Tages die eine den Ausschnitt anders schneidet als die andere,
+ * und dann sieht man an zwei Stellen zwei verschiedene Wahrheiten ueber
+ * dasselbe Bild (Projektregel 8).
+ *
+ * Kein Bild da (etwa nach einem Neuladen, weil die Bilder auf dem Geraet
+ * liegen): dann bleibt die Leinwand leer statt zu verschwinden. Ein leerer
+ * Rahmen sagt "hier gehoert ein Bild hin", nichts sagt gar nichts.
+ *
+ * @param {{element?: HTMLImageElement|null}|null|undefined} bild
+ * @param {{x: number, y: number, breite: number, hoehe: number}|null|undefined} ausschnitt
+ * @returns {HTMLElement}
+ */
+export function ausschnittbild(bild, ausschnitt) {
+  const leinwand = /** @type {HTMLCanvasElement} */ (el('canvas.ausschnitt'))
+  const breite = Math.max(1, Math.round(ausschnitt?.breite ?? 1))
+  const hoehe = Math.max(1, Math.round(ausschnitt?.hoehe ?? 1))
+  leinwand.width = breite
+  leinwand.height = hoehe
+
+  const kontext = leinwand.getContext('2d')
+  if (kontext && bild?.element && ausschnitt) {
+    kontext.drawImage(bild.element, ausschnitt.x, ausschnitt.y, breite, hoehe, 0, 0, breite, hoehe)
+  }
+  return leinwand
+}

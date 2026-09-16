@@ -10,7 +10,7 @@
  * Diese Datei stellt nur dar.
  */
 
-import { el, fuelle, zeitText, anbieterzeichen } from './werkzeug.js'
+import { el, fuelle, zeitText, anbieterzeichen, ausschnittbild } from './werkzeug.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { statusText } from '../bild/mosaik.js'
 import { barEinsatz, realisierterRueckfluss, offenePotenzialauszahlung } from '../kern/rechnung.js'
@@ -199,16 +199,36 @@ function einzelheit(riesenscheinId) {
     //
     // Frueher standen hier acht Kacheln nebeneinander, alle gleich gross und
     // gleich laut. Bei acht gleich lauten Zahlen sucht das Auge, statt zu lesen.
+    /*
+      DIE DREI ZAHLEN, DIE KARAM OBEN SEHEN WILL.
+
+      Karam am 16.09.2026: "ganz oben bei den Riesenscheinen eine Anzeige der
+      Durchschnittsquote, was gesamt bis jetzt gesetzt wurde, was der
+      hoechstmoegliche Gewinn ist. Bitte macht das so, dass es wirklich
+      sichtbar ist."
+
+      Vorher standen hier VIER gleich laute Kacheln, darunter die Verteilung
+      (Scheine durch Anbieter). Die ist eine Auskunft, keine Zahl, wegen der
+      man herschaut. Sie steht jetzt eine Zeile tiefer bei den uebrigen.
+
+      DURCHSCHNITTSQUOTE heisst im Programm quoteEffektiv, und sie ist
+      EINSATZGEWICHTET, nicht der einfache Mittelwert. Bei ungleichen
+      Einsaetzen ist der Mittelwert schlicht falsch: fuenftausend zu 1,84 und
+      hundert zu 3,00 ergeben im Mittel 2,42, in Wahrheit aber 1,86. Der
+      Untertitel sagt das, damit die Zahl nicht missverstanden wird.
+
+      HOECHSTMOEGLICHER GEWINN ist gewinnMoeglich, also ohne den Einsatz. Karam
+      hat ausdruecklich vom Gewinn gesprochen, nicht von der Auszahlung. Die
+      Auszahlung mit Einsatz steht darunter weiter da, damit beide Zahlen
+      auffindbar bleiben (Projektregel 9).
+    */
     el('.kachelreihe.kachelreihe-wichtig', {}, [
-      kachel('Gesamteinsatz', formatiere(rechnung.einsatzGesamt, w, 'de'), 'neutral',
-        'Tatsaechlicher Geldaufwand'),
-      kachel('Moegliche Auszahlung', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut',
-        'Wenn alles Offene gewinnt, einschliesslich Einsatz'),
-      kachel('Effektive Quote', formatiereQuote(rechnung.quoteEffektiv, 'dezimal', 'de'), 'neutral',
-        'Einsatzgewichtet, nicht der Mittelwert'),
-      kachel('Verteilung',
-        `${rechnung.anzahlScheine} / ${rechnung.anzahlBuchmacher}`, 'neutral',
-        'Scheine / Anbieter'),
+      kachel('Gesamt gesetzt', formatiere(rechnung.einsatzGesamt, w, 'de'), 'neutral',
+        `${rechnung.anzahlScheine} Schein(e) bei ${rechnung.anzahlBuchmacher} Anbieter(n)`),
+      kachel('Durchschnittsquote', formatiereQuote(rechnung.quoteEffektiv, 'dezimal', 'de'), 'neutral',
+        'Einsatzgewichtet, nicht der einfache Mittelwert'),
+      kachel('Hoechstmoeglicher Gewinn', formatiere(rechnung.gewinnMoeglich, w, 'de'), 'gut',
+        'Ohne den Einsatz. Mit Einsatz waeren es ' + formatiere(rechnung.auszahlungMoeglich, w, 'de')),
     ]),
 
     // Alles Weitere ist da, aber zugeklappt. Ein <details> braucht kein
@@ -217,7 +237,10 @@ function einzelheit(riesenscheinId) {
     el('details.mehr', {}, [
       el('summary', { text: 'Alle Zahlen und die Aufteilung' }),
       el('.kachelreihe', {}, [
-        kachel('Moeglicher Gewinn', formatiere(rechnung.gewinnMoeglich, w, 'de'), 'gut', 'Ohne Einsatz'),
+        kachel('Moegliche Auszahlung', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut',
+          'Wenn alles Offene gewinnt, einschliesslich Einsatz'),
+        kachel('Verteilung', `${rechnung.anzahlScheine} / ${rechnung.anzahlBuchmacher}`, 'neutral',
+          'Scheine / Anbieter'),
         kachel('Noch im Risiko', formatiere(rechnung.imRisiko, w, 'de'), 'offen',
           'Der Einsatz der noch offenen Scheine'),
         kachel('Ergebnis bisher', formatiere(rechnung.ergebnisRealisiert, w, 'de'),
@@ -457,6 +480,16 @@ function scheinliste(riesenschein, scheine) {
       scheine.map((schein, i) => {
         const w = schein.waehrung.wert ?? 'UNBEKANNT'
         const rueckfluss = realisierterRueckfluss(schein)
+
+        // Der moegliche Gewinn, aus dem Kern geholt und nicht hier gerechnet.
+        const potenzial = offenePotenzialauszahlung(schein)
+        const einsatzBar = barEinsatz(schein)
+        const moeglicherGewinn =
+          potenzial.bekannt && potenzial.wert !== null ? potenzial.wert - einsatzBar : null
+
+        // Das Foto, aus dem dieser Schein gelesen wurde.
+        const bild = Zustand.hole().bilder.get(schein.bildId)
+
         return el('.scheinkaertchen', { daten: { status: schein.status } }, [
           el('.kaertchennummer', { text: String(i + 1) }),
           el('.kaertcheninhalt', {}, [
@@ -465,6 +498,23 @@ function scheinliste(riesenschein, scheine) {
               el('span', { text: schein.buchmacher.wert ?? 'Anbieter offen' }),
             ]),
             schein.konto.wert ? el('.kaertchenkonto', { text: schein.konto.wert }) : null,
+
+            /*
+              DAS FOTO IST IMMER DABEI.
+
+              Karam am 16.09.2026: "wenn man die separat aufmacht, moechte ich,
+              dass da immer ein Foto dabei ist, das Foto immer angezeigt wird."
+
+              Gezeigt wird genau der Ausschnitt, aus dem gelesen wurde, nicht
+              das ganze Bildschirmfoto. Wer eine Zahl nachsehen will, will
+              diese Karte sehen und nicht sechzig.
+
+              Nach einem Neuladen sind die Bilder unter Umstaenden nicht mehr
+              da, sie liegen auf dem Geraet. Dann bleibt ein leerer Rahmen
+              stehen statt zu verschwinden: er sagt, dass hier ein Bild
+              hingehoert.
+            */
+            el('.kaertchenfoto', {}, [ausschnittbild(bild, schein.ausschnitt)]),
 
             // Wann gesetzt wurde. Steht es nicht auf dem Bild, steht hier
             // auch nichts: eine erfundene Zeit waere schlimmer als keine.
@@ -478,11 +528,35 @@ function scheinliste(riesenschein, scheine) {
                   title: 'Auf diesem Schein steht kein Zeitpunkt.',
                 }),
 
+            /*
+              DREI ZAHLEN JE SCHEIN, nicht zwei.
+
+              Karam am 16.09.2026: "bei der kleinen Anzeige von jedem einzelnen
+              Schein bei den Riesenscheinen immer Einsatz, moegliche Gewinn und
+              Multiplikator."
+
+              Der moegliche Gewinn kommt aus offenePotenzialauszahlung in
+              kern/rechnung.js, minus dem Einsatz. Er wird hier NICHT aus Quote
+              mal Einsatz gebaut: das ginge bei einer Gratiswette und bei einer
+              Each-Way-Wette daneben, und die Fallunterscheidung dafuer steht
+              schon im Kern (Projektregel 8).
+
+              Steht keine Quote auf dem Schein, bleibt die Stelle leer statt
+              null zu zeigen. Eine Null waere eine Aussage, und zwar eine
+              falsche.
+            */
             el('.kaertchenzahlen', {}, [
-              el('span.kaertcheneinsatz', { text: formatiere(barEinsatz(schein), w, 'de') }),
-              el('span.kaertchenquote', {
-                text: formatiereQuote(schein.quoteDezimal.wert, 'dezimal', 'de'),
-              }),
+              zahlenpaar('Einsatz', formatiere(barEinsatz(schein), w, 'de'), 'neutral'),
+              zahlenpaar(
+                'Gewinn',
+                moeglicherGewinn === null ? '-' : formatiere(moeglicherGewinn, w, 'de'),
+                moeglicherGewinn === null ? 'neutral' : 'gut'
+              ),
+              zahlenpaar(
+                'Multiplikator',
+                formatiereQuote(schein.quoteDezimal.wert, 'dezimal', 'de'),
+                'neutral'
+              ),
             ]),
             el('.kaertchenstatus', { text: statusText(schein.status) }),
             rueckfluss.bekannt && rueckfluss.wert !== null
@@ -731,4 +805,22 @@ function ausgangsknopf(riesenschein, ausgang) {
       Zustand.melde('erfolg', `${anzahl} Schein(e) auf ${beschriftung} gesetzt.`)
     },
   })
+}
+
+/**
+ * Ein beschriftetes Zahlenpaar im Kaertchen: Wort oben, Zahl darunter.
+ *
+ * Drei nackte Zahlen nebeneinander liest niemand richtig, weil man raten muss,
+ * welche welche ist. Mit Beschriftung sind es drei Angaben statt drei Zahlen.
+ *
+ * @param {string} name
+ * @param {string} wert
+ * @param {string} art
+ * @returns {HTMLElement}
+ */
+function zahlenpaar(name, wert, art) {
+  return el('.kaertchenpaar', { daten: { art } }, [
+    el('span.kaertchenwort', { text: name }),
+    el('span.kaertchenzahl', { text: wert }),
+  ])
 }

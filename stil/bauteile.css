@@ -4063,3 +4063,74 @@ li[data-schwere="info"] .hinweisart {
   border-color: var(--offen);
   color: var(--auf-offen);
 }
+
+/* ------------------------- Der einzelne Schein im Riesenschein, 16.09.2026 */
+
+/*
+  Karam: "bei der kleinen Anzeige von jedem einzelnen Schein immer Einsatz,
+  moegliche Gewinn und Multiplikator." Drei nackte Zahlen nebeneinander liest
+  niemand richtig, weil man raten muss, welche welche ist. Also Wort oben,
+  Zahl darunter.
+*/
+.kaertchenzahlen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--luft-2);
+  margin: var(--luft-2) 0;
+}
+
+.kaertchenpaar {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.kaertchenwort {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  white-space: nowrap;
+}
+
+.kaertchenzahl {
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kaertchenpaar[data-art='gut'] .kaertchenzahl {
+  color: var(--gut);
+}
+
+/*
+  Das Foto, aus dem der Schein gelesen wurde.
+
+  Gezeigt wird der Ausschnitt, nicht das ganze Bildschirmfoto. Hoehe begrenzt,
+  damit sechzig Kaertchen untereinander nicht zu sechzig Bildschirmseiten
+  werden; wer genauer hinsehen will, findet das ganze Bild im Reiter Aufnahme.
+
+  Der Rahmen bleibt auch dann stehen, wenn kein Bild da ist (nach einem
+  Neuladen liegen die Bilder nur auf dem Geraet). Ein leerer Rahmen sagt
+  "hier gehoert ein Bild hin", nichts sagt gar nichts.
+*/
+.kaertchenfoto {
+  margin: var(--luft-2) 0;
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  background: var(--grund-tief);
+  overflow: hidden;
+  min-height: 28px;
+}
+
+.kaertchenfoto .ausschnitt {
+  width: 100%;
+  height: auto;
+  max-height: 120px;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}

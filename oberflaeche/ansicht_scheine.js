@@ -10,7 +10,7 @@
  * statt in einer langen Liste unterzugehen.
  */
 
-import { el, fuelle, zeitText, sicherheitsstufe, anbieterzeichen } from './werkzeug.js'
+import { el, fuelle, zeitText, sicherheitsstufe, anbieterzeichen, ausschnittbild } from './werkzeug.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { statusText } from '../bild/mosaik.js'
 import { barEinsatz } from '../kern/rechnung.js'
@@ -590,24 +590,8 @@ function schalter(schein, feldname, beschriftung) {
   ])
 }
 
-/**
- * Zeigt nur den Ausschnitt des Quellbildes, aus dem dieser Schein gelesen wurde.
- *
- * @param {import('./zustand.js').Bildeintrag} bild
- * @param {import('../kern/typen.js').Rechteck} ausschnitt
- * @returns {HTMLElement}
- */
-function ausschnittbild(bild, ausschnitt) {
-  const leinwand = el('canvas.ausschnitt')
-  const breite = Math.max(1, Math.round(ausschnitt.breite))
-  const hoehe = Math.max(1, Math.round(ausschnitt.hoehe))
-  const leinwandElement = /** @type {HTMLCanvasElement} */ (leinwand)
-  leinwandElement.width = breite
-  leinwandElement.height = hoehe
-
-  const kontext = leinwandElement.getContext('2d')
-  if (kontext && bild.element) {
-    kontext.drawImage(bild.element, ausschnitt.x, ausschnitt.y, breite, hoehe, 0, 0, breite, hoehe)
-  }
-  return leinwand
-}
+/*
+  ausschnittbild ist am 16.09.2026 nach oberflaeche/werkzeug.js gewandert,
+  weil die Ansicht Riesenscheine jetzt dasselbe braucht. Eine Fassung fuer
+  beide (Projektregel 8).
+*/
