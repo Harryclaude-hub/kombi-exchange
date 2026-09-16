@@ -238,8 +238,20 @@ function zeichneTor() {
           }),
           el('p', {
             text:
-              'Du setzt dir einen neuen: im Supabase SQL-Editor des Projekts appload einmal ' +
-              'diese Zeile ausfuehren und DEIN-NEUER-CODE durch deinen eigenen ersetzen, ' +
+              'Du setzt dir einen neuen. Am einfachsten mit der Hilfsseite: sie wuerfelt einen ' +
+              'Code in deinem Browser, baut den fertigen Befehl darum und hat zwei Knoepfe zum ' +
+              'Kopieren. Du musst nichts tippen.',
+          }),
+          el('p', {}, [
+            el('a.knopf.knopf-haupt', {
+              href: 'werkzeug/code_setzen.html',
+              text: 'Neuen Code setzen',
+            }),
+          ]),
+          el('p', {
+            text:
+              'Wer es lieber von Hand macht: im Supabase SQL-Editor des Projekts appload einmal ' +
+              'diese Zeile ausfuehren und DEIN-NEUER-CODE durch einen eigenen ersetzen, ' +
               'mindestens zwoelf Zeichen, keine Leerzeichen.',
           }),
           el('pre.tornotfall-befehl', {

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: neuen Zugangscode setzen</title>
+    <link rel="stylesheet" href="../stil/marken.css" />
+    <link rel="stylesheet" href="../stil/grund.css" />
+    <link rel="stylesheet" href="../stil/bauteile.css" />
+    <style>
+      /* Nur fuer diese Seite. Gehoert nicht zum Programm. */
+      .seite { max-width: 44rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+      .schritt { margin-bottom: 2rem; padding: 1rem 1.25rem;
+        background: var(--flaeche); border: 1px solid var(--linie);
+        border-left: 4px solid var(--betonung); border-radius: var(--rundung); }
+      .schrittnr { font-size: var(--text-winzig); font-weight: 700;
+        letter-spacing: 0.1em; color: var(--schrift-still); }
+      .schritt h2 { margin: 0.25rem 0 0.5rem; font-size: var(--text-gross); }
+      .schritt p { color: var(--schrift-leise); line-height: 1.6; }
+      .kasten { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+        margin: 0.75rem 0; }
+      .wert { flex: 1 1 18rem; padding: 0.75rem; background: var(--grund-tief);
+        border: 1px solid var(--linie-hell); border-radius: var(--rundung);
+        font-family: var(--schriftart-zahl); font-size: var(--text-zahl);
+        font-weight: 700; letter-spacing: 0.06em; color: var(--schrift);
+        user-select: all; word-break: break-all; }
+      .befehl { margin: 0.75rem 0; padding: 0.75rem; background: var(--grund-tief);
+        border: 1px solid var(--linie); border-radius: var(--rundung);
+        font-family: var(--schriftart-zahl); font-size: var(--text-winzig);
+        user-select: all; overflow-x: auto; }
+      .warnung { padding: 0.75rem 1rem; margin-bottom: 1.5rem;
+        background: var(--schlecht-tief); border-left: 4px solid var(--schlecht);
+        border-radius: var(--rundung); color: var(--schrift);
+        font-size: var(--text-klein); line-height: 1.6; }
+      .gemerkt { font-size: var(--text-klein); color: var(--gut); font-weight: 700; }
+      h1 { font-size: var(--text-riesig); margin: 0 0 0.5rem; }
+      .unterzeile { color: var(--schrift-still); margin-bottom: 2rem; }
+    </style>
+  </head>
+  <body>
+    <!--
+      WOZU DIESE SEITE
+
+      Karam am 16.09.2026, viermal: "gib mir bitte den Zugangscode, ich habe den
+      vergessen, ich will einen Code, den ich jetzt eingeben kann."
+
+      Der alte Code ist nicht wiederherstellbar. In kombi.zugangscodes steht nur
+      ein bcrypt-Fingerabdruck, und aus einem Fingerabdruck kommt niemand zum
+      Wert zurueck, auch nicht mit vollem Zugriff auf die Datenbank. Es gibt nur
+      den Weg, einen neuen zu setzen, und dafuer braucht es genau einen
+      SQL-Befehl.
+
+      Diese Seite nimmt ihm das Tippen ab, ohne dass der Code irgendwo
+      durchlaeuft, wo er nicht hingehoert:
+
+        Der Code entsteht HIER IN SEINEM BROWSER, mit crypto.getRandomValues.
+        Er wird nirgends hingeschickt, steht in keiner Datei und in keinem
+        Gespraech. Die Seite baut nur den fertigen Befehl darum herum.
+
+      Deshalb liegt sie unter werkzeug/ und nicht im Programm: sie ist ein
+      Werkzeug fuer den Notfall, kein Teil des Terminals, und sie braucht
+      folgerichtig auch keinen Zugangscode.
+    -->
+    <div class="seite">
+      <h1>Neuen Zugangscode setzen</h1>
+      <p class="unterzeile">
+        Wenn der alte Code weg ist. Drei Schritte, nichts zu tippen.
+      </p>
+
+      <div class="warnung">
+        <strong>Der Code entsteht hier in deinem Browser und verlaesst ihn nicht.</strong>
+        Er wird nirgendwohin geschickt, weder an mich noch an einen Server. Nur du siehst ihn.
+        Schreib ihn dorthin, wo deine anderen Passwoerter liegen, BEVOR du diese Seite zumachst:
+        danach ist er nicht mehr abrufbar.
+      </div>
+
+      <div class="schritt">
+        <div class="schrittnr">SCHRITT 1</div>
+        <h2>Dein neuer Code</h2>
+        <p>Achtzehn Zeichen aus dem Zufallsgenerator deines Browsers, davon zwoelf
+          zufaellige. Aehnlich aussehende Zeichen wie 0 und O oder 1 und I kommen nicht
+          vor, damit du dich beim Abtippen nicht vertust.</p>
+        <div class="kasten">
+          <div class="wert" id="code">wird gewuerfelt ...</div>
+          <button class="knopf" type="button" id="neu">Neu wuerfeln</button>
+          <button class="knopf knopf-haupt" type="button" id="codeKopieren">Code kopieren</button>
+        </div>
+        <p class="gemerkt" id="meldung1"></p>
+      </div>
+
+      <div class="schritt">
+        <div class="schrittnr">SCHRITT 2</div>
+        <h2>Den Befehl in Supabase ausfuehren</h2>
+        <p>
+          Der Knopf unten oeffnet den SQL-Editor deines Projekts <strong>appload</strong>
+          in einem neuen Fenster. Dort den Befehl einfuegen und auf <strong>Run</strong>
+          druecken. Es muss <strong>UPDATE 1</strong> zurueckkommen.
+        </p>
+        <div class="befehl" id="befehl">wird gebaut ...</div>
+        <div class="kasten">
+          <button class="knopf knopf-haupt" type="button" id="befehlKopieren">Befehl kopieren</button>
+          <a class="knopf" id="supabase" target="_blank" rel="noopener noreferrer"
+             href="https://supabase.com/dashboard/project/eybwhnvjavovcxvimtxr/sql/new">SQL-Editor oeffnen</a>
+        </div>
+        <p class="gemerkt" id="meldung2"></p>
+        <p>
+          <strong>Achtung:</strong> in diesem Befehl steht dein neuer Code im Klartext.
+          Fuege ihn nur im SQL-Editor ein, sonst nirgends.
+        </p>
+      </div>
+
+      <div class="schritt">
+        <div class="schrittnr">SCHRITT 3</div>
+        <h2>Hinein</h2>
+        <p>
+          Zurueck ins Programm und mit dem neuen Code anmelden.
+        </p>
+        <div class="kasten">
+          <a class="knopf knopf-haupt" href="../index.html">Kombi Exchange oeffnen</a>
+        </div>
+        <p>
+          Kommt in Supabase <strong>UPDATE 0</strong> statt UPDATE 1 zurueck, gibt es keine
+          aktive Codezeile. Dann ist es ein anderer Fall, siehe NOTFALL.md.
+        </p>
+      </div>
+    </div>
+
+    <script type="module">
+      // Derselbe Weg wie kombi_code_wechseln im Programm, damit ein hier
+      // gesetzter Code genauso aussieht wie einer aus dem Programm.
+      import { wuerfleCode } from '../daten/datenbank.js'
+
+      const codeEl = document.getElementById('code')
+      const befehlEl = document.getElementById('befehl')
+      const m1 = document.getElementById('meldung1')
+      const m2 = document.getElementById('meldung2')
+
+      let code = ''
+
+      function baue() {
+        code = wuerfleCode()
+        codeEl.textContent = code
+        befehlEl.textContent =
+          'update kombi.zugangscodes' +
+          String.fromCharCode(10) +
+          "   set code_hash = extensions.crypt('" + code + "', extensions.gen_salt('bf', 12))" +
+          String.fromCharCode(10) +
+          ' where aktiv;'
+        m1.textContent = ''
+        m2.textContent = ''
+      }
+
+      async function kopiere(text, wohin) {
+        try {
+          await navigator.clipboard.writeText(text)
+          wohin.textContent = 'In die Zwischenablage gelegt.'
+        } catch {
+          // Ohne Erlaubnis zur Zwischenablage nicht einfach schweigen: markieren,
+          // dann kann er mit Strg+C selbst kopieren.
+          wohin.textContent = 'Kopieren ging nicht. Bitte den Text markieren und mit Strg+C kopieren.'
+        }
+      }
+
+      document.getElementById('neu').addEventListener('click', baue)
+      document.getElementById('codeKopieren').addEventListener('click', () => kopiere(code, m1))
+      document.getElementById('befehlKopieren').addEventListener('click', () =>
+        kopiere(befehlEl.textContent, m2)
+      )
+
+      baue()
+    </script>
+  </body>
+</html>

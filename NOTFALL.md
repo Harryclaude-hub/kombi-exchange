@@ -34,6 +34,23 @@ neuen, zeigt ihn dir einmal, und meldet alle anderen Fenster ab.
 
 ## Der andere Fall: du kommst nirgends mehr hinein
 
+### Der bequeme Weg: die Hilfsseite
+
+`https://harryclaude-hub.github.io/kombi-exchange/werkzeug/code_setzen.html`
+
+Sie wuerfelt einen Code **in deinem Browser** (crypto.getRandomValues), baut den
+fertigen SQL-Befehl darum und hat zwei Knoepfe zum Kopieren sowie einen, der den
+SQL-Editor deines Projekts oeffnet. Du musst nichts tippen.
+
+Der Code wird dabei nirgendwohin geschickt. Er steht in keiner Datei, in keinem
+Gespraech und auf keinem Server, nur auf deinem Bildschirm. **Schreib ihn auf,
+bevor du die Seite zumachst.**
+
+Die Seite ist auch vom Anmeldefenster aus erreichbar, unter
+"Code verloren?".
+
+### Der Weg von Hand
+
 Dann setzt du den Code direkt in der Datenbank neu.
 
 1. Supabase oeffnen, Projekt **`appload`** (Kennung `eybwhnvjavovcxvimtxr`).
