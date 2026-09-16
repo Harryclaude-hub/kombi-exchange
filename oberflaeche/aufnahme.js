@@ -19,7 +19,13 @@ import { zerlege, findeInhaltsspalte, findeSpalten } from '../bild/segmentierung
 // Es gibt bewusst keine automatische Fenstersuche. Warum, steht in bild/segmentierung.js.
 import { starteLeserGruppe } from '../lesen/ocr.js'
 import { leseSchein } from '../kern/parser.js'
-import { erkenneBuchmacher, erkenneKonto, erkenneKontostand, BUCHMACHER_NACH_SCHLUESSEL } from '../kern/buchmacher.js'
+import {
+  erkenneBuchmacher,
+  erkenneKonto,
+  erkenneKontostand,
+  BUCHMACHER_NACH_SCHLUESSEL,
+  schluesselFuerName,
+} from '../kern/buchmacher.js'
 import { pruefsumme, legeBildAb, loescheBild } from '../daten/ablage.js'
 import { neueKennung, jetzt, atmen } from './werkzeug.js'
 import * as Zustand from './zustand.js'
@@ -366,14 +372,46 @@ export async function leseBilder(bildIds, einstellungen = {}) {
         fertigeKarten / Math.max(1, gesamtKarten)
       )
 
-      const profil = kopf.buchmacher.profil
+      /*
+        WAS DER MENSCH EINGETRAGEN HAT, BLEIBT STEHEN.
+
+        Karam am 16.09.2026: "diese Anbieter brauche ich alle einfach
+        memorisiert. BetOnline muss einfach gemerkt werden."
+
+        HIER LAG DER FEHLER. Es gibt seit jeher ein Auswahlfeld je Bild
+        (anbieterwahl in ansicht_aufnahme.js), und setzeBuchmacher schreibt die
+        Wahl mit quelle 'hand' ins Bild. Diese Zeilen haben sie danach
+        BEDINGUNGSLOS ueberschrieben, sobald gelesen wurde. Wer den Anbieter
+        von Hand einstellte und dann auf Lesen drueckte, verlor seine Eingabe.
+
+        Und das ist nicht nur eine Beschriftung. Aus dem Profil kommen weiter
+        unten gebiet, waehrung UND quotenformat fuer jeden Schein dieses
+        Bildes. Bei BetOnline sind die Quoten AMERIKANISCH (-157). Wird der
+        Anbieter nicht erkannt, faellt quotenformat auf 'dezimal' zurueck, und
+        dann wird aus -157 etwas ganz anderes als 1,64.
+
+        Fuer den Anbieter gibt es am Bild keinen Pruefstein. Also entscheidet
+        der Mensch, und seine Entscheidung schlaegt die Erkennung
+        (Projektregel 1). Nur wenn er nichts gesagt hat, zaehlt, was gelesen
+        wurde.
+      */
+      const vonHandGesetzt =
+        eintrag.bild.buchmacher.quelle === 'hand' && eintrag.bild.buchmacher.wert !== null
+
+      const profil = vonHandGesetzt
+        ? BUCHMACHER_NACH_SCHLUESSEL.get(schluesselFuerName(eintrag.bild.buchmacher.wert)) ??
+          kopf.buchmacher.profil
+        : kopf.buchmacher.profil
+
       const kontoWert = kopf.konto.wert ?? kopf.kontostand ?? null
 
-      eintrag.bild.buchmacher = {
-        wert: profil?.name ?? null,
-        sicherheit: kopf.buchmacher.sicherheit,
-        quelle: 'ocr',
-        roh: kopf.buchmacher.merkmale.join(', '),
+      if (!vonHandGesetzt) {
+        eintrag.bild.buchmacher = {
+          wert: profil?.name ?? null,
+          sicherheit: kopf.buchmacher.sicherheit,
+          quelle: 'ocr',
+          roh: kopf.buchmacher.merkmale.join(', '),
+        }
       }
       eintrag.bild.konto = {
         wert: kontoWert,
@@ -385,7 +423,10 @@ export async function leseBilder(bildIds, einstellungen = {}) {
       if (!profil) {
         Zustand.melde(
           'warnung',
-          `Bei "${eintrag.bild.dateiname}" liess sich der Anbieter nicht erkennen. Bitte von Hand eintragen.`
+          `Bei "${eintrag.bild.dateiname}" liess sich der Anbieter nicht erkennen. ` +
+            'Bitte oben am Bild von Hand eintragen und noch einmal lesen lassen. ' +
+            'Der Anbieter bestimmt Waehrung und Quotenformat, bei BetOnline zum Beispiel ' +
+            'amerikanische Quoten.'
         )
       }
 
