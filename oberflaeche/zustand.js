@@ -324,6 +324,59 @@ export function setzeFeld(scheinId, feldname, wert) {
 }
 
 /**
+ * Setzt den Ausgang fuer ALLE Scheine eines Riesenscheins auf einmal.
+ *
+ * Karam am 16.09.2026: "am Ende des Tages kann man bei jedem Riesenschein
+ * einfach hinzufuegen, ob man das gewonnen oder verloren hat. Wenn man es
+ * gewonnen hat, tut sich der gesamtmoegliche Gewinn zur Balance addieren. Wenn
+ * man es verliert, ist das, was man eingesetzt hat, einfach verloren."
+ *
+ * HIER WIRD NICHTS GERECHNET. Gesetzt wird allein der Stand jedes Scheins,
+ * genau wie wenn man ihn einzeln im Reiter Scheine umstellt. Was daraus an
+ * Geld folgt, rechnet kern/rechnung.js wie bisher:
+ *
+ *   gewonnen   realisierterRueckfluss liefert die Auszahlung, entweder die vom
+ *              Bild gelesene oder Einsatz mal Quote. Sie wandert in
+ *              ergebnisRealisiert.
+ *   verloren   realisierterRueckfluss liefert 0. Der Einsatz ist weg, es kommt
+ *              nichts zurueck.
+ *
+ * Eine zweite Rechnung an dieser Stelle waere genau die Doppelung, vor der
+ * Projektregel 8 warnt, und sie wuerde irgendwann von kern/rechnung.js
+ * abweichen.
+ *
+ * WARUM NICHT EINFACH setzeFeld IN EINER SCHLEIFE: setzeFeld ruft am Ende
+ * ordneNeu auf, und das gruppiert den gesamten Bestand neu. Bei sechzig
+ * Scheinen waeren das sechzig vollstaendige Neugruppierungen fuer einen Klick.
+ * Hier wird einmal gesetzt und einmal neu geordnet.
+ *
+ * Der Mensch entscheidet, nicht die Automatik: dafuer gibt es keinen
+ * Pruefstein am Bild (Projektregel 1). Deshalb traegt jeder so gesetzte Schein
+ * vonHand true, damit ein spaeterer Lesedurchgang ihn nicht ueberschreibt.
+ *
+ * @param {string} riesenscheinId
+ * @param {import('../kern/typen.js').Status} status
+ * @returns {number} Wie viele Scheine geaendert wurden.
+ */
+export function setzeAusgangFuerRiesenschein(riesenscheinId, status) {
+  const gruppe = stand.riesenscheine.find((r) => r.id === riesenscheinId)
+  if (!gruppe) return 0
+
+  const gehoertDazu = new Set(gruppe.scheinIds)
+  let geaendert = 0
+
+  const scheine = stand.scheine.map((schein) => {
+    if (!gehoertDazu.has(schein.id)) return schein
+    if (schein.status === status) return schein
+    geaendert += 1
+    return { ...schein, status, geaendertAm: jetzt(), vonHand: true }
+  })
+
+  if (geaendert > 0) ordneNeu(scheine)
+  return geaendert
+}
+
+/**
  * Verschiebt einen Schein in einen anderen Riesenschein.
  *
  * @param {string} scheinId

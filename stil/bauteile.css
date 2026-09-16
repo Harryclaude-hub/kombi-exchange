@@ -4023,3 +4023,43 @@ li[data-schwere="info"] .hinweisart {
   margin-top: var(--luft-1);
   font-size: var(--text-winzig);
 }
+
+/* ------------------------------------- Der Ausgang eines Riesenscheins */
+
+/*
+  Gewonnen, Verloren, Wieder offen. Karam setzt das am Ende des Spieltags von
+  Hand, es gibt dafuer keinen Pruefstein am Bild (Projektregel 1).
+
+  Die Knoepfe tragen die Bedeutungsfarbe erst, wenn sie GELTEN. Vorher sind sie
+  gewoehnliche Knoepfe. Drei gefuellte Farbflaechen nebeneinander saehen aus
+  wie drei Warnungen, und man wuesste nicht, welche davon der Zustand ist.
+*/
+.riesenkopf-ausgang {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  flex-wrap: wrap;
+}
+
+.ausgangsknopf[data-an='true'] {
+  opacity: 1;
+  cursor: default;
+}
+
+.ausgangsknopf[data-ausgang='gewonnen'][data-an='true'] {
+  background: var(--gut);
+  border-color: var(--gut);
+  color: var(--grund-tief);
+}
+
+.ausgangsknopf[data-ausgang='verloren'][data-an='true'] {
+  background: var(--schlecht);
+  border-color: var(--schlecht);
+  color: var(--auf-schlecht);
+}
+
+.ausgangsknopf[data-ausgang='offen'][data-an='true'] {
+  background: var(--offen);
+  border-color: var(--offen);
+  color: var(--auf-offen);
+}

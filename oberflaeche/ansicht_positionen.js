@@ -39,7 +39,25 @@ export function zeichne(ziel) {
 
   const rechnungen = stand.riesenscheine.map((r) => Zustand.rechnungVon(r.id))
   const gesamt = rechneProjekt(rechnungen)
-  const gewaehlt = stand.auswahl ?? stand.riesenscheine[0]?.id ?? null
+  /*
+    DIE AUSWAHL MUSS AUF ETWAS ZEIGEN, DAS ES GIBT.
+
+    Karam am 16.09.2026: "einmal das immer als Default, wenn man das aufmacht,
+    den aktuellen Riesenschein, den man gerade anhat."
+
+    Vorher stand hier nur ein ?? auf den ersten Eintrag. Das greift aber nur,
+    wenn auswahl LEER ist, nicht wenn sie auf einen Riesenschein zeigt, den es
+    nicht mehr gibt. Genau das passiert nach jedem Neuordnen: wird ein Wert
+    berichtigt, aendert sich die Signatur einer Gruppe, und die alte Kennung
+    zeigt ins Leere. Die Mitte blieb dann einfach leer, ohne jede Meldung.
+
+    Jetzt wird geprueft, ob die Auswahl noch existiert, und sonst auf den
+    ersten Riesenschein zurueckgefallen. Ein leerer Bildschirm ohne Grund ist
+    das Schlimmste, was eine Ansicht tun kann.
+  */
+  const auswahlLebt =
+    stand.auswahl !== null && stand.riesenscheine.some((r) => r.id === stand.auswahl)
+  const gewaehlt = auswahlLebt ? stand.auswahl : (stand.riesenscheine[0]?.id ?? null)
 
   // Bei genau einem Riesenschein waere der Projektkopf reine Wiederholung:
   // dieselbe Summe stuende dann dreimal auf dem Bildschirm, oben in der Leiste,
@@ -580,6 +598,33 @@ function riesenkopf(riesenschein, stand) {
       }),
     ]),
 
+    /*
+      DER AUSGANG, von Hand gesetzt.
+
+      Karam am 16.09.2026: "am Ende des Tages kann man bei jedem Riesenschein
+      einfach hinzufuegen, ob man das gewonnen oder verloren hat. Wenn man es
+      gewonnen hat, tut sich der gesamtmoegliche Gewinn zur Balance addieren.
+      Wenn man es verliert, ist das, was man eingesetzt hat, einfach verloren.
+      Dann kommt auch nichts mehr drauf."
+
+      Genau so verhaelt es sich, und zwar OHNE dass hier etwas gerechnet wird.
+      Gesetzt wird nur der Stand jedes Scheins; was daraus an Geld folgt, macht
+      kern/rechnung.js wie bisher. Ein zweiter Rechenweg an dieser Stelle waere
+      der Anfang vom Auseinanderlaufen (Projektregel 8).
+
+      Warum mit Rueckfrage: es geht um vierstellige Betraege, und ein Klick
+      daneben schiebt sie in die Bilanz oder heraus. Die Rueckfrage nennt
+      deshalb die Zahl, um die es geht, nicht nur die Anzahl der Scheine.
+
+      Warum ein dritter Knopf "wieder offen": ein Fehlklick muss zurueckzunehmen
+      sein, ohne dass man sechzig Scheine einzeln anfasst.
+    */
+    el('.riesenkopf-ausgang', {}, [
+      ausgangsknopf(riesenschein, 'gewonnen'),
+      ausgangsknopf(riesenschein, 'verloren'),
+      ausgangsknopf(riesenschein, 'offen'),
+    ]),
+
     el('.riesenkopf-rechts', {}, [
       // Die Nadel legt den Riesenschein ins Panel links. Von dort ist er aus
       // jeder Ansicht einen Klick entfernt.
@@ -598,4 +643,50 @@ function riesenkopf(riesenschein, stand) {
       fotoknoepfe({ kompakt: true, titel: 'Foto hinzufuegen' }),
     ]),
   ])
+}
+
+/**
+ * Ein Knopf, der den Ausgang des ganzen Riesenscheins setzt.
+ *
+ * @param {import('../kern/typen.js').Riesenschein} riesenschein
+ * @param {'gewonnen'|'verloren'|'offen'} ausgang
+ * @returns {HTMLElement}
+ */
+function ausgangsknopf(riesenschein, ausgang) {
+  const scheine = Zustand.scheineVon(riesenschein.id)
+  const rechnung = Zustand.rechnungVon(riesenschein.id)
+  const w = rechnung.waehrung
+
+  // Alle schon auf diesem Stand: dann ist der Knopf der aktuelle Zustand und
+  // nicht mehr eine Aufforderung.
+  const alleSo = scheine.length > 0 && scheine.every((s) => s.status === ausgang)
+
+  const beschriftung = { gewonnen: 'Gewonnen', verloren: 'Verloren', offen: 'Wieder offen' }[ausgang]
+
+  // Was der Klick bedeutet, in Geld. Genau diese Zahlen stehen in der
+  // Rueckfrage, damit man vor dem Ja sieht, worum es geht.
+  const folge = {
+    gewonnen: `${formatiere(rechnung.auszahlungMoeglich, w, 'de')} kommen zurueck`,
+    verloren: `${formatiere(rechnung.einsatzGesamt, w, 'de')} sind verloren, es kommt nichts zurueck`,
+    offen: 'zaehlt wieder als noch nicht entschieden',
+  }[ausgang]
+
+  return el('button.knopf.knopf-klein.ausgangsknopf', {
+    type: 'button',
+    daten: { ausgang, an: String(alleSo) },
+    text: beschriftung,
+    disabled: alleSo ? 'disabled' : null,
+    title: alleSo
+      ? `Alle ${scheine.length} Scheine stehen bereits auf "${beschriftung}".`
+      : `Setzt alle ${scheine.length} Scheine auf "${beschriftung}": ${folge}.`,
+    onclick: () => {
+      const frage =
+        `"${riesenschein.name || 'Ohne Namen'}" auf ${beschriftung} setzen?\n\n` +
+        `Das gilt fuer alle ${scheine.length} Scheine darin.\n` +
+        `Danach: ${folge}.`
+      if (!confirm(frage)) return
+      const anzahl = Zustand.setzeAusgangFuerRiesenschein(riesenschein.id, ausgang)
+      Zustand.melde('erfolg', `${anzahl} Schein(e) auf ${beschriftung} gesetzt.`)
+    },
+  })
 }
