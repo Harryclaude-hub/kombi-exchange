@@ -178,7 +178,7 @@ function projektkopf(gesamt) {
     kachel('Projekt: gesamt gesetzt', formatiere(gesamt.einsatzGesamt, w, 'de'), 'neutral',
       `${gesamt.anzahlScheine} Scheine bei ${gesamt.buchmacher.length} Anbietern`),
     kachel('Projekt: kann zurueckkommen', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut',
-      'Wenn alles Offene gewinnt, einschliesslich Einsatz'),
+      'Wenn alles Offene gewinnt, einschließlich Einsatz'),
     // Solange nichts entschieden ist, waere eine Null hier nur Ablenkung.
     etwasEntschieden
       ? kachel('Projekt: Ergebnis bisher', formatiere(gesamt.ergebnisRealisiert, w, 'de'),
@@ -189,8 +189,8 @@ function projektkopf(gesamt) {
     gesamt.waehrungGemischt
       ? el('.kachel.kachel-fehler', {}, [
           el('.kachelname', { text: 'Achtung' }),
-          el('.kachelwert', { text: 'Waehrungen gemischt' }),
-          el('.kachelhilfe', { text: 'Die Summen oben sind deshalb nicht aussagekraeftig.' }),
+          el('.kachelwert', { text: 'Währungen gemischt' }),
+          el('.kachelhilfe', { text: 'Die Summen oben sind deshalb nicht aussagekräftig.' }),
         ])
       : null,
   ])
@@ -275,7 +275,7 @@ function einzelheit(riesenscheinId) {
       el('summary', { text: 'Alle Zahlen und die Aufteilung' }),
       el('.kachelreihe', {}, [
         kachel('Moegliche Auszahlung', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut',
-          'Wenn alles Offene gewinnt, einschliesslich Einsatz'),
+          'Wenn alles Offene gewinnt, einschließlich Einsatz'),
         kachel('Verteilung', `${rechnung.anzahlScheine} / ${rechnung.anzahlBuchmacher}`, 'neutral',
           'Scheine / Anbieter'),
         kachel('Noch im Risiko', formatiere(rechnung.imRisiko, w, 'de'), 'offen',
@@ -287,7 +287,7 @@ function einzelheit(riesenscheinId) {
           rechnung.konten.length > 0 ? rechnung.konten.join(', ') : 'kein Konto erkannt'),
         rechnung.gratiswetteNennwert > 0
           ? kachel('Gratiswetten', formatiere(rechnung.gratiswetteNennwert, w, 'de'), 'neutral',
-              'Nennwert, zaehlt nicht als Aufwand')
+              'Nennwert, zählt nicht als Aufwand')
           : null,
       ]),
       band(rechnung),
@@ -306,7 +306,7 @@ function einzelheit(riesenscheinId) {
       el('.teiltitel', { text: 'Notiz zu diesem Riesenschein' }),
       el('textarea.notizfeld', {
         rows: '2',
-        placeholder: 'Warum diese Wette, was ist aufgefallen, worauf beim naechsten Mal achten.',
+        placeholder: 'Warum diese Wette, was ist aufgefallen, worauf beim nächsten Mal achten.',
         text: riesenschein.notiz ?? '',
         onchange: (e) =>
           Zustand.setzeRiesenscheinNotiz(
@@ -529,7 +529,7 @@ function scheinliste(riesenschein, scheine) {
 
         return el('.scheinkaertchen', { daten: { status: schein.status } }, [
           el('.kaertchennummer', { text: String(i + 1) }),
-          el('.kaertcheninhalt', {}, [
+          el('.kärtcheninhalt', {}, [
             el('.kaertchenanbieter', {}, [
               anbieterzeichen(schein.buchmacher.wert),
               el('span', { text: schein.buchmacher.wert ?? 'Anbieter offen' }),
@@ -615,7 +615,7 @@ function scheinliste(riesenschein, scheine) {
               etwas drinsteht.
             */
             el('details.kaertchennotiz', { open: schein.notiz ? 'open' : null }, [
-              el('summary', { text: schein.notiz ? 'Notiz' : 'Notiz hinzufuegen' }),
+              el('summary', { text: schein.notiz ? 'Notiz' : 'Notiz hinzufügen' }),
               el('textarea.notizfeld.notizfeld-klein', {
                 rows: '2',
                 placeholder: 'Warum dieser Schein, was ist aufgefallen',
@@ -757,7 +757,7 @@ function riesenkopf(riesenschein, stand) {
         text: angeheftet ? 'Angeheftet' : 'Anheften',
         title: angeheftet
           ? 'Steht im Panel links. Klicken nimmt ihn wieder heraus.'
-          : 'Legt diesen Riesenschein ins Panel links, dann ist er von ueberall aus einen Klick entfernt.',
+          : 'Legt diesen Riesenschein ins Panel links, dann ist er von überall aus einen Klick entfernt.',
         onclick: () => heftAn(riesenschein.id),
       }),
       // Derselbe Weg wie im Reiter Aufnahme, aus fotoknoepfe.js. Ein Foto
@@ -858,7 +858,7 @@ function ausgangsknopf(riesenschein, ausgang) {
 function zahlenpaar(name, wert, art) {
   return el('.kaertchenpaar', { daten: { art } }, [
     el('span.kaertchenwort', { text: name }),
-    el('span.kaertchenzahl', { text: wert }),
+    el('span.kärtchenzahl', { text: wert }),
   ])
 }
 
@@ -879,8 +879,8 @@ function huellenleiste(stand) {
     huelle
       ? el('.huellentext', {}, [
           el('span.huellenmarke', { text: 'OFFEN' }),
-          el('span.huellenname', { text: huelle.name }),
-          el('span.huellenhinweis', {
+          el('span.hüllenname', { text: huelle.name }),
+          el('span.hüllenhinweis', {
             text:
               drin === 0
                 ? 'Alles, was du jetzt aufnimmst, landet hier. Automatisch zugeordnet wird nichts.'
@@ -897,7 +897,7 @@ function huellenleiste(stand) {
       huelle
         ? el('button.knopf.knopf-klein', {
             type: 'button',
-            text: 'Huelle schliessen',
+            text: 'Hülle schließen',
             title:
               'Neue Scheine werden danach wieder automatisch zugeordnet. ' +
               'Was schon drin ist, bleibt als Riesenschein bestehen.',
@@ -909,10 +909,10 @@ function huellenleiste(stand) {
         text: 'Neuen Riesenschein',
         title:
           'Macht einen leeren, benannten Riesenschein auf. Alles, was du danach ' +
-          'aufnimmst, landet darin, bis du ihn schliesst.',
+          'aufnimmst, landet darin, bis du ihn schließt.',
         onclick: () => {
           const vorschlag = `Wette ${stand.riesenscheine.length + 1} vom ${new Date().toLocaleDateString('de-DE')}`
-          const name = prompt('Wie soll der neue Riesenschein heissen?', vorschlag)
+          const name = prompt('Wie soll der neue Riesenschein heißen?', vorschlag)
           if (name === null) return
           Zustand.macheHuelleAuf(name)
           Zustand.melde(

@@ -86,11 +86,11 @@ function wieManSichBewegt() {
     ],
     [
       'Die drei Zahlen ganz oben',
-      'Sie stehen ueber jeder Seite und aendern sich nie mit der Seite: gesetzt, moeglich, und was schon feststeht oder noch im Risiko ist.',
+      'Sie stehen über jeder Seite und ändern sich nie mit der Seite: gesetzt, möglich, und was schon feststeht oder noch im Risiko ist.',
     ],
     [
       'Der Knopf mit dem Datum',
-      'Oben rechts steht die Fassung, mit der dieses Fenster laeuft. Siehst du eine Aenderung nicht, obwohl sie fertig sein soll, klick darauf: die Seite wird dann wirklich neu geholt und nicht aus dem Zwischenspeicher des Browsers.',
+      'Oben rechts steht die Fassung, mit der dieses Fenster läuft. Siehst du eine Änderung nicht, obwohl sie fertig sein soll, klick darauf: die Seite wird dann wirklich neu geholt und nicht aus dem Zwischenspeicher des Browsers.',
     ],
     [
       'Hinweise',
@@ -105,7 +105,7 @@ function wieManSichBewegt() {
     }),
     el('dl.hilfebegriffe', {}, wege.flatMap(([wort, was]) => [
       el('dt.hilfewort', { text: wort }),
-      el('dd.hilfeerklaerung', { text: was }),
+      el('dd.hilfeerklärung', { text: was }),
     ])),
   ])
 }
@@ -117,7 +117,7 @@ function einleitung() {
     el('p.hilfetext', {
       text:
         'Du setzt dieselbe Wette bei vielen Anbietern gleichzeitig. Von jedem Wettschein machst ' +
-        'du ein Bildschirmfoto. Dieses Programm liest die Fotos, fuehrt gleiche Wetten zu einem ' +
+        'du ein Bildschirmfoto. Dieses Programm liest die Fotos, führt gleiche Wetten zu einem ' +
         'Riesenschein zusammen und sagt dir: wie viel hast du gesetzt, was kann herauskommen, ' +
         'und was ist am Ende wirklich herausgekommen.',
     }),
@@ -134,8 +134,8 @@ function einleitung() {
     el('.hilfeanleitung', {}, [
       el('p.hilfetext', {
         text:
-          'Lieber Schritt fuer Schritt durchgefuehrt werden? Die Anleitung geht in neun Schritten ' +
-          'durch den ganzen Weg, vom ersten Foto bis zur Buchhaltung ueber eine ganze Saison.',
+          'Lieber Schritt für Schritt durchgeführt werden? Die Anleitung geht in neun Schritten ' +
+          'durch den ganzen Weg, vom ersten Foto bis zur Buchhaltung über eine ganze Saison.',
       }),
       el('button.knopf.knopf-haupt', {
         type: 'button',
@@ -154,9 +154,9 @@ function derWeg() {
       titel: 'Fotos hereinholen',
       wo: 'Reiter Aufnahme',
       text:
-        'Mit Windows-Taste + Umschalt + S einen Ausschnitt machen, dann hier Strg+V druecken. ' +
+        'Mit Windows-Taste + Umschalt + S einen Ausschnitt machen, dann hier Strg+V drücken. ' +
         'Oder die Bilder mit der Maus in das gestrichelte Feld ziehen. Schneide am besten so zu, ' +
-        'dass nur die Wetten drauf sind, die zusammengehoeren.',
+        'dass nur die Wetten drauf sind, die zusammengehören.',
     },
     {
       nr: '2',
@@ -164,14 +164,14 @@ function derWeg() {
       wo: 'Reiter Aufnahme, Knopf unten',
       text:
         'Das Programm zerlegt jedes Bild in einzelne Wettscheine und liest sie. Rechne mit etwa ' +
-        'zwei Sekunden je Schein. Ueber jedem Bild steht danach, wie viele Scheine gefunden wurden.',
+        'zwei Sekunden je Schein. Über jedem Bild steht danach, wie viele Scheine gefunden wurden.',
     },
     {
       nr: '3',
       titel: 'Nachsehen und berichtigen',
       wo: 'Reiter Scheine',
       text:
-        'Jede gelesene Zahl steht hier in einem Feld und laesst sich aendern. Die Farbe hinter ' +
+        'Jede gelesene Zahl steht hier in einem Feld und lässt sich ändern. Die Farbe hinter ' +
         'einem Feld sagt, wie sicher sich das Programm war. Was du von Hand einträgst, wird nie ' +
         'wieder ueberschrieben.',
     },
@@ -180,8 +180,8 @@ function derWeg() {
       titel: 'Den Riesenschein ansehen',
       wo: 'Reiter Riesenscheine',
       text:
-        'Gleiche Wetten stehen jetzt als eine Position zusammen: Gesamteinsatz, moegliche ' +
-        'Auszahlung, Multiplikator, und was bisher zurueckkam.',
+        'Gleiche Wetten stehen jetzt als eine Position zusammen: Gesamteinsatz, mögliche ' +
+        'Auszahlung, Multiplikator, und was bisher zurückkam.',
     },
     {
       nr: '5',
@@ -192,7 +192,7 @@ function derWeg() {
   ]
 
   return el('.hilfeblock', {}, [
-    el('h2.hilfetitel', { text: 'Der Weg, in fuenf Schritten' }),
+    el('h2.hilfetitel', { text: 'Der Weg, in fünf Schritten' }),
     el(
       'ol.hilfeschritte',
       {},
@@ -264,19 +264,19 @@ const BEREICHE = [
     bild: [
       { x: 8, y: 8, b: 304, h: 22, name: 'PROJEKT  NFL Saison 2026/27  Sep bis Feb', betont: true },
       { x: 8, y: 36, b: 98, h: 44, name: 'gesetzt' },
-      { x: 111, y: 36, b: 98, h: 44, name: 'kann zurueck' },
+      { x: 111, y: 36, b: 98, h: 44, name: 'kann zurück' },
       { x: 214, y: 36, b: 98, h: 44, name: 'im Risiko' },
       { x: 8, y: 86, b: 150, h: 54, name: 'Riesenschein 1' },
       { x: 162, y: 86, b: 150, h: 54, name: 'Riesenschein 2' },
     ],
     machen: [
-      'Ganz oben steht, in welchem Projekt du gerade bist, und ueber welchen Zeitraum es laeuft. Ein Projekt darf Monate oder Jahre umfassen.',
-      'Darunter die drei Zahlen: wie viel insgesamt gesetzt ist, was zurueckkommen kann, und was noch im Risiko steht.',
-      'Dann jeder Riesenschein als Kachel. Ein Klick darauf oeffnet ihn ganz, mit allen Einzelscheinen.',
+      'Ganz oben steht, in welchem Projekt du gerade bist, und über welchen Zeitraum es läuft. Ein Projekt darf Monate oder Jahre umfassen.',
+      'Darunter die drei Zahlen: wie viel insgesamt gesetzt ist, was zurückkommen kann, und was noch im Risiko steht.',
+      'Dann jeder Riesenschein als Kachel. Ein Klick darauf öffnet ihn ganz, mit allen Einzelscheinen.',
       'Ganz unten die Wege: jeder Reiter mit einem Satz dazu, was er tut.',
     ],
     achtung:
-      'Steht neben den Zahlen der rote Kasten "Waehrungen gemischt", sind Euro, Dollar und Krypto ' +
+      'Steht neben den Zahlen der rote Kasten "Währungen gemischt", sind Euro, Dollar und Krypto ' +
       'in derselben Summe gelandet. Dann sind die Zahlen daneben keine Summen, und du darfst dich ' +
       'nicht auf sie verlassen. Das Programm rechnet Waehrungen NIE um.',
   },
@@ -292,35 +292,35 @@ const BEREICHE = [
       { x: 8, y: 114, b: 304, h: 26, name: 'Alles lesen', betont: true },
     ],
     machen: [
-      'Fotos hereinziehen, einfuegen oder direkt aufnehmen.',
-      'Die Fotos liegen klein nebeneinander. Ein Klick aufs Bild oder der Knopf "Groesser" macht eines gross.',
-      'Steht ueber einem Bild eine andere Zahl Scheine, als wirklich drauf sind, dann zieh einen Rahmen um die Wettliste.',
-      'Ein Foto, das nicht hierher gehoert, entfernst du mit "Loeschen". Die daraus gelesenen Scheine gehen mit, du wirst vorher gefragt.',
+      'Fotos hereinziehen, einfügen oder direkt aufnehmen.',
+      'Die Fotos liegen klein nebeneinander. Ein Klick aufs Bild oder der Knopf "Größer" macht eines gross.',
+      'Steht über einem Bild eine andere Zahl Scheine, als wirklich drauf sind, dann zieh einen Rahmen um die Wettliste.',
+      'Ein Foto, das nicht hierher gehört, entfernst du mit "Löschen". Die daraus gelesenen Scheine gehen mit, du wirst vorher gefragt.',
       'Dann unten auf den Leseknopf.',
     ],
     achtung:
       'Bei einem ganzen Browserfenster schneidet das Programm quer durch die Seite. Dann unbedingt ' +
-      'einen Rahmen um die Wettliste ziehen, sonst landet Text aus der Menueleiste in den Scheinen.',
+      'einen Rahmen um die Wettliste ziehen, sonst landet Text aus der Menüleiste in den Scheinen.',
   },
   {
     schluessel: 'scheine',
     reiter: 'Scheine',
     wofuer: 'Jeder gelesene Wettschein als eine Zeile, zum Nachsehen und Berichtigen.',
     bild: [
-      { x: 8, y: 8, b: 304, h: 22, name: '12 Scheine   2 mit Fehler   1 zu pruefen', betont: true },
+      { x: 8, y: 8, b: 304, h: 22, name: '12 Scheine   2 mit Fehler   1 zu prüfen', betont: true },
       { x: 8, y: 36, b: 304, h: 20, name: 'Anbieter | Nr | Einsatz | Quote | Auszahlung' },
       { x: 8, y: 60, b: 304, h: 20, name: 'PS3838   3778262388   2.315,98   1,826' },
       { x: 8, y: 84, b: 304, h: 20, name: 'Stake    ohne Nr      5.000,00   1,84' },
-      { x: 8, y: 108, b: 304, h: 32, name: 'aufgeklappt: Bild, Notiz, Loeschen', betont: true },
+      { x: 8, y: 108, b: 304, h: 32, name: 'aufgeklappt: Bild, Notiz, Löschen', betont: true },
     ],
     machen: [
       'Von oben nach unten durchgehen. Zuerst alles mit Fehler, dann alles mit Warnung.',
       'Eine falsche Zahl einfach ueberschreiben. Komma und Punkt gehen beide.',
-      'Auf "mehr" klicken zeigt den Bildausschnitt, den Rohtext, eine Notiz und den Loeschknopf.',
-      'Gehoert ein Schein nicht in die Rechnung, gibt es zwei Wege: "Ganz aus der Rechnung nehmen" laesst ihn sichtbar stehen, "Diesen Schein loeschen" entfernt ihn.',
+      'Auf "mehr" klicken zeigt den Bildausschnitt, den Rohtext, eine Notiz und den Löschknopf.',
+      'Gehört ein Schein nicht in die Rechnung, gibt es zwei Wege: "Ganz aus der Rechnung nehmen" lässt ihn sichtbar stehen, "Diesen Schein löschen" entfernt ihn.',
     ],
     achtung:
-      'Die Farbe hinter einem Feld ist die Lesesicherheit, nicht die Richtigkeit. Ein gruenes Feld ' +
+      'Die Farbe hinter einem Feld ist die Lesesicherheit, nicht die Richtigkeit. Ein grünes Feld ' +
       'kann falsch sein. Wo Einsatz mal Quote die Auszahlung ergibt, hat das Programm selbst ' +
       'nachgerechnet, und darauf ist Verlass.',
   },
@@ -332,20 +332,20 @@ const BEREICHE = [
       { x: 8, y: 8, b: 92, h: 132, name: 'Liste' },
       { x: 106, y: 8, b: 206, h: 30, name: 'Name der Wette', betont: true },
       { x: 106, y: 44, b: 48, h: 34, name: 'Einsatz' },
-      { x: 158, y: 44, b: 48, h: 34, name: 'moeglich' },
+      { x: 158, y: 44, b: 48, h: 34, name: 'möglich' },
       { x: 210, y: 44, b: 48, h: 34, name: 'Quote' },
       { x: 262, y: 44, b: 50, h: 34, name: 'Anzahl' },
       { x: 106, y: 84, b: 206, h: 24, name: 'Notiz' },
       { x: 106, y: 114, b: 206, h: 26, name: 'die einzelnen Scheine' },
     ],
     machen: [
-      'Links die Liste aller Riesenscheine, rechts die Einzelheiten des gewaehlten.',
+      'Links die Liste aller Riesenscheine, rechts die Einzelheiten des gewählten.',
       'Oben die vier Zahlen, wegen derer man herschaut. Der Rest steht einen Klick entfernt unter "Alle Zahlen".',
-      'Der Name laesst sich ueberschreiben. Die Notiz ist fuer dich: warum diese Wette, was ist aufgefallen.',
-      'Gehoert ein Schein nicht in diese Gruppe, aendere ihn im Reiter Scheine in der Spalte "Riesenschein".',
+      'Der Name lässt sich überschreiben. Die Notiz ist für dich: warum diese Wette, was ist aufgefallen.',
+      'Gehört ein Schein nicht in diese Gruppe, ändere ihn im Reiter Scheine in der Spalte "Riesenschein".',
     ],
     achtung:
-      'Stehen mehrere Waehrungen in einer Gruppe, gibt es keine Gesamtsumme. Euro, Dollar und ' +
+      'Stehen mehrere Währungen in einer Gruppe, gibt es keine Gesamtsumme. Euro, Dollar und ' +
       'Krypto werden nie zusammengezaehlt und nie umgerechnet.',
   },
   {
@@ -359,11 +359,11 @@ const BEREICHE = [
       { x: 8, y: 50, b: 304, h: 90, name: 'Vorschau der Tabelle' },
     ],
     machen: [
-      'WOFUER DAS GUT IST: das Programm behaelt deine Zahlen, aber es ist kein Archiv fuer die Steuer und kein Werkzeug zum Weiterrechnen. Die Excel-Mappe ist beides. Du kannst sie aufheben, verschicken und eigene Spalten daneben rechnen.',
-      'Ein Knopf fuer den gerade gewaehlten Riesenschein, einer fuer das ganze Projekt.',
-      'Die Mappe hat mehrere Blaetter: jeder einzelne Schein eine Zeile, jede zusammengefasste Wette eine Zeile, dazu ein Blatt je Anbieter und eines mit allen Hinweisen.',
-      'CSV ist dasselbe als einfache Textdatei, fuer Programme, die kein Excel lesen.',
-      'Die Vorschau darunter zeigt, was in der Datei stehen wird, bevor du sie herunterlaedst.',
+      'WOFÜR DAS GUT IST: das Programm behält deine Zahlen, aber es ist kein Archiv für die Steuer und kein Werkzeug zum Weiterrechnen. Die Excel-Mappe ist beides. Du kannst sie aufheben, verschicken und eigene Spalten daneben rechnen.',
+      'Ein Knopf für den gerade gewählten Riesenschein, einer für das ganze Projekt.',
+      'Die Mappe hat mehrere Blätter: jeder einzelne Schein eine Zeile, jede zusammengefasste Wette eine Zeile, dazu ein Blatt je Anbieter und eines mit allen Hinweisen.',
+      'CSV ist dasselbe als einfache Textdatei, für Programme, die kein Excel lesen.',
+      'Die Vorschau darunter zeigt, was in der Datei stehen wird, bevor du sie herunterlädst.',
     ],
     achtung:
       'Die Summenzeile ist nur bei einer einzigen Waehrung aussagekraeftig. Steht eine Warnung ' +
@@ -373,7 +373,7 @@ const BEREICHE = [
     schluessel: 'ablage',
     reiter: 'Ablage',
     wofuer:
-      'Dein Archiv: alle Projekte in Ordnern, wie im Explorer. Hier liegt, was du frueher gemacht hast.',
+      'Dein Archiv: alle Projekte in Ordnern, wie im Explorer. Hier liegt, was du früher gemacht hast.',
     bild: [
       { x: 8, y: 8, b: 88, h: 132, name: 'Ordner' },
       { x: 102, y: 8, b: 210, h: 22, name: 'Auswahlleiste, wenn angehakt', betont: true },
@@ -383,14 +383,14 @@ const BEREICHE = [
     ],
     machen: [
       'WAS EIN PROJEKT IST: eine Runde. Alles, was du in einem Zeitraum gesetzt hast, mit allen Fotos, allen Scheinen und allen Riesenscheinen darin. Ein Projekt darf eine Woche umfassen oder eine ganze Saison.',
-      'WAS EIN ORDNER IST: nur eine Schublade fuer Projekte. Ein Ordner besteht, solange ein Projekt darin liegt, und verschwindet von selbst, wenn du das letzte herausziehst. Du musst ihn nicht anlegen und nicht aufraeumen.',
+      'WAS EIN ORDNER IST: nur eine Schublade für Projekte. Ein Ordner besteht, solange ein Projekt darin liegt, und verschwindet von selbst, wenn du das letzte herausziehst. Du musst ihn nicht anlegen und nicht aufräumen.',
       'Ein Klick auf ein Projekt oeffnet es. Doppelklick auf den Namen benennt um.',
       'Mit der Maus auf einen Ordner ziehen verschiebt das Projekt dorthin.',
       'Angepinntes steht immer oben, egal wie sortiert wird.',
-      'Das Kaestchen links waehlt ein Projekt aus. Sind mehrere angehakt, erscheint oben die Leiste mit "Ausgewaehlte loeschen".',
+      'Das Kästchen links wählt ein Projekt aus. Sind mehrere angehakt, erscheint oben die Leiste mit "Ausgewählte löschen".',
     ],
     achtung:
-      'Loeschen nimmt alle Scheine, Riesenscheine und Bilder des Projekts mit und laesst sich ' +
+      'Löschen nimmt alle Scheine, Riesenscheine und Bilder des Projekts mit und lässt sich ' +
       'nicht rueckgaengig machen. Die Rueckfrage nennt deshalb die Namen.',
   },
 ]
@@ -404,7 +404,7 @@ function bereich(b, hervor = false) {
   return el('.hilfeblock.hilfe-bereich', { daten: { bereich: b.schluessel, hervor: String(hervor) } }, [
     el('h2.hilfetitel', {}, [
       el('span.hilfereiter', { text: b.reiter }),
-      el('span.hilfewofuer', { text: b.wofuer }),
+      el('span.hilfewofür', { text: b.wofuer }),
     ]),
     el('.hilfezeile', {}, [
       el('.hilfebildseite', {}, [schaubild(b.bild)]),
@@ -426,16 +426,16 @@ function begriffe() {
     ['Schein', 'Ein einzelner Wettschein bei einem Anbieter, gelesen aus einer Karte eines Fotos.'],
     ['Riesenschein', 'Dieselbe Wette, bei mehreren Anbietern gesetzt, zusammengefasst zu einer Position.'],
     ['Einsatz', 'Was du gesetzt hast.'],
-    ['Auszahlung', 'Was herauskaeme, EINSCHLIESSLICH deines Einsatzes.'],
+    ['Auszahlung', 'Was herauskäme, EINSCHLIEßLICH deines Einsatzes.'],
     ['Gewinn', 'Die Auszahlung ohne den Einsatz. Achtung: manche Anbieter nennen die Auszahlung "Gewinn".'],
-    ['Quote, Multiplikator', 'Womit der Einsatz malgenommen wird. Steht auf dem Schein sowohl Einsatz als auch Auszahlung, rechnet das Programm die genaue Quote zurueck, statt der angezeigten zu glauben. Die angezeigte ist bei vier von fuenf Anbietern gerundet.'],
-    ['Zurueck', 'Was wirklich geflossen ist. Bei einem verlorenen Schein null, auch wenn eine moegliche Auszahlung dasteht.'],
+    ['Quote, Multiplikator', 'Womit der Einsatz malgenommen wird. Steht auf dem Schein sowohl Einsatz als auch Auszahlung, rechnet das Programm die genaue Quote zurück, statt der angezeigten zu glauben. Die angezeigte ist bei vier von fünf Anbietern gerundet.'],
+    ['Zurueck', 'Was wirklich geflossen ist. Bei einem verlorenen Schein null, auch wenn eine mögliche Auszahlung dasteht.'],
     ['Im Risiko', 'Der Einsatz der Scheine, die noch offen sind.'],
-    ['Resttopf', 'Scheine, die nicht mitgezaehlt werden, mit Grund. Sie werden nie weggeworfen, damit du sie siehst.'],
+    ['Resttopf', 'Scheine, die nicht mitgezählt werden, mit Grund. Sie werden nie weggeworfen, damit du sie siehst.'],
     ['Lesesicherheit', 'Wie sicher sich die Texterkennung bei einem Feld war. Die Farbe hinter dem Feld.'],
   ]
   return el('.hilfeblock', {}, [
-    el('h2.hilfetitel', { text: 'Die Woerter' }),
+    el('h2.hilfetitel', { text: 'Die Wörter' }),
     el(
       'dl.hilfebegriffe',
       {},
@@ -448,10 +448,10 @@ function begriffe() {
 function wennEtwasNichtStimmt() {
   const faelle = [
     ['Ueber einem Bild steht die falsche Zahl Scheine', 'Rahmen um die Wettliste ziehen und noch einmal lesen lassen. Oder die Kartengrenzen mit der Maus verschieben.'],
-    ['Ein Schein hat keinen Einsatz', 'Das Programm sagt es als Fehler. Einsatz im Reiter Scheine von Hand eintragen, dann zaehlt er wieder mit.'],
+    ['Ein Schein hat keinen Einsatz', 'Das Programm sagt es als Fehler. Einsatz im Reiter Scheine von Hand eintragen, dann zählt er wieder mit.'],
     ['Ein Schein meldet "zwei Karten in einer"', 'Auf dem Ausschnitt liegen zwei Wetten nebeneinander. Das Foto noch einmal enger zuschneiden, sodass nur eine Wette drauf ist.'],
-    ['Eine Summe sieht zu gross oder zu klein aus', 'Nachsehen, ob unter der Summe eine Warnung steht. Gemischte Waehrungen und Scheine mit Fehler zaehlen nicht mit, und das steht dort.'],
-    ['Die Quote stimmt nicht mit dem Schein ueberein', 'Das ist meist richtig so. Stehen Einsatz und Auszahlung beide da, rechnet das Programm die genaue Quote zurueck. Der Anbieter zeigt eine gerundete.'],
+    ['Eine Summe sieht zu gross oder zu klein aus', 'Nachsehen, ob unter der Summe eine Warnung steht. Gemischte Währungen und Scheine mit Fehler zählen nicht mit, und das steht dort.'],
+    ['Die Quote stimmt nicht mit dem Schein ueberein', 'Das ist meist richtig so. Stehen Einsatz und Auszahlung beide da, rechnet das Programm die genaue Quote zurück. Der Anbieter zeigt eine gerundete.'],
     ['Etwas ist weg nach dem Neuladen', 'Kartengrenzen und Rahmen ueberleben ein Neuladen noch nicht. Das ist bekannt und steht auf der Liste.'],
   ]
   return el('.hilfeblock', {}, [

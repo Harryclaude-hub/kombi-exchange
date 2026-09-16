@@ -43,13 +43,13 @@ import * as AnsichtHilfe from './ansicht_hilfe.js'
   in der Spur etwas stehen (Projektregel 5).
 */
 const ANSICHTEN = [
-  { schluessel: 'start', name: 'Uebersicht', zeichen: 'U', zeichne: AnsichtStart.zeichne },
+  { schluessel: 'start', name: 'Übersicht', zeichen: 'U', zeichne: AnsichtStart.zeichne },
   { schluessel: 'positionen', name: 'Riesenscheine', zeichen: 'R', zeichne: AnsichtPositionen.zeichne },
   { schluessel: 'scheine', name: 'Scheine', zeichen: 'S', zeichne: AnsichtScheine.zeichne },
   { schluessel: 'aufnahme', name: 'Aufnahme', zeichen: 'A', zeichne: AnsichtAufnahme.zeichne },
   { schluessel: 'ausgabe', name: 'Ausgabe', zeichen: 'E', zeichne: AnsichtAusgabe.zeichne },
   { schluessel: 'ablage', name: 'Ablage', zeichen: 'L', zeichne: AnsichtAblage.zeichne },
-  { schluessel: 'hilfe', name: 'Erklaerung', zeichen: '?', zeichne: AnsichtHilfe.zeichne },
+  { schluessel: 'hilfe', name: 'Erklärung', zeichen: '?', zeichne: AnsichtHilfe.zeichne },
 ]
 
 /** @type {HTMLElement|null} */
@@ -134,16 +134,34 @@ export async function starte(ziel) {
  */
 export function zeichneFuerProbe(ziel) {
   wurzel = ziel
+  probeModus = true
   Zustand.hoerZu(zeichneHuelle)
   Nadeln.hoerZu(zeichnePanel)
   zeichneHuelle()
 }
 
+/*
+  Am 16.09.2026 gefunden: auf der Probeseite verschwand die ganze Oberfläche,
+  sobald man den Farbumschalter drückte.
+
+  Der Grund war kein Fehler im Programm. farbwahlknopf ruft zeichneAlles, und
+  das prüft stand.angemeldet. Auf der Probeseite ist das absichtlich falsch,
+  damit nichts in die Datenbank geschrieben wird. Also zeichnete es
+  folgerichtig das Tor.
+
+  Nur: eine Probeseite, auf der man das Thema nicht umschalten kann, taugt zum
+  Prüfen von Farben wenig. Dieser Schalter sagt zeichneAlles, dass es die
+  Hülle zeichnen soll, obwohl niemand angemeldet ist. Er wird AUSSCHLIESSLICH
+  von zeichneFuerProbe gesetzt; im Programm bleibt er falsch, und dort
+  entscheidet weiterhin allein stand.angemeldet.
+*/
+let probeModus = false
+
 /** Zeichnet den Zustand neu. */
 function zeichneAlles() {
   if (!wurzel) return
   const stand = Zustand.hole()
-  if (!stand.angemeldet) {
+  if (!stand.angemeldet && !probeModus) {
     zeichneTor()
     return
   }
@@ -208,7 +226,7 @@ function zeichneTor() {
         knopf,
         meldung,
         el('p.torfuss', {
-          text: 'Ohne Anmeldung. Wer den Code hat, sieht alles. Die Bildschirmfotos bleiben auf dem Geraet.',
+          text: 'Ohne Anmeldung. Wer den Code hat, sieht alles. Die Bildschirmfotos bleiben auf dem Gerät.',
         }),
 
         /*
@@ -232,14 +250,14 @@ function zeichneTor() {
           el('summary', { text: 'Code verloren?' }),
           el('p', {
             text:
-              'Der Code laesst sich nicht wiederherstellen. In der Datenbank steht nur sein ' +
+              'Der Code lässt sich nicht wiederherstellen. In der Datenbank steht nur sein ' +
               'Fingerabdruck, nicht er selbst. Das ist Absicht: so kann ihn auch niemand ' +
               'auslesen, der an die Datenbank kommt.',
           }),
           el('p', {
             text:
-              'Du setzt dir einen neuen. Am einfachsten mit der Hilfsseite: sie wuerfelt einen ' +
-              'Code in deinem Browser, baut den fertigen Befehl darum und hat zwei Knoepfe zum ' +
+              'Du setzt dir einen neuen. Am einfachsten mit der Hilfsseite: sie würfelt einen ' +
+              'Code in deinem Browser, baut den fertigen Befehl darum und hat zwei Knöpfe zum ' +
               'Kopieren. Du musst nichts tippen.',
           }),
           el('p', {}, [
@@ -251,8 +269,8 @@ function zeichneTor() {
           el('p', {
             text:
               'Wer es lieber von Hand macht: im Supabase SQL-Editor des Projekts appload einmal ' +
-              'diese Zeile ausfuehren und DEIN-NEUER-CODE durch einen eigenen ersetzen, ' +
-              'mindestens zwoelf Zeichen, keine Leerzeichen.',
+              'diese Zeile ausführen und DEIN-NEUER-CODE durch einen eigenen ersetzen, ' +
+              'mindestens zwölf Zeichen, keine Leerzeichen.',
           }),
           el('pre.tornotfall-befehl', {
             text:
@@ -358,7 +376,7 @@ function zeichneKopf() {
     // der Ansicht Riesenscheine, dort wo man sie braucht.
     el('.laufleiste', {}, [
       laufwert('EINSATZ', formatiere(gesamt.einsatzGesamt, w, 'de'), 'neutral'),
-      laufwert('MOEGLICH', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut'),
+      laufwert('MÖGLICH', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut'),
       // Solange nichts entschieden ist, sagt eine Null nichts. Dann ist
       // interessanter, was noch auf dem Spiel steht.
       // Siehe ansicht_start.js: null ist eine Aussage, kein Leerstand.
@@ -387,8 +405,8 @@ function zeichneKopf() {
       */
       el('button.knopf.knopf-haupt.erklaerknopf', {
         type: 'button',
-        text: 'Erklaerung',
-        title: 'Erklaert jede Seite dieses Programms und wie man sich darin bewegt.',
+        text: 'Erklärung',
+        title: 'Erklärt jede Seite dieses Programms und wie man sich darin bewegt.',
         onclick: () => {
           const her = Zustand.hole().ansicht
           Zustand.aendere({ ansicht: 'hilfe', hilfeZu: her === 'hilfe' ? null : her })
@@ -451,7 +469,7 @@ function zeichneKopf() {
         type: 'button',
         text: 'Abmelden',
         onclick: () => {
-          if (!confirm('Abmelden? Der Code wird beim naechsten Mal wieder gebraucht.')) return
+          if (!confirm('Abmelden? Der Code wird beim nächsten Mal wieder gebraucht.')) return
           localStorage.removeItem(SITZUNG_SCHLUESSEL)
           Zustand.aendere({ angemeldet: false, token: '' })
         },
@@ -584,7 +602,7 @@ function zeigeCodewechsel() {
     el('.dialogknoepfe', {}, [
       el('button.knopf.knopf-klein', {
         type: 'button',
-        text: 'Neu wuerfeln',
+        text: 'Neu würfeln',
         onclick: () => {
           anzeige.value = Datenbank.wuerfleCode()
         },
@@ -712,7 +730,7 @@ function projektwahl(stand) {
         */
         const stand = Zustand.hole()
         const name = prompt(
-          'Wie soll das neue Projekt heissen?\n\n' +
+          'Wie soll das neue Projekt heißen?\n\n' +
             'Ein Projekt ist ein eigener Arbeitsplatz. Es teilt NICHTS mit den anderen: ' +
             'keine Scheine, keine Riesenscheine, keine Bilder, keine Summen. ' +
             'Ordner liegen INNERHALB eines Projekts, sie verbinden also nie zwei Projekte.',
@@ -1309,7 +1327,7 @@ function zeichnePanel() {
         },
         [
           el('span.panelzeichen', { text: '+' }),
-          schmal ? null : el('span.panelname', { text: 'Foto hinzufuegen' }),
+          schmal ? null : el('span.panelname', { text: 'Foto hinzufügen' }),
         ]
       ),
     ]),
@@ -1416,7 +1434,7 @@ async function ladeNurOertlich() {
 
   const projekt = gemerktesProjekt ?? {
     id: neueKennung(),
-    name: 'Oertliches Projekt',
+    name: 'Örtliches Projekt',
     notiz: '',
     waehrung: 'UNBEKANNT',
     angelegtAm: jetzt(),
@@ -1560,9 +1578,9 @@ const speichereVerzoegert = verzoegert(async () => {
 function meldeWiderspruch(grund) {
   Zustand.melde(
     'warnung',
-    'Dieses Projekt wurde an anderer Stelle geaendert, etwa in einem zweiten ' +
+    'Dieses Projekt wurde an anderer Stelle geändert, etwa in einem zweiten ' +
       'Fenster. Es wurde deshalb nichts ueberschrieben. Deine Arbeit liegt hier ' +
-      'auf dem Geraet. Am besten diese Angaben notieren und die Seite neu laden, ' +
+      'auf dem Gerät. Am besten diese Angaben notieren und die Seite neu laden, ' +
       `dann sind beide Staende zusammen sichtbar. (${grund})`
   )
   Zustand.aendere({ datenbankErreichbar: true })

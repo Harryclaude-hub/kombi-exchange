@@ -164,12 +164,12 @@ function resttopf(stand) {
           schein
             ? el('button.knopf.knopf-klein', {
                 type: 'button',
-                text: 'trotzdem mitzaehlen',
+                text: 'trotzdem mitzählen',
                 onclick: () => {
                   Zustand.setzeFeld(r.scheinId, 'scheinNr', `${schein.scheinNr.wert ?? ''}-b`)
                   Zustand.melde(
                     'info',
-                    'Die Scheinnummer wurde ergaenzt, damit der Schein als eigener Schein zaehlt.'
+                    'Die Scheinnummer wurde ergänzt, damit der Schein als eigener Schein zählt.'
                   )
                 },
               })
@@ -499,11 +499,11 @@ function aufklappung(schein, stand) {
           schalter(schein, 'ausgeschlossen', 'Ganz aus der Rechnung nehmen'),
         ]),
 
-        el('.teiltitel', { text: 'Tatsaechlich zurueckgeflossen' }),
+        el('.teiltitel', { text: 'Tatsächlich zurückgeflossen' }),
         el('.feldreihe', {}, [
           zahlfeld(schein, 'ausgezahlt', w),
           el('span.feldhilfe', {
-            text: 'Nur noetig bei vorzeitiger Auszahlung oder wenn der Anbieter anders abgerechnet hat.',
+            text: 'Nur nötig bei vorzeitiger Auszahlung oder wenn der Anbieter anders abgerechnet hat.',
           }),
         ]),
 
@@ -526,8 +526,8 @@ function aufklappung(schein, stand) {
         el('.feldreihe', {}, [
           el('button.knopf.knopf-klein.knopf-weg', {
             type: 'button',
-            text: 'Diesen Schein loeschen',
-            title: 'Nur diesen Schein. Das Bild und die uebrigen Scheine bleiben.',
+            text: 'Diesen Schein löschen',
+            title: 'Nur diesen Schein. Das Bild und die übrigen Scheine bleiben.',
             onclick: () => {
               const name = schein.scheinNr.wert ? `Nr. ${schein.scheinNr.wert}` : 'diesen Schein'
               if (!window.confirm(`Wirklich ${name} loeschen? Das Bild bleibt erhalten.`)) return

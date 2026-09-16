@@ -425,7 +425,7 @@ export async function leseBilder(bildIds, einstellungen = {}) {
           'warnung',
           `Bei "${eintrag.bild.dateiname}" liess sich der Anbieter nicht erkennen. ` +
             'Bitte oben am Bild von Hand eintragen und noch einmal lesen lassen. ' +
-            'Der Anbieter bestimmt Waehrung und Quotenformat, bei BetOnline zum Beispiel ' +
+            'Der Anbieter bestimmt Währung und Quotenformat, bei BetOnline zum Beispiel ' +
             'amerikanische Quoten.'
         )
       }

@@ -71,12 +71,12 @@ export function zeichne(ziel) {
       }),
       el('button.knopf', {
         type: 'button',
-        text: 'Excel fuer diesen Riesenschein',
+        text: 'Excel für diesen Riesenschein',
         onclick: () => ladeExcelHerunter([gewaehlt]),
       }),
       el('button.knopf', {
         type: 'button',
-        text: 'Excel fuer das ganze Projekt',
+        text: 'Excel für das ganze Projekt',
         onclick: () => ladeExcelHerunter(stand.riesenscheine.map((r) => r.id)),
       }),
       el('button.knopf', {
@@ -131,7 +131,7 @@ async function erzeugeBlatt(riesenscheinId, ziel) {
   if (posten.length === 0) {
     Zustand.melde(
       'fehler',
-      'Zu keinem dieser Scheine liegt noch ein Bild vor. Die Bilder bleiben nur auf diesem Geraet, ' +
+      'Zu keinem dieser Scheine liegt noch ein Bild vor. Die Bilder bleiben nur auf diesem Gerät, ' +
         'bitte die Bildschirmfotos noch einmal hochladen.'
     )
     return
@@ -322,7 +322,7 @@ function erklaerzeile() {
     el('.erklaerzeile-titel', { text: 'Was diese Seite ist' }),
     el('p.erklaerzeile-text', {
       text:
-        'Hier holst du deine Zahlen aus dem Programm heraus. Die Excel-Mappe enthaelt jeden ' +
+        'Hier holst du deine Zahlen aus dem Programm heraus. Die Excel-Mappe enthält jeden ' +
         'einzelnen Schein als Zeile, jede zusammengefasste Wette als Zeile, dazu ein Blatt je ' +
         'Anbieter und eines mit allen Hinweisen. Zum Aufheben, zum Verschicken und um eigene ' +
         'Spalten daneben zu rechnen. CSV ist dasselbe als einfache Textdatei.',

@@ -138,7 +138,7 @@ export function fotoknoepfe(einstellungen = {}) {
       el(`${klasse}.foto-ablage`, {
         type: 'button',
         text: 'Aus Zwischenablage',
-        title: 'Erst mit Windows-Taste + Umschalt + S ausschneiden, dann hier druecken.',
+        title: 'Erst mit Windows-Taste + Umschalt + S ausschneiden, dann hier drücken.',
         onclick: async (e) => {
           e.stopPropagation()
           await ausZwischenablageHolen()
@@ -151,7 +151,7 @@ export function fotoknoepfe(einstellungen = {}) {
     el(`${klasse}.foto-datei`, {
       type: 'button',
       text: 'Foto hochladen',
-      title: 'Eine oder mehrere Bilddateien auswaehlen.',
+      title: 'Eine oder mehrere Bilddateien auswählen.',
       onclick: (e) => {
         e.stopPropagation()
         eingabe.click()

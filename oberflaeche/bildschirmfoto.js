@@ -81,7 +81,7 @@ export async function nimmBildschirmAuf() {
   if (!kannBildschirmAufnehmen()) {
     throw new Error(
       'Dieser Browser kann den Bildschirm nicht aufnehmen. ' +
-        'Mach das Bildschirmfoto mit Windows-Taste + Umschalt + S und fuege es mit Strg+V ein.'
+        'Mach das Bildschirmfoto mit Windows-Taste + Umschalt + S und füge es mit Strg+V ein.'
     )
   }
 
@@ -162,7 +162,7 @@ export async function ausZwischenablage() {
   if (!kannZwischenablageLesen()) {
     throw new Error(
       'Dieser Browser gibt die Zwischenablage nicht heraus. ' +
-        'Klick erst in die Seite und druecke dann Strg+V.'
+        'Klick erst in die Seite und drücke dann Strg+V.'
     )
   }
   const stuecke = await navigator.clipboard.read()
@@ -273,8 +273,8 @@ export function zeigeZuschnitt(leinwand) {
         el('.zuschnitt-titel', { text: 'Rahmen um die Wettliste ziehen' }),
         el('.zuschnitt-text', {
           text:
-            'Mit der Maus einen Rahmen um die Wetten ziehen, die zusammengehoeren. ' +
-            'Kopfleisten, Menues und Werbung bleiben draussen, sonst landet deren Text ' +
+            'Mit der Maus einen Rahmen um die Wetten ziehen, die zusammengehören. ' +
+            'Kopfleisten, Menüs und Werbung bleiben draußen, sonst landet deren Text ' +
             'in der Texterkennung. Ohne Rahmen wird das ganze Bild genommen.',
         }),
       ]),

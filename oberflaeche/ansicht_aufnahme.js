@@ -53,8 +53,8 @@ export function zeichne(ziel) {
           el('p.leer-titel', { text: 'Noch keine Bildschirmfotos da.' }),
           el('p.leer-text', {
             text:
-              'Zieh die Bilder deiner Wettuebersicht hier herein. Am besten schon so ' +
-              'zugeschnitten, dass nur die Wetten drauf sind, die zusammengehoeren. ' +
+              'Zieh die Bilder deiner Wettübersicht hier herein. Am besten schon so ' +
+              'zugeschnitten, dass nur die Wetten drauf sind, die zusammengehören. ' +
               'Wenn mehr drauf ist, schneidest du hier gleich nach.',
           }),
         ])
@@ -102,7 +102,7 @@ function ablegeflaeche() {
     [
       el('.ablage-zeichen', { text: '+' }),
       el('.ablage-titel', { text: 'Bildschirmfotos hierher ziehen' }),
-      el('.ablage-text', { text: 'oder klicken zum Auswaehlen. Die Bilder bleiben auf diesem Geraet.' }),
+      el('.ablage-text', { text: 'oder klicken zum Auswählen. Die Bilder bleiben auf diesem Gerät.' }),
       aufnahmeknoepfe(),
       eingabe,
     ]
@@ -251,7 +251,7 @@ function bildkarte(eintrag) {
       }),
       el('button.knopf.knopf-klein.groessenknopf', {
         type: 'button',
-        text: gross ? 'Kleiner' : 'Groesser',
+        text: gross ? 'Kleiner' : 'Größer',
         title: 'Dieses Bild gross oder klein anzeigen',
         onclick: (e) => {
           const ziel = /** @type {HTMLElement} */ (e.currentTarget)
@@ -264,7 +264,7 @@ function bildkarte(eintrag) {
       // wieder nachpruefen.
       el('button.knopf.knopf-klein.knopf-weg', {
         type: 'button',
-        text: 'Loeschen',
+        text: 'Löschen',
         title: 'Dieses Bild und die daraus gelesenen Scheine entfernen',
         onclick: async () => {
           const daran = Zustand.hole().scheine.filter((s) => s.bildId === eintrag.bild.id).length
@@ -292,7 +292,7 @@ function bildkarte(eintrag) {
           'Sieht das nach einem ganzen Browserfenster aus, dann zieh unten einen Rahmen ' +
             'um die Wettliste. Ohne Rahmen schneidet das Programm quer durch die Seite, ' +
             'und in den Ausschnitten landet Text aus der Menueleiste. Der Anbieter wird ' +
-            'trotzdem aus dem Kopf des Bildes erkannt, der Rahmen aendert daran nichts.',
+            'trotzdem aus dem Kopf des Bildes erkannt, der Rahmen ändert daran nichts.',
         ])
       : null,
     rahmenleiste(eintrag),
@@ -514,7 +514,7 @@ function schnittflaeche(eintrag) {
           i > 0
             ? el('button.kartenverbinden', {
                 type: 'button',
-                title: 'Mit dem Schein darueber zu einem verbinden',
+                title: 'Mit dem Schein darüber zu einem verbinden',
                 text: '↑↓',
                 onclick: (e) => {
                   e.stopPropagation()
@@ -641,7 +641,7 @@ function leseleiste(bilder) {
             },
           }),
       }),
-      el('span', { text: 'Geldfelder einzeln nachlesen (genauer, dauert laenger)' }),
+      el('span', { text: 'Geldfelder einzeln nachlesen (genauer, dauert länger)' }),
     ]),
     el('button.knopf.knopf-haupt', {
       type: 'button',

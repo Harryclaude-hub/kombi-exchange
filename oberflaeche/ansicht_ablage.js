@@ -225,7 +225,7 @@ function ordnerzeile(schluessel, name, anzahl, zielFuerAblegen) {
   const wegKnopf = echterOrdner
     ? el('button.ordnerweg', {
         type: 'button',
-        text: 'Loeschen',
+        text: 'Löschen',
         title: `Den Ordner "${name}" aufloesen. Die Projekte bleiben.`,
       })
     : null
@@ -316,7 +316,7 @@ function projektspalte(projekte, stand) {
           (() => {
             const k = el('button.knopf.knopf-klein.knopf-weg', {
               type: 'button',
-              text: sichtbarGewaehlt.length === 1 ? 'Ausgewaehltes loeschen' : 'Ausgewaehlte loeschen',
+              text: sichtbarGewaehlt.length === 1 ? 'Ausgewähltes löschen' : 'Ausgewaehlte loeschen',
             })
             k.addEventListener('click', () => loescheProjekte(sichtbarGewaehlt))
             return k
@@ -330,7 +330,7 @@ function projektspalte(projekte, stand) {
             return k
           })(),
           (() => {
-            const k = el('button.knopf.knopf-klein', { type: 'button', text: 'Alle sichtbaren waehlen' })
+            const k = el('button.knopf.knopf-klein', { type: 'button', text: 'Alle sichtbaren wählen' })
             k.addEventListener('click', () => {
               for (const p of liste) gewaehlteProjekte.add(p.id)
               neuZeichnen()
@@ -372,7 +372,7 @@ function projektzeile(p, stand) {
   const kaestchen = el('input.projektkaestchen', {
     type: 'checkbox',
     checked: gewaehlteProjekte.has(p.id) ? 'checked' : null,
-    title: 'Dieses Projekt auswaehlen',
+    title: 'Dieses Projekt auswählen',
   })
   kaestchen.addEventListener('click', (e) => e.stopPropagation())
   kaestchen.addEventListener('change', (e) => {
@@ -408,8 +408,8 @@ function projektzeile(p, stand) {
 
   const loeschen = el('button.projektknopf.knopf-weg', {
     type: 'button',
-    text: 'Loeschen',
-    title: 'Dieses Projekt mit allen Scheinen und Bildern loeschen',
+    text: 'Löschen',
+    title: 'Dieses Projekt mit allen Scheinen und Bildern löschen',
   })
   loeschen.addEventListener('click', (e) => {
     e.stopPropagation()
@@ -524,7 +524,7 @@ function kombiblock(titel, scheine, datum) {
           text:
             `Hier stehen ${waehrungen.size} Waehrungen nebeneinander (${[...waehrungen].join(', ')}). ` +
             'Sie werden nicht umgerechnet, deshalb gibt es hier keine Summe. ' +
-            'Der Multiplikator gilt trotzdem, er ist ein Verhaeltnis.',
+            'Der Multiplikator gilt trotzdem, er ist ein Verhältnis.',
         })
       : null,
     el('.kombisumme', {}, [
@@ -632,8 +632,8 @@ async function loescheOrdner(name, anzahl) {
       ? `Den Ordner "${name}" aufloesen?`
       : `Den Ordner "${name}" aufloesen?\n\n` +
         `${anzahl === 1 ? 'Das Projekt darin wandert' : `Die ${anzahl} Projekte darin wandern`} nach ` +
-        '"Ohne Ordner". Es wird nichts geloescht.\n\n' +
-        'Sollen die Projekte selbst weg, waehle sie rechts an und nimm "Ausgewaehlte loeschen".'
+        '"Ohne Ordner". Es wird nichts gelöscht.\n\n' +
+        'Sollen die Projekte selbst weg, wähle sie rechts an und nimm "Ausgewählte löschen".'
   if (!window.confirm(frage)) return
 
   const betroffen = (Zustand.hole().projekte ?? []).filter((p) => (p.ordner ?? '') === name)
@@ -669,7 +669,7 @@ function neuerOrdner() {
   // wieder weg waere.
   const stand = Zustand.hole()
   if (!stand.projekt) {
-    Zustand.melde('warnung', 'Es ist kein Projekt offen, das in den Ordner koennte.')
+    Zustand.melde('warnung', 'Es ist kein Projekt offen, das in den Ordner könnte.')
     return
   }
   if (
@@ -712,7 +712,7 @@ function erklaerzeile() {
       text:
         'Dein Archiv. Ein PROJEKT ist ein eigener Arbeitsplatz: alles, was du darin setzt, mit ' +
         'allen Fotos, Scheinen und Riesenscheinen. Es darf eine Woche umfassen oder eine ganze ' +
-        'Saison. Ein ORDNER ist nur eine Schublade fuer Projekte: er entsteht, sobald du ein ' +
+        'Saison. Ein ORDNER ist nur eine Schublade für Projekte: er entsteht, sobald du ein ' +
         'Projekt hineinziehst, und verschwindet von selbst, wenn du das letzte herausnimmst. Du ' +
         'musst ihn nicht anlegen und nicht aufraeumen.',
     }),
@@ -733,7 +733,7 @@ function erklaerzeile() {
     el('.erklaerzeile-trennung', {}, [
       el('strong', { text: 'Projekte haben nichts miteinander zu tun. ' }),
       'Jedes ist ein eigener Arbeitsplatz, wie ein zweiter Schreibtisch. Keine Zahl, kein ' +
-        'Schein und kein Bild wandert von einem ins andere, und es wird nie ueber Projekte ' +
+        'Schein und kein Bild wandert von einem ins andere, und es wird nie über Projekte ' +
         'hinweg summiert. Ordner dagegen liegen INNERHALB der Ablage und ordnen nur, sie ' +
         'trennen nicht.',
     ]),

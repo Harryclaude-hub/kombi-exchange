@@ -47,9 +47,9 @@ const SCHRITTE = [
     wo: '',
     titel: 'Wofuer dieses Programm da ist',
     text:
-      'Du setzt dieselbe Wette bei vielen Anbietern gleichzeitig, zusammen ueber zwanzigtausend ' +
-      'Euro. Danach weiss niemand mehr auf einen Blick, wie viel insgesamt draussen ist und was ' +
-      'zurueckkommen kann. Genau das rechnet dieses Programm aus, aus deinen Bildschirmfotos.',
+      'Du setzt dieselbe Wette bei vielen Anbietern gleichzeitig, zusammen über zwanzigtausend ' +
+      'Euro. Danach weiß niemand mehr auf einen Blick, wie viel insgesamt draußen ist und was ' +
+      'zurückkommen kann. Genau das rechnet dieses Programm aus, aus deinen Bildschirmfotos.',
     punkte: [
       'Du tippst nichts ab. Du machst Fotos, das Programm liest sie.',
       'Gleiche Wetten werden zu EINEM Riesenschein zusammengefasst.',
@@ -63,16 +63,16 @@ const SCHRITTE = [
     wo: 'start',
     titel: 'Die Uebersicht: deine Startseite',
     text:
-      'Hier landest du beim Aufmachen. Ganz oben steht, in welchem Projekt du bist und ueber ' +
-      'welchen Zeitraum es laeuft. Darunter die drei Zahlen, wegen derer du herschaust.',
+      'Hier landest du beim Aufmachen. Ganz oben steht, in welchem Projekt du bist und über ' +
+      'welchen Zeitraum es läuft. Darunter die drei Zahlen, wegen derer du herschaust.',
     punkte: [
       'INSGESAMT GESETZT: was wirklich an Geld draussen ist.',
-      'KANN ZURUECKKOMMEN: was hereinkaeme, wenn alles Offene gewinnt, mit Einsatz.',
+      'KANN ZURÜCKKOMMEN: was hereinkäme, wenn alles Offene gewinnt, mit Einsatz.',
       'NOCH IM RISIKO: was noch verloren gehen kann. Sobald etwas entschieden ist, steht dort stattdessen ERGEBNIS BISHER.',
       'Darunter jeder Riesenschein als Kachel. Ein Klick oeffnet ihn ganz.',
     ],
     achtung:
-      'Steht dort der rote Kasten "Waehrungen gemischt", sind Euro, Dollar und Krypto in einer ' +
+      'Steht dort der rote Kasten "Währungen gemischt", sind Euro, Dollar und Krypto in einer ' +
       'Summe gelandet. Das Programm rechnet NIE um. Die Zahlen daneben sind dann keine Summen.',
   },
   {
@@ -84,12 +84,12 @@ const SCHRITTE = [
     punkte: [
       'BILDSCHIRMFOTO: der Browser fragt, welches Fenster. Danach ziehst du den Rahmen selbst.',
       'AUS ZWISCHENABLAGE: Windows-Taste, Umschalt, S. Dann Strg+V irgendwo auf der Seite.',
-      'FOTO HOCHLADEN: der gewohnte Dateidialog, auch fuer viele Bilder auf einmal.',
+      'FOTO HOCHLADEN: der gewohnte Dateidialog, auch für viele Bilder auf einmal.',
       'Rechne mit etwa zwei Sekunden je Schein. Bei hundert Scheinen also gut drei Minuten.',
     ],
     achtung:
       'Bei einem ganzen Browserfenster schneidet das Programm quer durch die Seite. Zieh dann ' +
-      'einen Rahmen um die Wettliste, sonst landet Text aus der Menueleiste in deinen Scheinen.',
+      'einen Rahmen um die Wettliste, sonst landet Text aus der Menüleiste in deinen Scheinen.',
   },
   {
     wo: 'scheine',
@@ -100,11 +100,11 @@ const SCHRITTE = [
     punkte: [
       'Eine falsche Zahl einfach ueberschreiben. Komma und Punkt gehen beide.',
       'Der Streifen links an einer Zeile ist rot bei Fehler und gelb bei Warnung.',
-      'Ganz unten steht der Resttopf: Scheine, die zu keiner Wette passen. Die sind nicht weg, du kannst sie einzeln mitzaehlen lassen.',
-      'Die Tabelle laesst sich nach rechts schieben, dort stehen die letzten Spalten.',
+      'Ganz unten steht der Resttopf: Scheine, die zu keiner Wette passen. Die sind nicht weg, du kannst sie einzeln mitzählen lassen.',
+      'Die Tabelle lässt sich nach rechts schieben, dort stehen die letzten Spalten.',
     ],
     achtung:
-      'Die Farbe hinter einem Feld ist die Lesesicherheit, nicht die Richtigkeit. Ein gruenes Feld ' +
+      'Die Farbe hinter einem Feld ist die Lesesicherheit, nicht die Richtigkeit. Ein grünes Feld ' +
       'kann falsch sein. Wo Einsatz mal Quote die Auszahlung ergibt, hat das Programm selbst ' +
       'gegengerechnet, und darauf ist Verlass.',
   },
@@ -114,7 +114,7 @@ const SCHRITTE = [
     text:
       'Das ist der wichtigste Punkt: einen Riesenschein LEGST DU NICHT AN. Er entsteht von selbst, ' +
       'sobald zwei Scheine dieselbe Wette tragen. Das Programm vergleicht Spieler, Spiel, Marktart ' +
-      'und Linie und fuehrt zusammen, was zusammengehoert.',
+      'und Linie und führt zusammen, was zusammengehört.',
     punkte: [
       'Gleiche Wette bei acht Anbietern: ein Riesenschein mit acht Scheinen darin.',
       'In der Mitte stehen seine Zahlen, rechts jeder einzelne Schein nummeriert.',
@@ -124,18 +124,18 @@ const SCHRITTE = [
     achtung:
       'Das Programm fasst mit Absicht NICHT zusammen, wenn es sich nicht sicher ist. Gibbs auf ' +
       'ueber 84.5 und Gibbs auf ueber 82.5 sind zwei verschiedene Wetten mit verschiedenem Risiko. ' +
-      'Nicht zusammenfassen ist sicher, falsch zusammenfassen waere es nicht.',
+      'Nicht zusammenfassen ist sicher, falsch zusammenfassen wäre es nicht.',
   },
   {
     wo: 'positionen',
     titel: 'Der Multiplikator, und warum er nicht die angezeigte Quote ist',
     text:
       'Die Quote, die der Buchmacher anzeigt, ist gerundet. Steht auf dem Schein Einsatz UND ' +
-      'Auszahlung, rechnet das Programm den genauen Multiplikator zurueck, statt der Anzeige zu ' +
+      'Auszahlung, rechnet das Programm den genauen Multiplikator zurück, statt der Anzeige zu ' +
       'glauben.',
     punkte: [
       'Stake zeigt 1,84. Aus 5.000 Einsatz und 9.175,9955 Auszahlung ergeben sich 1,8351991.',
-      '5.000 mal 1,84 waeren 9.200. Das sind vierundzwanzig Euro Unterschied auf EINEM Schein.',
+      '5.000 mal 1,84 wären 9.200. Das sind vierundzwanzig Euro Unterschied auf EINEM Schein.',
       'Bei vier von fuenf deiner Anbieter ist die angezeigte Quote nicht die echte.',
     ],
     achtung:
@@ -146,44 +146,44 @@ const SCHRITTE = [
     wo: 'ablage',
     titel: 'Eine ganze Saison ordentlich fuehren',
     text:
-      'Die NFL-Saison laeuft bis naechsten Sommer. Damit du im Februar noch weisst, was im ' +
+      'Die NFL-Saison läuft bis nächsten Sommer. Damit du im Februar noch weißt, was im ' +
       'September war, brauchst du eine Ordnung, und die ist bewusst einfach gehalten.',
     punkte: [
       'EIN PROJEKT IST EINE RUNDE. Alles, was du in einem Zeitraum gesetzt hast, mit Fotos, Scheinen und Riesenscheinen. Ein Spieltag, eine Woche, ein Monat, wie du willst.',
-      'EIN ORDNER IST NUR EINE SCHUBLADE dafuer. Er entsteht, sobald du ein Projekt hineinziehst, und verschwindet von selbst, wenn du das letzte herausnimmst. Du musst ihn nicht anlegen und nicht aufraeumen.',
-      'Vorschlag fuer die Saison: ein Ordner je Monat, ein Projekt je Spieltag. Dann findest du im Februar den 14. September in zwei Klicks.',
+      'EIN ORDNER IST NUR EINE SCHUBLADE dafür. Er entsteht, sobald du ein Projekt hineinziehst, und verschwindet von selbst, wenn du das letzte herausnimmst. Du musst ihn nicht anlegen und nicht aufräumen.',
+      'Vorschlag für die Saison: ein Ordner je Monat, ein Projekt je Spieltag. Dann findest du im Februar den 14. September in zwei Klicks.',
       'Was du oft brauchst, pinnst du an. Angepinntes steht immer oben, egal wie sortiert wird.',
       'Das Datum steht an jeder Zeile. Umbenennen per Doppelklick auf den Namen.',
     ],
     achtung:
-      'Loeschen nimmt alle Scheine, Riesenscheine und Bilder des Projekts mit und laesst sich ' +
+      'Löschen nimmt alle Scheine, Riesenscheine und Bilder des Projekts mit und lässt sich ' +
       'nicht rueckgaengig machen. Die Rueckfrage nennt deshalb die Namen.',
   },
   {
     wo: 'ausgabe',
     titel: 'Ausgabe: die Zahlen fuer die Buchhaltung',
     text:
-      'Das Programm ist kein Archiv fuer die Steuer. Die Excel-Mappe ist es. Lade sie regelmaessig ' +
+      'Das Programm ist kein Archiv für die Steuer. Die Excel-Mappe ist es. Lade sie regelmäßig ' +
       'herunter, am besten nach jedem abgeschlossenen Spieltag.',
     punkte: [
-      'Ein Knopf fuer den offenen Riesenschein, einer fuer das ganze Projekt.',
-      'Die Mappe hat mehrere Blaetter: jeder einzelne Schein eine Zeile, jede zusammengefasste Wette eine Zeile, dazu ein Blatt je Anbieter und eines mit allen Hinweisen.',
-      'CSV ist dasselbe als einfache Textdatei, fuer Programme, die kein Excel lesen.',
-      'In der Mappe kannst du eigene Spalten daneben rechnen, ohne hier etwas zu aendern.',
+      'Ein Knopf für den offenen Riesenschein, einer für das ganze Projekt.',
+      'Die Mappe hat mehrere Blätter: jeder einzelne Schein eine Zeile, jede zusammengefasste Wette eine Zeile, dazu ein Blatt je Anbieter und eines mit allen Hinweisen.',
+      'CSV ist dasselbe als einfache Textdatei, für Programme, die kein Excel lesen.',
+      'In der Mappe kannst du eigene Spalten daneben rechnen, ohne hier etwas zu ändern.',
     ],
     achtung:
-      'Die Summenzeile ist nur bei EINER Waehrung aussagekraeftig. Steht eine Warnung darunter, ' +
+      'Die Summenzeile ist nur bei EINER Währung aussagekräftig. Steht eine Warnung darunter, ' +
       'sind Euro und Dollar in derselben Spalte gelandet.',
   },
   {
     wo: '',
-    titel: 'Die Knoepfe, die immer da sind',
+    titel: 'Die Knöpfe, die immer da sind',
     text: 'Diese findest du auf jeder Seite, egal wo du gerade bist.',
     punkte: [
       'PANEL LINKS: die Wege zu allen Seiten, darunter das Angeheftete. Der Knopf oben im Panel klappt es schmal, ganz weg geht es nie.',
-      'ERKLAERUNG oben im Kopf: springt zu der Seite, auf der du gerade stehst, und erklaert sie ausfuehrlich.',
+      'ERKLÄRUNG oben im Kopf: springt zu der Seite, auf der du gerade stehst, und erklärt sie ausführlich.',
       'ANLEITUNG oben im Kopf: startet genau diese Anleitung noch einmal.',
-      'DIE NUMMER MIT DEM DATUM oben rechts ist kein Datum, sondern die Fassung des Programms, die dein Browser geladen hat. Siehst du eine Aenderung nicht, klick darauf: die Seite wird dann wirklich neu geholt und nicht aus dem Zwischenspeicher genommen.',
+      'DIE NUMMER MIT DEM DATUM oben rechts ist kein Datum, sondern die Fassung des Programms, die dein Browser geladen hat. Siehst du eine Änderung nicht, klick darauf: die Seite wird dann wirklich neu geholt und nicht aus dem Zwischenspeicher genommen.',
       'ANSICHT: schaltet zwischen System, Hell und Dunkel.',
       'Stimmt etwas nicht, erscheint unten eine ruhige Leiste. Ein Klick klappt alle Hinweise auf.',
     ],
@@ -272,14 +272,14 @@ export function zeige() {
     fuelle(knoepfe, [
       el('button.knopf.knopf-klein.anleitung-weg', {
         type: 'button',
-        text: letzter ? 'Schliessen' : 'Ueberspringen',
-        title: 'Die Anleitung laesst sich oben im Kopf jederzeit neu starten.',
+        text: letzter ? 'Schließen' : 'Überspringen',
+        title: 'Die Anleitung lässt sich oben im Kopf jederzeit neu starten.',
         onclick: schliesse,
       }),
       el('span.anleitungszaehler', { text: `${schritt + 1} von ${SCHRITTE.length}` }),
       el('button.knopf.knopf-klein', {
         type: 'button',
-        text: 'Zurueck',
+        text: 'Zurück',
         disabled: schritt === 0 ? 'disabled' : null,
         onclick: () => {
           if (schritt > 0) schritt -= 1

@@ -61,7 +61,7 @@ function projektkopfzeile(stand) {
   if (!p) {
     return el('.projektfahne', {}, [
       el('span.projektfahne-marke', { text: 'PROJEKT' }),
-      el('span.projektfahne-name', { text: 'Noch kein Projekt geoeffnet' }),
+      el('span.projektfahne-name', { text: 'Noch kein Projekt geöffnet' }),
     ])
   }
 
@@ -119,7 +119,7 @@ function grossezahlen(gesamt) {
       'Kann zurueckkommen',
       formatiere(gesamt.auszahlungMoeglich, w, 'de'),
       'gut',
-      'Wenn alles Offene gewinnt, einschliesslich Einsatz'
+      'Wenn alles Offene gewinnt, einschließlich Einsatz'
     ),
     etwasEntschieden
       ? startkachel(
@@ -141,7 +141,7 @@ function grossezahlen(gesamt) {
     gesamt.waehrungGemischt
       ? el('.startkachel.startkachel-fehler', {}, [
           el('.startkachelname', { text: 'Achtung' }),
-          el('.startkachelwert', { text: 'Waehrungen gemischt' }),
+          el('.startkachelwert', { text: 'Währungen gemischt' }),
           el('.startkachelhilfe', {
             text: 'Euro, Dollar und Krypto werden NICHT umgerechnet. Die Summen daneben sind deshalb keine Summen.',
           }),
@@ -181,7 +181,7 @@ function wettenliste(stand, rechnungen) {
           : `Deine ${stand.riesenscheine.length} Riesenscheine`,
     }),
     el('p.startbereichtext', {
-      text: 'Ein Klick oeffnet den ganzen Riesenschein mit allen Einzelscheinen darin.',
+      text: 'Ein Klick öffnet den ganzen Riesenschein mit allen Einzelscheinen darin.',
     }),
     el(
       '.startwetten',
@@ -266,7 +266,7 @@ function erstesMal() {
     el('p.startleertext', {
       text:
         'So geht es los: du machst von jedem Wettschein ein Bildschirmfoto, das Programm liest die ' +
-        'Zahlen heraus, und gleiche Wetten werden zu einem Riesenschein zusammengefuehrt. ' +
+        'Zahlen heraus, und gleiche Wetten werden zu einem Riesenschein zusammengeführt. ' +
         'Du musst nichts abtippen.',
     }),
     el('.startleerknoepfe', {}, [fotoknoepfe({ titel: 'Ersten Schein aufnehmen' })]),
@@ -299,7 +299,7 @@ function naechsteSchritte(stand) {
       ),
       startweg(
         'Riesenscheine ansehen',
-        'Gleiche Wetten zusammengefasst: Einsatz, moeglicher Gewinn, Multiplikator.',
+        'Gleiche Wetten zusammengefasst: Einsatz, möglicher Gewinn, Multiplikator.',
         'positionen'
       ),
       startweg(
@@ -309,10 +309,10 @@ function naechsteSchritte(stand) {
       ),
       startweg(
         'Ablage',
-        'Deine Projekte und Ordner. Hier liegt, was du frueher gemacht hast, ueber Monate und Jahre.',
+        'Deine Projekte und Ordner. Hier liegt, was du früher gemacht hast, über Monate und Jahre.',
         'ablage'
       ),
-      startweg('Erklaerung', 'Jede Seite dieses Programms, Schritt fuer Schritt erklaert.', 'hilfe'),
+      startweg('Erklaerung', 'Jede Seite dieses Programms, Schritt für Schritt erklärt.', 'hilfe'),
     ]),
   ])
 }
