@@ -295,6 +295,58 @@ export function rechne(scheine) {
   const gewinnschwelle = quoteOffen !== null && quoteOffen > 0 ? 1 / quoteOffen : null
 
   /*
+    GEWONNEN UND VERLOREN IN EINER POSITION IST EIN WIDERSPRUCH.
+
+    Ein Riesenschein ist DIESELBE Wette bei vielen Buchmachern. Dieselbe Wette
+    geht ueberall gleich aus. Steht in einer Position ein gewonnener neben
+    einem verlorenen Schein, sind es zwei verschiedene Wetten, und dann sind
+    alle Summen darunter sinnlos.
+
+    GEFUNDEN AM 16.09.2026 an der Huelle, die am selben Tag gebaut wurde.
+    oberflaeche/zustand.js stempelt bei offener Huelle jeden neu gelesenen
+    Schein mit gruppeId. kern/gruppierung.js macht daraus eine HANDGRUPPE, und
+    dort steht "if (gruppe.vonHand) continue": eine Handgruppe wird nie
+    verglichen, nie aufgebrochen, nie befragt.
+
+    Nachgemessen an den neun echten PS3838-Zeilen aus einem Foto:
+
+      ohne Huelle   3 Gruppen    Gibbs +8.367,28 / Williams +857,14 / Mayfield -6.718,48
+      mit Huelle    1 Gruppe     9 Scheine, 17.717,48 Einsatz, drei Linien,
+                                 gewonnen UND verloren nebeneinander
+
+    Das ist derselbe Fehler wie der teuerste Fund des Projekts, nur ueber
+    17.717,48 statt ueber 9.000 Euro. test/echte_fotos.test.mjs verbietet ihn
+    seit dem 14.09. ausdruecklich, aber nur fuer den automatischen Weg.
+
+    AUFGEBROCHEN WIRD NICHTS. Wer die Scheine von Hand in eine Huelle gelegt
+    hat, hat entschieden, und gegen diese Entscheidung zu gruppieren waere eine
+    Automatik ohne Pruefstein in die Gegenrichtung (Projektregel 1). Gesagt
+    werden muss es trotzdem, und zwar laut (Projektregel 9).
+
+    NUR gewonnen gegen verloren, nicht jeder Unterschied: offen neben gewonnen
+    ist der Normalfall an einem Spieltag, und eine Annullierung ist kein
+    Verlust. Eine Warnung, die staendig kommt, wird nicht mehr gelesen.
+  */
+  {
+    const gewonnene = gueltige.filter((s) => s.status === 'gewonnen' || s.status === 'halb_gewonnen')
+    const verlorene = gueltige.filter((s) => s.status === 'verloren' || s.status === 'halb_verloren')
+
+    if (gewonnene.length > 0 && verlorene.length > 0) {
+      hinweise.push({
+        code: 'gewonnen_und_verloren',
+        schwere: 'warnung',
+        feld: 'status',
+        text:
+          `In diesem Riesenschein stehen ${gewonnene.length} gewonnene und ` +
+          `${verlorene.length} verlorene Schein(e) nebeneinander. Dieselbe Wette geht bei allen ` +
+          'Buchmachern gleich aus, also sind das zwei verschiedene Wetten. Die Summen darunter ' +
+          'sind dann nicht aussagekraeftig. Bitte nachsehen und die Scheine trennen. ' +
+          'Das Programm aendert hier von sich aus nichts.',
+      })
+    }
+  }
+
+  /*
     DER ZWEITE PRUEFSTEIN: eine Quote, die aus der Reihe faellt.
 
     Karam am 16.09.2026: "da wird sehr viel gesetzt, taeglich wirklich ueber
