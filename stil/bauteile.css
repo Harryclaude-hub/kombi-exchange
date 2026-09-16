@@ -3799,3 +3799,51 @@ li[data-schwere="info"] .hinweisart {
   margin: 0;
   flex: 1 1 24rem;
 }
+
+/* ---------------------------------------------------- Der Weg zurueck am Tor */
+
+/*
+  "Code verloren?" am Anmeldefenster. Zugeklappt, damit es niemanden ablenkt,
+  der seinen Code hat, und trotzdem an der Stelle, an der man die Frage stellt.
+*/
+.tornotfall {
+  margin-top: var(--luft-3);
+  padding-top: var(--luft-3);
+  border-top: 1px solid var(--linie);
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.tornotfall summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--schrift);
+  padding: var(--luft-1) 0;
+}
+
+.tornotfall summary:focus-visible {
+  outline: 3px solid var(--betonung);
+  outline-offset: 2px;
+  border-radius: var(--rundung);
+}
+
+.tornotfall p {
+  margin: var(--luft-2) 0 0;
+  line-height: 1.6;
+}
+
+/*
+  Der Befehl steht in fester Zeichenbreite und laesst sich mit einem Zug
+  markieren. Wer ihn abtippt, vertippt sich, und ein vertippter Befehl gegen
+  eine Datenbank ist keine gute Stelle zum Ueben.
+*/
+.tornotfall-befehl {
+  margin: var(--luft-2) 0 0;
+  padding: var(--luft-2);
+  background: var(--grund-tief);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  font-size: var(--text-winzig);
+  user-select: all;
+  overflow-x: auto;
+}

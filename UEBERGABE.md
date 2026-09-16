@@ -37,6 +37,11 @@ zusammen und gibt ein Blatt und eine Excel-Mappe aus.
 Der Code liegt nur als Einwegwert in `kombi.zugangscodes`. Niemals in eine
 Datei schreiben. Im Programm gibt es oben rechts "Code wechseln".
 
+**Ist der Code weg: `NOTFALL.md`.** Dort steht der eine SQL-Befehl, mit dem
+Karam sich selbst einen neuen setzt. Er steht auch im Programm am
+Anmeldefenster unter "Code verloren?". Ein Wert steht an keiner der beiden
+Stellen und darf dort nie stehen: das Repository ist oeffentlich.
+
 ---
 
 ## Sofort loslegen
@@ -796,7 +801,7 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, die Fotos fehlen |
 | Aufbaupruefung | 78 Dateien, keine Beanstandung |
-| Fassung | 2026-09-16-f, oeffentlich ausgeliefert |
+| Fassung | 2026-09-16-i, oeffentlich ausgeliefert |
 | Probeseite (nachgebaute Bilder) | bet365 und BetOnline sauber, PS3838 2 von 3, Betway und Stake melden ihre Fehler laut |
 
 ## Bekannte Stolpersteine in diesem Container

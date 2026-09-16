@@ -210,6 +210,52 @@ function zeichneTor() {
         el('p.torfuss', {
           text: 'Ohne Anmeldung. Wer den Code hat, sieht alles. Die Bildschirmfotos bleiben auf dem Geraet.',
         }),
+
+        /*
+          DER WEG ZURUECK, wenn der Code weg ist.
+
+          Am 16.09.2026 stand Karam ohne Code da und fragte, wie er wieder
+          hereinkommt. Am Tor stand darueber nichts, und das ist genau die
+          Stelle, an der man die Frage hat.
+
+          Der Code ist mit Absicht nicht abrufbar: in kombi.zugangscodes liegt
+          nur ein bcrypt-Fingerabdruck. Das heisst, NIEMAND kann ihn
+          zurueckrechnen, auch nicht, wer an die Datenbank kommt. Der Preis
+          dafuer ist, dass es keine Frage "Code vergessen" gibt, die man
+          beantworten koennte: es gibt nur den Weg, in der Datenbank einen
+          neuen zu setzen.
+
+          Ein <details> und kein eigener Zustand: es klappt auch dann auf,
+          wenn stil/ fehlt, und es lenkt niemanden ab, der seinen Code hat.
+        */
+        el('details.tornotfall', {}, [
+          el('summary', { text: 'Code verloren?' }),
+          el('p', {
+            text:
+              'Der Code laesst sich nicht wiederherstellen. In der Datenbank steht nur sein ' +
+              'Fingerabdruck, nicht er selbst. Das ist Absicht: so kann ihn auch niemand ' +
+              'auslesen, der an die Datenbank kommt.',
+          }),
+          el('p', {
+            text:
+              'Du setzt dir einen neuen: im Supabase SQL-Editor des Projekts appload einmal ' +
+              'diese Zeile ausfuehren und DEIN-NEUER-CODE durch deinen eigenen ersetzen, ' +
+              'mindestens zwoelf Zeichen, keine Leerzeichen.',
+          }),
+          el('pre.tornotfall-befehl', {
+            text:
+              [
+                'update kombi.zugangscodes',
+                "   set code_hash = extensions.crypt('DEIN-NEUER-CODE', extensions.gen_salt('bf', 12))",
+                ' where aktiv;',
+              ].join(ZEILENUMBRUCH),
+          }),
+          el('p', {
+            text:
+              'Dieselbe Zeile steht in NOTFALL.md im Quelltext. Bist du noch irgendwo ' +
+              'angemeldet, geht es einfacher: dort oben im Kopf auf "Code wechseln".',
+          }),
+        ]),
       ]),
     ]),
   ])
@@ -403,6 +449,16 @@ function zeichneKopf() {
 
 /** Unter welchem Schluessel die Farbwahl im Browser liegt. */
 const FARBE_SCHLUESSEL = 'kombi-farbe'
+
+/**
+ * Ein Zeilenumbruch als Wert.
+ *
+ * Steht als eigene Groesse da, weil der Notfallbefehl am Tor ueber drei Zeilen
+ * geht. Ein Rueckstrich-n mitten in einer langen Zeichenkette ist genau die
+ * Art Zeichen, die beim naechsten Umbau verrutscht, und dann steht im
+ * Quelltext ein echter Umbruch, wo eine Zeichenkette sein sollte.
+ */
+const ZEILENUMBRUCH = String.fromCharCode(10)
 
 /**
  * Der Umschalter zwischen heller und dunkler Fassung.
