@@ -156,16 +156,34 @@ function projektkopf(gesamt) {
   */
   const etwasEntschieden = gesamt.einsatzEntschieden > 0.005
 
+  /*
+    DIESE ZEILE IST DIE SUMME DES PROJEKTS, NICHT DIE DES RIESENSCHEINS.
+
+    Karam am 16.09.2026, nachdem er eine neue Huelle aufgemacht hatte: "wenn
+    ich einen Riesenschein erstelle, dann ist wieder alles blank."
+
+    Blank wird der RIESENSCHEIN, und das ist er auch. Diese Zeile darueber
+    zaehlt aber alle Riesenscheine des Projekts zusammen und stand vorher ohne
+    Kennzeichnung da. Wer eine frische, leere Huelle aufmacht und darueber
+    8.036,00 liest, glaubt, sie sei nicht leer.
+
+    Deshalb traegt jede Kachel jetzt das Wort Projekt im Namen, und die Zeile
+    hat eine Ueberschrift. Verschwiegen wird nichts: die Projektsumme ist eine
+    Zahl, die man sehen will, sie muss nur sagen, wovon sie die Summe ist.
+  */
   return el('.projektkopf', {}, [
-    kachel('Gesamteinsatz', formatiere(gesamt.einsatzGesamt, w, 'de'), 'neutral',
+    el('.projektkopf-titel', {
+      text: `Das ganze Projekt, ${gesamt.anzahlScheine} Schein(e) in allen Riesenscheinen zusammen`,
+    }),
+    kachel('Projekt: gesamt gesetzt', formatiere(gesamt.einsatzGesamt, w, 'de'), 'neutral',
       `${gesamt.anzahlScheine} Scheine bei ${gesamt.buchmacher.length} Anbietern`),
-    kachel('Moegliche Auszahlung', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut',
+    kachel('Projekt: kann zurueckkommen', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut',
       'Wenn alles Offene gewinnt, einschliesslich Einsatz'),
     // Solange nichts entschieden ist, waere eine Null hier nur Ablenkung.
     etwasEntschieden
-      ? kachel('Ergebnis bisher', formatiere(gesamt.ergebnisRealisiert, w, 'de'),
+      ? kachel('Projekt: Ergebnis bisher', formatiere(gesamt.ergebnisRealisiert, w, 'de'),
           gesamt.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht', 'Nur entschiedene Scheine')
-      : kachel('Noch im Risiko', formatiere(gesamt.imRisiko, w, 'de'), 'offen',
+      : kachel('Projekt: noch im Risiko', formatiere(gesamt.imRisiko, w, 'de'), 'offen',
           'Kann noch verloren gehen'),
 
     gesamt.waehrungGemischt

@@ -4207,3 +4207,32 @@ li[data-schwere="info"] .hinweisart {
   padding: var(--luft-2) var(--luft-5);
   min-height: 44px;
 }
+
+/*
+  Die Ueberschrift ueber der Projektsumme.
+
+  Karam am 16.09.2026: "wenn ich einen Riesenschein erstelle, dann ist wieder
+  alles blank." Der Riesenschein ist es auch. Die Zeile darueber zaehlt aber
+  das ganze Projekt, und ohne Ueberschrift sah eine frische, leere Huelle so
+  aus, als staenden schon achttausend darin.
+*/
+.projektkopf-titel {
+  grid-column: 1 / -1;
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+  margin-bottom: var(--luft-1);
+}
+
+/* Der Hinweis auf die strikte Trennung zwischen Projekten. */
+.erklaerzeile-trennung {
+  margin-top: var(--luft-3);
+  padding-top: var(--luft-3);
+  border-top: 1px solid var(--linie);
+  max-width: 88ch;
+  font-size: var(--text-klein);
+  line-height: 1.6;
+  color: var(--schrift-leise);
+}

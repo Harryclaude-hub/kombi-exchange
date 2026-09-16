@@ -695,18 +695,28 @@ function projektwahl(stand) {
       title: 'Neues Projekt anlegen',
       onclick: async () => {
         /*
-          Karam am 16.09.2026: "er soll bitte statt Runde vom 16.09. immer
-          Projekt und dann Name dazu. Und dieser Projekt wird auch
-          wahrscheinlich ueber Monate gehen, ueber eine ganze Saison."
+          KEIN DATUM IM PROJEKTNAMEN.
 
-          "Runde vom 16.09." war fuer einen Spieltag gedacht. Ein Projekt, das
-          eine Saison traegt, heisst nicht nach dem Tag, an dem es angelegt
-          wurde. Vorgeschlagen wird deshalb "Projekt " mit dem Jahr, den Rest
-          schreibt Karam dazu.
+          Karam am 16.09.2026: "bitte oben bei so Runde 16.09., ich will, dass
+          man da kein Datum hat, sondern einfach Projekt 1."
+
+          "Runde vom 16.09." war fuer einen Spieltag gedacht. Ein Projekt
+          traegt bei Karam eine ganze Saison. Ein Datum im Namen behauptet das
+          Gegenteil und ist nach der zweiten Woche irrefuehrend. Durchgezaehlt
+          wird deshalb, nicht datiert.
+
+          WAS EIN PROJEKT IST, steht in der Rueckfrage mit dabei. Karam:
+          "Projekte hinzufuegen, und zwar das wirklich wie ein komplett neuer
+          Desktop. Wir haben nichts miteinander zu tun." Genau so ist es auch
+          gebaut, und das soll man lesen, bevor man eines anlegt.
         */
+        const stand = Zustand.hole()
         const name = prompt(
-          'Wie soll das neue Projekt heissen?',
-          `Projekt ${new Date().getFullYear()} `
+          'Wie soll das neue Projekt heissen?\n\n' +
+            'Ein Projekt ist ein eigener Arbeitsplatz. Es teilt NICHTS mit den anderen: ' +
+            'keine Scheine, keine Riesenscheine, keine Bilder, keine Summen. ' +
+            'Ordner liegen INNERHALB eines Projekts, sie verbinden also nie zwei Projekte.',
+          `Projekt ${stand.projekte.length + 1}`
         )
         if (!name) return
         await legeProjektAn(name.trim())

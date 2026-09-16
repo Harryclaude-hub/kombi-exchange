@@ -710,11 +710,32 @@ function erklaerzeile() {
     el('.erklaerzeile-titel', { text: 'Was diese Seite ist' }),
     el('p.erklaerzeile-text', {
       text:
-        'Dein Archiv. Ein PROJEKT ist eine Runde: alles, was du in einem Zeitraum gesetzt hast, ' +
-        'mit allen Fotos, Scheinen und Riesenscheinen darin. Es darf eine Woche umfassen oder eine ' +
-        'ganze Saison. Ein ORDNER ist nur eine Schublade dafuer: er entsteht, sobald du ein Projekt ' +
-        'hineinziehst, und verschwindet von selbst, wenn du das letzte herausnimmst. Du musst ihn ' +
-        'nicht anlegen und nicht aufraeumen.',
+        'Dein Archiv. Ein PROJEKT ist ein eigener Arbeitsplatz: alles, was du darin setzt, mit ' +
+        'allen Fotos, Scheinen und Riesenscheinen. Es darf eine Woche umfassen oder eine ganze ' +
+        'Saison. Ein ORDNER ist nur eine Schublade fuer Projekte: er entsteht, sobald du ein ' +
+        'Projekt hineinziehst, und verschwindet von selbst, wenn du das letzte herausnimmst. Du ' +
+        'musst ihn nicht anlegen und nicht aufraeumen.',
     }),
+
+    /*
+      DIE TRENNUNG ZWISCHEN PROJEKTEN, ausdruecklich hingeschrieben.
+
+      Karam am 16.09.2026: "Projekte sind komplett anders voneinander. Das sind
+      die klaren Trennungen, und das ist in der Datenbank und auch im
+      Verstaendnis der App sehr wichtig."
+
+      Es stimmt auch so: in kombi.riesenscheine, kombi.scheine und kombi.bilder
+      steht je eine projekt_id mit on delete cascade. Nichts wird ueber
+      Projektgrenzen hinweg gerechnet, und rechneProjekt sieht nur die
+      Riesenscheine des offenen Projekts. Wer das nicht weiss, sucht Zahlen an
+      der falschen Stelle.
+    */
+    el('.erklaerzeile-trennung', {}, [
+      el('strong', { text: 'Projekte haben nichts miteinander zu tun. ' }),
+      'Jedes ist ein eigener Arbeitsplatz, wie ein zweiter Schreibtisch. Keine Zahl, kein ' +
+        'Schein und kein Bild wandert von einem ins andere, und es wird nie ueber Projekte ' +
+        'hinweg summiert. Ordner dagegen liegen INNERHALB der Ablage und ordnen nur, sie ' +
+        'trennen nicht.',
+    ]),
   ])
 }
