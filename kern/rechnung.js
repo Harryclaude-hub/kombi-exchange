@@ -387,6 +387,14 @@ export function rechne(scheine) {
     AB DREI QUOTEN: bei zweien gibt es keine Mitte, der eine Wert ist so gut
     wie der andere, und eine Warnung waere geraten.
   */
+  /**
+   * Wie weit die Quoten desselben Riesenscheins auseinanderliegen, gemessen.
+   * null, solange es weniger als drei gibt: bei zweien gibt es keine Mitte.
+   *
+   * @type {{median: number, groessterAbstand: number, anzahl: number}|null}
+   */
+  let quotenstreuung = null
+
   if (alleQuotenPosten.length >= 3) {
     const sortiert = [...alleQuotenPosten].map((p) => p.quote).sort((a, b) => a - b)
     const mitte = sortiert.length % 2 === 1
@@ -394,6 +402,44 @@ export function rechne(scheine) {
       : ((sortiert[sortiert.length / 2 - 1] ?? 0) + (sortiert[sortiert.length / 2] ?? 0)) / 2
 
     if (mitte !== undefined && mitte > 0) {
+      /*
+        DIE GEMESSENE STREUUNG WIRD MITGEGEBEN, AUCH UNTER DER GRENZE.
+
+        Am 17.09.2026 an Karams einzigem echten anbieteruebergreifenden
+        Riesenschein nachgerechnet (Deebo Samuel, Ueber 2,5 Annahmen, sechs
+        Scheine bei BetOnline, Stake und Betway):
+
+          echte Quoten   1,64  1,64  1,64  1,690903  1,690903  1,740741
+          Median         1,665451
+          groesste echte Abweichung   Faktor 1,0452, also 4,52 Prozent
+
+        Die Grenze steht bei Faktor 1,5. Bei diesem Median laesst sie alles
+        zwischen 1,110 und 2,498 wortlos durch. Ein verlesenes 1,69 als 1,89
+        loest nichts aus. Auf einen Schein von 333 EUR (20.000 auf sechzig
+        Scheine) sind das bis zu 278 EUR falsch ausgewiesener Gewinn, die
+        niemandem auffallen.
+
+        UND TROTZDEM WIRD DIE GRENZE HIER NICHT ANGERUEHRT. Diese Messung
+        steht auf SECHS Scheinen aus EINEM Riesenschein. Daraus eine neue
+        Grenze abzuleiten waere genau das, was Projektregel 1 verbietet: eine
+        Automatik ohne Beleg. Zwei Buchmacher koennen bei einer seltenen Wette
+        wirklich weit auseinanderliegen, und dann waere eine enge Grenze eine
+        Warnung bei jedem zweiten Schein, die niemand mehr liest.
+
+        Stattdessen wird die Streuung GEMESSEN und mitgegeben. Karam sieht
+        ueber eine Saison, wie weit seine Buchmacher wirklich auseinander
+        liegen, und danach laesst sich die Grenze aus Zahlen ableiten statt
+        zu raten. Das kostet nichts und faelscht nichts.
+      */
+      const abstaende = alleQuotenPosten.map((p) =>
+        p.quote > mitte ? p.quote / mitte : mitte / p.quote
+      )
+      quotenstreuung = {
+        median: runde(mitte, 4),
+        groessterAbstand: runde(Math.max(...abstaende), 4),
+        anzahl: alleQuotenPosten.length,
+      }
+
       const GRENZE = 1.5
       const auffaellig = alleQuotenPosten.filter((p) => {
         const verhaeltnis = p.quote > mitte ? p.quote / mitte : mitte / p.quote
@@ -540,6 +586,9 @@ export function rechne(scheine) {
 
     auszahlungMoeglich: runde(auszahlungMoeglich, 2),
     gewinnMoeglich: runde(gewinnMoeglich, 2),
+
+    // Siehe den Block bei der Quotenpruefung: gemessen, nicht geschaetzt.
+    quotenstreuung,
 
     auszahlungRealisiert: runde(auszahlungRealisiert, 2),
     ergebnisRealisiert: runde(ergebnisRealisiert, 2),

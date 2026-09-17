@@ -94,6 +94,29 @@
       </div>
 
       <div class="schaugruppe">
+        <h2>Die Kachel fuer die Quotenstreuung</h2>
+        <!--
+          Sie erscheint erst ab drei Quoten in EINEM Riesenschein, also erst,
+          wenn dieselbe Wette bei mindestens drei Anbietern liegt. Genau das
+          ist Karams Normalfall, aber im Testkorpus kommt es nicht vor: dort
+          gruppieren 19 Scheine zu 16 Riesenscheinen. Auf der Probeseite der
+          Oberflaeche ist die Kachel deshalb nie zu sehen.
+        -->
+        <div class="kachelreihe">
+          <div class="kachel" data-art="neutral">
+            <div class="kachelname">Quoten liegen auseinander</div>
+            <div class="kachelwert">4,5 %</div>
+            <div class="kachelhilfe">Groesster Abstand vom Mittelwert 1,67, ueber 6 Quoten.</div>
+          </div>
+          <div class="kachel" data-art="offen">
+            <div class="kachelname">Quoten liegen auseinander</div>
+            <div class="kachelwert">13,5 %</div>
+            <div class="kachelhilfe">Ab 20 Prozent Abstand wird die Kachel warnend gefaerbt.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="schaugruppe">
         <h2>Die Ordnerauswahl im Fenster, beide Zustaende</h2>
         <!--
           Steht hier, weil sie sonst nirgends gemessen wuerde: sie erscheint

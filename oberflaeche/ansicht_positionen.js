@@ -1252,6 +1252,36 @@ function einzelheit(riesenscheinId) {
       el('.kachelreihe', {}, [
         kachel('Mögliche Auszahlung', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut',
           'Wenn alles Offene gewinnt, einschließlich Einsatz'),
+
+        /*
+          WIE WEIT DIE QUOTEN AUSEINANDERLIEGEN.
+
+          Dieselbe Wette hat bei verschiedenen Buchmachern aehnliche Quoten.
+          An Karams echtem Riesenschein gemessen: 4,52 Prozent Streuung bei
+          sechs Scheinen und drei Anbietern.
+
+          Die Warnung "Quote reißt aus" schlägt erst bei Faktor 1,5 an, also
+          bei 50 Prozent. Dazwischen liegt eine große Lücke: ein verlesenes
+          1,69 als 1,89 macht 13,5 Prozent Streuung und löst nichts aus,
+          kostet auf einem Schein von 333 EUR aber 66,30 EUR falsch
+          ausgewiesenen Gewinn.
+
+          Die Grenze wird deshalb NICHT enger gestellt: sechs Scheine sind
+          kein Beleg, und eine Warnung bei jedem zweiten Schein liest niemand
+          mehr. Stattdessen steht die Zahl hier. Über eine Saison sieht Karam
+          selbst, was normal ist, und danach lässt sich die Grenze aus Zahlen
+          ableiten statt zu raten.
+        */
+        rechnung.quotenstreuung
+          ? kachel(
+              'Quoten liegen auseinander',
+              `${((rechnung.quotenstreuung.groessterAbstand - 1) * 100).toLocaleString('de-DE', { maximumFractionDigits: 1 })} %`,
+              rechnung.quotenstreuung.groessterAbstand > 1.2 ? 'offen' : 'neutral',
+              `Größter Abstand vom Mittelwert ${formatiereQuote(rechnung.quotenstreuung.median, 'dezimal', 'de')}, ` +
+                `über ${rechnung.quotenstreuung.anzahl} Quoten. Dieselbe Wette hat bei verschiedenen ` +
+                'Anbietern ähnliche Quoten, große Abstände sind meist ein Lesefehler.'
+            )
+          : null,
         kachel('Verteilung', `${rechnung.anzahlScheine} / ${rechnung.anzahlBuchmacher}`, 'neutral',
           'Scheine / Anbieter'),
         kachel('Noch im Risiko', formatiere(rechnung.imRisiko, w, 'de'), 'offen',
