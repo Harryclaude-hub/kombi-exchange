@@ -348,6 +348,54 @@ export function schliesseHuelle() {
 }
 
 /**
+ * Behaelt die von Hand gesetzte Reihenfolge der Scheine.
+ *
+ * Karam am 16.09.2026: "Da rechts einfach alle Minischeine, alle Kombis, mit
+ * Anbieter und Einsatz, und das muss IMMER EINE REIHENFOLGE GEBEN, wann er was
+ * gesetzt hat."
+ *
+ * DER FUND, 17.09.2026, aus einer Gegenpruefung aller Forderungen.
+ *
+ * Es gab die Reihenfolge und man konnte sie setzen: die Pfeile an jedem
+ * Kaertchen und der Knopf "nach Zeit" schreiben sie ueber setzeReihenfolge nach
+ * riesenschein.scheinIds. Nur hielt sie nicht. ordneNeu hat scheinIds jedes Mal
+ * frisch aus gruppe.scheinIds genommen, und kern/gruppierung.js baut die Liste
+ * in der Reihenfolge auf, in der die Scheine hereinkommen.
+ *
+ * Neu geordnet wird nach JEDER berichtigten Zahl, nach jedem gesetzten Ausgang,
+ * nach jedem neuen Foto. Wer also "nach Zeit" drueckte und danach irgendetwas
+ * anfasste, hatte die Sortierung wieder verloren. Schlimmer noch: sie ueberlebte
+ * nicht einmal das Neuladen, denn app.js laedt die gespeicherten scheinIds und
+ * ruft acht Zeilen spaeter ordneNeu, das sie sofort ueberschrieb.
+ *
+ * Gemerkt haette man es erst spaet: die Reihenfolge bestimmt auch, wie das Bild
+ * zum Verschicken und die Excel-Mappe aussehen.
+ *
+ * WIE ES JETZT GEHT: die alte Reihenfolge fuehrt, die neue fuellt auf.
+ *
+ *   Was schon dastand und noch da ist, behaelt seinen Platz.
+ *   Was weg ist, faellt heraus.
+ *   Was neu ist, kommt hinten dran, in der Reihenfolge der Gruppe.
+ *
+ * Hinten und nicht vorne: ein neu hochgeladener Schein ist der juengste, und
+ * er soll nicht die Liste anfuehren, die Karam von Hand sortiert hat.
+ *
+ * @param {string[]|undefined} alteReihe   Wie es am alten Riesenschein stand.
+ * @param {string[]} neueMenge             Wer jetzt dazugehoert.
+ * @returns {string[]}
+ */
+function behalteReihenfolge(alteReihe, neueMenge) {
+  if (!alteReihe || alteReihe.length === 0) return neueMenge
+
+  const gehoertDazu = new Set(neueMenge)
+  const behalten = alteReihe.filter((id) => gehoertDazu.has(id))
+  const schonDrin = new Set(behalten)
+  const dazugekommen = neueMenge.filter((id) => !schonDrin.has(id))
+
+  return [...behalten, ...dazugekommen]
+}
+
+/**
  * Ordnet alle Scheine neu zu Riesenscheinen.
  *
  * Zuerst werden Aufnahmen desselben Scheins zusammengefuehrt, dann wird gruppiert.
@@ -408,7 +456,7 @@ export function ordneNeu(scheine) {
       projektId: stand.projekt?.id ?? '',
       name: alt?.name || schlageNamenVor(/** @type {any} */ (dabei)),
       signatur: gruppe.signatur,
-      scheinIds: gruppe.scheinIds,
+      scheinIds: behalteReihenfolge(alt?.scheinIds, gruppe.scheinIds),
       notiz: alt?.notiz ?? '',
       ordner: alt?.ordner ?? '',
       angelegtAm: alt?.angelegtAm ?? jetzt(),
