@@ -79,8 +79,8 @@ function loescheProjekte(projekte) {
   const liste = namen.length <= 6 ? namen.join(', ') : `${namen.slice(0, 6).join(', ')} und ${namen.length - 6} weitere`
   const frage =
     projekte.length === 1
-      ? `"${namen[0]}" wirklich loeschen?\n\nAlle Scheine, Riesenscheine und Bilder dieses Projekts gehen mit. Das laesst sich nicht rueckgaengig machen.`
-      : `${projekte.length} Projekte wirklich loeschen?\n\n${liste}\n\nAlle Scheine, Riesenscheine und Bilder dieser Projekte gehen mit. Das laesst sich nicht rueckgaengig machen.`
+      ? `"${namen[0]}" wirklich löschen?\n\nAlle Scheine, Riesenscheine und Bilder dieses Projekts gehen mit. Das lässt sich nicht rückgängig machen.`
+      : `${projekte.length} Projekte wirklich löschen?\n\n${liste}\n\nAlle Scheine, Riesenscheine und Bilder dieser Projekte gehen mit. Das lässt sich nicht rückgängig machen.`
 
   if (!window.confirm(frage)) return
 
@@ -157,7 +157,7 @@ function kopfleiste(projekte) {
 
   const wahl = el('select.ablage-sortierung', {})
   for (const [wert, name] of [
-    ['geaendert', 'Zuletzt geaendert'],
+    ['geaendert', 'Zuletzt geändert'],
     ['angelegt', 'Angelegt'],
     ['name', 'Name'],
   ]) {
@@ -203,7 +203,10 @@ function ordnerspalte(projekte) {
     el('.ablage-spaltentitel', { text: 'Ordner' }),
     el('.ordnerliste', {}, eintraege),
     el('p.ablage-hinweis', {
-      text: 'Ein Projekt mit der Maus auf einen Ordner ziehen verschiebt es. Ein Ordner ohne Projekte verschwindet von selbst.',
+      text:
+        'Ein Ordner ist nur eine Beschriftung am Projekt. Mit "In Ordner legen" an der ' +
+        'Zeile rechts kommt ein Projekt hinein, mit der Maus geht es auch: Zeile auf einen ' +
+        'Ordner ziehen. Ein Ordner ohne Projekte verschwindet von selbst.',
     }),
   ])
 }
@@ -295,8 +298,18 @@ function projektspalte(projekte, stand) {
     return String(b.geaendertAm).localeCompare(String(a.geaendertAm))
   })
 
-  const neu = el('button.ablage-knopf', { type: 'button', text: 'Neuer Ordner' })
-  neu.addEventListener('click', () => neuerOrdner())
+  /*
+    KEIN KNOPF "NEUER ORDNER" MEHR, seit dem 17.09.2026.
+
+    Er stand hier ueber der Projektliste und legte das GERADE OFFENE Projekt in
+    den neuen Ordner. Nicht das, in dessen Zeile man stand, sondern das offene.
+    Das ist zweierlei, und an keiner Stelle stand, welches gemeint ist. Ohne
+    offenes Projekt tat er gar nichts und meldete das erst hinterher.
+
+    Ein Ordner entsteht jetzt dort, wo er hingehoert: an der Zeile, mit "In
+    Ordner legen". Es gibt ohnehin keinen leeren Ordner, also auch nichts
+    anzulegen, bevor etwas darin liegt.
+  */
 
   // Die Auswahlleiste. Sie erscheint erst, wenn wirklich etwas angehakt ist,
   // und nennt immer die Zahl. Sichtbar nur, was gerade in der Liste steht:
@@ -310,13 +323,13 @@ function projektspalte(projekte, stand) {
           el('span.auswahlzahl', {
             text:
               sichtbarGewaehlt.length === 1
-                ? '1 Projekt ausgewaehlt'
-                : `${sichtbarGewaehlt.length} Projekte ausgewaehlt`,
+                ? '1 Projekt ausgewählt'
+                : `${sichtbarGewaehlt.length} Projekte ausgewählt`,
           }),
           (() => {
             const k = el('button.knopf.knopf-klein.knopf-weg', {
               type: 'button',
-              text: sichtbarGewaehlt.length === 1 ? 'Ausgewähltes löschen' : 'Ausgewaehlte loeschen',
+              text: sichtbarGewaehlt.length === 1 ? 'Ausgewähltes löschen' : 'Ausgewählte löschen',
             })
             k.addEventListener('click', () => loescheProjekte(sichtbarGewaehlt))
             return k
@@ -350,7 +363,6 @@ function projektspalte(projekte, stand) {
                 ? 'Ohne Ordner'
                 : gewaehlterOrdner,
       }),
-      neu,
     ]),
     liste.length === 0
       ? el('p.ablage-hinweis', { text: 'Hier liegt nichts.' })
@@ -400,6 +412,61 @@ function projektzeile(p, stand) {
     await setzePin(p, !(p.angepinnt === true))
   })
 
+  /*
+    EIN KNOPF, DER OEFFNET, seit dem 17.09.2026.
+
+    Karam: "dass die Knoepfe sich sehr, sehr leicht verstehen lassen."
+
+    Die ganze Zeile hat schon immer geoeffnet, wenn man sie anklickt. Nur stand
+    das nirgends. Wer eine Zeile mit einem Kaestchen, einer Nadel und drei
+    Knoepfen vor sich hat, drueckt nicht auf die Luft dazwischen. Der Weg, um
+    den es hier geht, war der einzige ohne Beschriftung.
+
+    Die Zeile oeffnet weiterhin, der Knopf ist der SICHTBARE Weg, nicht der
+    einzige.
+  */
+  const oeffnen = offen
+    ? el('span.projektoffen', { text: 'Offen', title: 'Dieses Projekt ist gerade geöffnet.' })
+    : el('button.projektknopf.projektknopf-haupt', {
+        type: 'button',
+        text: 'Öffnen',
+        title: `Wechselt zu "${p.name}". Alles, was du danach siehst, gehört zu diesem Projekt.`,
+      })
+  if (oeffnen instanceof HTMLButtonElement) {
+    oeffnen.addEventListener('click', (e) => {
+      e.stopPropagation()
+      oeffne(p)
+    })
+  }
+
+  /*
+    ORDNER SETZEN OHNE MAUS.
+
+    Verschoben wurde bisher NUR mit der Maus, indem man die Zeile auf einen
+    Ordner zog. Auf einem Handy gibt es das nicht, und Karams Kollege arbeitet
+    am Telefon. Der Knopf hier tut dasselbe und ruft dieselbe Funktion
+    (Projektregel 8). Das Ziehen bleibt, es ist schneller, wenn man eine Maus
+    hat.
+  */
+  const ordnern = el('button.projektknopf', {
+    type: 'button',
+    text: p.ordner ? 'Ordner ändern' : 'In Ordner legen',
+    title: p.ordner
+      ? `Liegt im Ordner "${p.ordner}". Leeren nimmt es wieder heraus.`
+      : 'Legt dieses Projekt in einen Ordner. Gibt es den Namen noch nicht, entsteht der Ordner dabei.',
+  })
+  ordnern.addEventListener('click', (e) => {
+    e.stopPropagation()
+    const name = window.prompt(
+      `In welchen Ordner soll "${p.name}"?\n\n` +
+        'Ein Ordner ist nur eine Beschriftung. Er besteht, solange ein Projekt darin liegt. ' +
+        'Leer lassen nimmt das Projekt aus seinem Ordner heraus.',
+      p.ordner ?? ''
+    )
+    if (name === null) return
+    verschiebe(p.id, name.trim())
+  })
+
   const umbenennen = el('button.projektknopf', { type: 'button', text: 'Umbenennen' })
   umbenennen.addEventListener('click', (e) => {
     e.stopPropagation()
@@ -435,10 +502,10 @@ function projektzeile(p, stand) {
       */
       el('.projektzeilenkopf', {}, [name, p.ordner ? el('.projektordner', { text: p.ordner }) : null]),
       el('.projektdatum', {
-        text: `geaendert ${zeitText(p.geaendertAm)}`,
+        text: `geändert ${zeitText(p.geaendertAm)}`,
         title: `angelegt ${zeitText(p.angelegtAm)}`,
       }),
-      el('.projektaktionen', {}, [pin, umbenennen, loeschen]),
+      el('.projektaktionen', {}, [oeffnen, ordnern, pin, umbenennen, loeschen]),
     ]
   )
 
@@ -534,7 +601,7 @@ function kombiblock(titel, scheine, datum) {
     gemischt
       ? el('p.kombiwarnung', {
           text:
-            `Hier stehen ${waehrungen.size} Waehrungen nebeneinander (${[...waehrungen].join(', ')}). ` +
+            `Hier stehen ${waehrungen.size} Währungen nebeneinander (${[...waehrungen].join(', ')}). ` +
             'Sie werden nicht umgerechnet, deshalb gibt es hier keine Summe. ' +
             'Der Multiplikator gilt trotzdem, er ist ein Verhältnis.',
         })
@@ -668,32 +735,6 @@ function verschiebe(projektId, ordner) {
   if (!p) return
   if ((p.ordner ?? '') === ordner) return
   return speichere({ ...p, ordner })
-}
-
-function neuerOrdner() {
-  const name = window.prompt('Name des neuen Ordners:')
-  if (name === null) return
-  const sauber = name.trim()
-  if (sauber === '') return
-
-  // Ein Ordner ohne Projekt gibt es nicht. Deshalb wird gleich gefragt, was
-  // hinein soll, statt einen leeren Ordner anzulegen, der beim naechsten Laden
-  // wieder weg waere.
-  const stand = Zustand.hole()
-  if (!stand.projekt) {
-    Zustand.melde('warnung', 'Es ist kein Projekt offen, das in den Ordner könnte.')
-    return
-  }
-  if (
-    !window.confirm(
-      `Ordner "${sauber}" anlegen und das offene Projekt "${stand.projekt.name}" hineinlegen?\n\n` +
-        'Ein Ordner besteht nur, solange ein Projekt darin liegt.'
-    )
-  ) {
-    return
-  }
-  gewaehlterOrdner = sauber
-  speichere({ ...stand.projekt, ordner: sauber })
 }
 
 /**

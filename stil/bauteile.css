@@ -684,7 +684,6 @@ summary:focus-visible,
 
 .leseleiste,
 .werkzeugleiste,
-.ausgabekopf,
 .ausgabeknoepfe {
   display: flex;
   align-items: center;
@@ -697,8 +696,7 @@ summary:focus-visible,
   margin-top: var(--luft-4);
 }
 
-.werkzeugleiste,
-.ausgabekopf {
+.werkzeugleiste {
   margin-top: 0;
   margin-bottom: var(--luft-4);
 }
@@ -2115,9 +2113,24 @@ li[data-schwere="info"] .hinweisart {
   gap: var(--luft-2);
 }
 
+/*
+  VIER SPALTEN, NICHT DREI: Kaestchen, Name, Datum, Knoepfe.
+
+  Hier standen drei, bei vier Kindern. Das vierte, die Knopfgruppe, rutschte
+  also in eine zweite Zeile unter das Kaestchen, und der Name bekam, was
+  uebrig war. Gemessen am 17.09.2026: der Name "NFL Saison 2026/27" stand in
+  einer 13 Pixel breiten Spalte.
+
+  Mit vier Rasterspalten blieben fuer den Namen dann 0 Pixel uebrig, sobald die
+  Spalte schmal wurde: die drei festen Breiten fuellten sie schon allein.
+  Deshalb keine Spalten, sondern eine Zeile, die umbricht. Die Knopfgruppe
+  braucht 22rem; hat sie die nicht, rutscht sie als Ganzes eine Zeile tiefer,
+  und der Name behaelt seine 14rem. Ein Name darf nie auf null schrumpfen, das
+  ist das Einzige, woran man die Zeile erkennt.
+*/
 .projektzeile {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--luft-3);
   padding: var(--luft-3);
@@ -2175,7 +2188,20 @@ li[data-schwere="info"] .hinweisart {
 
 .projektaktionen {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--luft-1);
+  /* Passt sie nicht neben Name und Datum, rutscht sie als Ganzes darunter. */
+  flex: 1 1 22rem;
+}
+
+.projektzeilenkopf {
+  flex: 1 1 14rem;
+}
+
+.projektdatum {
+  flex: 0 0 auto;
 }
 
 .projektpin,
@@ -2293,8 +2319,14 @@ li[data-schwere="info"] .hinweisart {
   min-width: 5rem;
 }
 
+/*
+  Gemessen am 17.09.2026 im hellen Farbschema: --offen auf --offen-tief ueber
+  der Flaeche ergab 4,39 zu 1, gefordert sind 4,5. Die Warnung selbst ist
+  richtig, nur war sie zu leise gesetzt. Das Signal traegt die Kante, die
+  Schrift ist die normale.
+*/
 .kombiwarnung {
-  color: var(--offen);
+  color: var(--schrift);
   background: var(--offen-tief);
   border: 1px solid var(--offen);
   border-radius: var(--rundung);
@@ -4723,4 +4755,124 @@ li[data-schwere="info"] .hinweisart {
   font-size: var(--text-winzig);
   line-height: 1.5;
   color: var(--schlecht);
+}
+
+/* ============================================================== Ausgabe
+   Drei Schritte statt fuenf gleich lauten Knoepfen. Karam am 17.09.2026:
+   "dass es wirklich sehr uebersichtlich ist und die Knoepfe sich sehr, sehr
+   leicht verstehen lassen."
+   ===================================================================== */
+
+.ausgabeschritt {
+  margin-top: var(--luft-5);
+  padding: var(--luft-4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+}
+
+.ausgabeschrittkopf {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--luft-3);
+}
+
+/*
+  Die Nummer sagt, was zuerst kommt. Sie ist keine Schaltflaeche und traegt
+  deshalb aria-hidden: vorgelesen wuerde sonst "eins" vor jeder Ueberschrift
+  stehen, und die Ueberschrift sagt es schon.
+*/
+.ausgabenummer {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--knopf-haupt);
+  color: var(--knopf-haupt-schrift);
+  font-family: var(--schriftart-zahl);
+  font-weight: 800;
+  font-size: var(--text-normal);
+}
+
+.ausgabeschritttext {
+  min-width: 0;
+}
+
+.ausgabeschritttitel {
+  margin: 0;
+  font-size: var(--text-gross);
+  color: var(--schrift);
+}
+
+.ausgabeschritthilfe {
+  margin: var(--luft-1) 0 0;
+  max-width: 78ch;
+  font-size: var(--text-klein);
+  line-height: 1.6;
+  color: var(--schrift-leise);
+}
+
+.ausgabeschrittinhalt {
+  margin-top: var(--luft-3);
+}
+
+/* Innerhalb eines Schrittes ist die Knopfreihe eine Reihe, keine zweite Karte. */
+.ausgabeschritt .ausgabeknoepfe {
+  padding: 0;
+  margin-top: var(--luft-3);
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+.ausgabewahl {
+  display: grid;
+  gap: var(--luft-1);
+  max-width: 44ch;
+}
+
+.ausgabestand {
+  margin: var(--luft-3) 0 0;
+  max-width: 78ch;
+  font-size: var(--text-klein);
+  line-height: 1.6;
+  color: var(--schrift-leise);
+}
+
+/* Fehlt zu einem Schein das Foto, fehlt er auf dem Bild. Das ist keine
+   Nebensache, also steht es in der Farbe des offenen Standes da. */
+.ausgabestand[data-warnung='true'] {
+  color: var(--offen);
+}
+
+/*
+  Die Zeile eines Projekts in der Ablage hatte keinen sichtbaren Weg, es zu
+  oeffnen: das tat die ganze Zeile, aber es stand nirgends. Seit dem
+  17.09.2026 steht der Knopf da, und beim offenen Projekt steht statt seiner
+  die Marke "Offen".
+*/
+.projektknopf-haupt {
+  background: var(--knopf-haupt);
+  border-color: var(--knopf-haupt-rand);
+  color: var(--knopf-haupt-schrift);
+  font-weight: 700;
+}
+
+.projektknopf-haupt:hover {
+  background: var(--knopf-haupt-heiss);
+}
+
+.projektoffen {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--luft-2);
+  border-radius: var(--rundung);
+  background: var(--gut-tief);
+  border: 1px solid var(--gut);
+  color: var(--schrift);
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
