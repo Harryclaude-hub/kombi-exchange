@@ -5432,3 +5432,63 @@ li[data-schwere="info"] .hinweisart {
   font-family: var(--schriftart-zahl);
   font-variant-numeric: tabular-nums;
 }
+
+/* ================================================ Suchen wie im Dateifenster
+   Karam am 17.09.2026: "Bitte bei der Uebersicht ein Suchpanel machen, wo man
+   einfach etwas nach Zahl, Name suchen kann, wie beim Explorer, und man die
+   finden kann, wenn man halt sehr viel hat."
+   ========================================================================= */
+
+.uebersichtsuchleiste {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--luft-3);
+}
+
+/*
+  Das Feld ist BREIT. Bei tausenden Riesenscheinen ist Suchen der Hauptweg und
+  nicht eine Nebensache am Rand.
+*/
+.uebersichtsuche {
+  flex: 1 1 22rem;
+  min-width: 0;
+  min-height: 44px;
+  font-size: var(--text-normal);
+}
+
+.suchtreffer {
+  font-size: var(--text-klein);
+  font-weight: 700;
+  color: var(--schrift-leise);
+  white-space: nowrap;
+}
+
+/* ============================================ Bleiben die Fotos liegen
+   Karam am 17.09.2026: "Ich will wirklich, dass immer die Fotos gespeichert
+   bleiben, das ist mir sehr wichtig, sehr, sehr wichtig."
+   ===================================================================== */
+
+.hinweisbereich {
+  display: grid;
+  gap: var(--luft-3);
+}
+
+.speicherblock {
+  padding: var(--luft-3) var(--luft-4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 4px solid var(--offen);
+  border-radius: var(--rundung);
+}
+
+/* Hat der Browser zugesagt, ist es keine Warnung mehr. */
+.speicherblock[data-dauerhaft='true'] {
+  border-left-color: var(--gut);
+}
+
+.speichertitel {
+  font-weight: 700;
+  font-size: var(--text-normal);
+  color: var(--schrift);
+}

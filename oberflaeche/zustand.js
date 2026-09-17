@@ -50,6 +50,7 @@ import * as Ordner from './ordner.js'
  * @property {string|null} hilfeZu
  * @property {string|null} scheinAuswahl
  * @property {string|null} ordnerFilter
+ * @property {string} suche
  * @property {boolean|null} ordnerGeteilt
  * @property {'neueste'|'alphabetisch'|'meisteGeld'|'wenigsteGeld'|'zuletztGeoeffnet'} sortierung
  * @property {{id: string, name: string, ordner?: string}|null} huelle
@@ -119,6 +120,17 @@ const stand = {
   scheinAuswahl: null,
   /* Welcher Ordner gerade offen ist. null heisst: keiner, man steht davor. */
   ordnerFilter: null,
+  /*
+    WONACH GERADE GESUCHT WIRD. Leer heisst: nach nichts.
+
+    Karam am 17.09.2026: "Bitte bei der Uebersicht ein Suchpanel machen, wo
+    man nach Zahl, Name suchen kann, wie beim Explorer, und man die finden
+    kann, wenn man halt sehr viel hat."
+
+    Steht im Arbeitsstand und nicht in der Ansicht, weil die Spalte links und
+    die Mitte dieselben Treffer zeigen muessen (Projektregel 8).
+  */
+  suche: '',
   /*
     OB DIE ORDNER WIRKLICH GETEILT WERDEN.
 

@@ -120,6 +120,108 @@ export function sachen(stand, mass = null) {
 }
 
 /**
+ * Bleiben die Bilder liegen, und wie lange reicht der Platz.
+ *
+ * Karam am 17.09.2026: "Ich will wirklich, dass immer die Fotos gespeichert
+ * bleiben, dann geht nichts verloren, wenn man etwas im Browser besucht. Das
+ * ist mir sehr wichtig, sehr, sehr wichtig. Du musst sicherstellen, dass bei
+ * Riesenmengen an Fotos noch immer alle Fotos gespeichert werden koennen,
+ * langfristig."
+ *
+ * Und im selben Atemzug: "Ich habe keinen Bock, so viel auf Supabase zu machen,
+ * wenn das dann Geld kostet."
+ *
+ * BEIDES ZUSAMMEN GEHT NUR AUF DIESEM GERAET. Der kostenlose Plan bei Supabase
+ * gibt ein Gigabyte Dateispeicher, das sind bei einem Megabyte je Foto etwa
+ * tausend Stueck. Der Browser gibt ein Vielfaches davon, kostenlos, und sagt
+ * auf Nachfrage, wie viel.
+ *
+ * ZWEI FRAGEN, ZWEI ANTWORTEN, beide gemessen:
+ *   Wirft der Browser die Bilder von selbst weg?   sorgeFuerDauer()
+ *   Wie viele passen noch hinein?                  platz() und die Mittelgroesse
+ *
+ * @param {{dauerhaft: boolean, moeglich: boolean}|null} dauer
+ * @param {{belegt: number, moeglich: number}|null} platz
+ * @param {{anzahl: number, bytes: number, mittel: number}|null} mass
+ * @returns {HTMLElement|null}
+ */
+export function speicherblock(dauer, platz, mass) {
+  if (!dauer && !platz) return null
+
+  const gb = (bytes) => {
+    const wert = bytes / (1024 * 1024 * 1024)
+    return wert < 10 ? `${Math.round(wert * 10) / 10} GB` : `${Math.round(wert)} GB`
+  }
+
+  // Wie viele Fotos noch hineinpassen. Nur mit einer GEMESSENEN Mittelgroesse;
+  // ohne sie steht hier keine Zahl statt einer geratenen (Projektregel 1).
+  const frei = platz ? Math.max(0, platz.moeglich - platz.belegt) : 0
+  const nochFotos = platz && mass && mass.mittel > 0 ? Math.floor(frei / mass.mittel) : null
+
+  return el('.speicherblock', { daten: { dauerhaft: String(Boolean(dauer?.dauerhaft)) } }, [
+    el('.speichertitel', {
+      text: dauer?.dauerhaft
+        ? 'Deine Fotos bleiben auf diesem Gerät liegen'
+        : dauer?.moeglich === false
+          ? 'Dieser Browser sagt nicht, ob er die Fotos behält'
+          : 'Der Browser darf die Fotos aufräumen',
+    }),
+
+    el('p.geteilttext', {
+      text: dauer?.dauerhaft
+        ? 'Der Browser hat zugesagt, sie nicht von selbst wegzuräumen, auch wenn die ' +
+          'Festplatte eng wird. Weg sind sie nur, wenn du die Browserdaten selbst löschst.'
+        : dauer?.moeglich === false
+          ? 'Er kennt die Zusage nicht, die andere Browser geben. Räumt er auf, sind die ' +
+            'Bilder weg. Die Zahlen bleiben, die liegen in der Datenbank.'
+          : 'Er hat die Zusage nicht gegeben. Wird die Festplatte eng, kann er die Bilder ' +
+            'wegräumen. Meistens gibt er sie, sobald du die Seite ein paar Mal benutzt hast. ' +
+            'Die Zahlen bleiben in jedem Fall, die liegen in der Datenbank.',
+    }),
+
+    platz
+      ? el(
+          'ul.geteiltliste',
+          {},
+          [
+            el('li.geteiltzeile', {}, [
+              el('span.geteiltmarke', { text: gb(platz.belegt) }),
+              el('span.geteiltname', { text: 'belegt' }),
+              el('span.geteiltgrund', {
+                text: 'Alles, was diese Seite auf diesem Gerät liegen hat.',
+              }),
+            ]),
+            el('li.geteiltzeile', {}, [
+              el('span.geteiltmarke', { text: gb(frei) }),
+              el('span.geteiltname', { text: 'noch frei' }),
+              el('span.geteiltgrund', {
+                text:
+                  nochFotos === null
+                    ? 'Wie viele Fotos das sind, steht hier, sobald das erste hochgeladen ist.'
+                    : `Das reicht für etwa ${nochFotos.toLocaleString('de-DE')} weitere Fotos ` +
+                      `in der Größe, die du bisher hochgeladen hast.`,
+              }),
+            ]),
+          ]
+        )
+      : null,
+
+    /*
+      DIE EHRLICHE GRENZE.
+
+      Der Browser gibt viel, aber er gibt es nur auf DIESEM Geraet. Eine zweite
+      Kopie ausserhalb gibt es nicht, und das muss dastehen, bevor jemand eine
+      Saison lang darauf baut.
+    */
+    el('p.geteilttext', {
+      text:
+        'Eine zweite Kopie gibt es nicht. Formatierst du den Laptop oder löschst du die ' +
+        'Browserdaten, sind die Bilder weg. Die Zahlen überleben, die liegen in der Datenbank.',
+    }),
+  ])
+}
+
+/**
  * Der Block, der die Liste zeigt.
  *
  * Er steht IMMER da und nicht nur bei Luecken. Ein Kasten, der sich nur

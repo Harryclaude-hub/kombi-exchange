@@ -1311,10 +1311,17 @@ function zeichnePanel() {
 function panelRiesenscheine(stand, schmal) {
   const ordner = Ordner.alleOrdner(stand.riesenscheine)
   const ohne = Ordner.anzahlOhneOrdner(stand.riesenscheine)
+  const gesucht = String(stand.suche ?? '').trim() !== ''
   const sichtbar = Reihenfolge.ordne(
     stand.riesenscheine,
-    { ordnerFilter: stand.ordnerFilter, sortierung: stand.sortierung },
-    Zustand.rechnungVon
+    {
+      // Dieselbe Regel wie in der Mitte: wird gesucht, gilt kein Ordner.
+      ordnerFilter: gesucht ? null : stand.ordnerFilter,
+      sortierung: stand.sortierung,
+      suche: stand.suche,
+    },
+    Zustand.rechnungVon,
+    Zustand.scheineVon
   )
   const nachGeld = stand.sortierung === 'meisteGeld' || stand.sortierung === 'wenigsteGeld'
 

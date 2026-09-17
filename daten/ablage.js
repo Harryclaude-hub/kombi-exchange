@@ -199,6 +199,50 @@ export async function bildmass(projektId) {
 }
 
 /**
+ * Bittet den Browser, die Bilder DAUERHAFT zu behalten.
+ *
+ * Karam am 17.09.2026: "Ich will wirklich, dass immer die Fotos gespeichert
+ * bleiben, dann geht nichts verloren, wenn man etwas im Browser besucht. Das
+ * ist mir sehr wichtig, sehr, sehr wichtig."
+ *
+ * WOVOR DAS SCHUETZT, UND WOVOR NICHT
+ *
+ * Ein Browser raeumt seinen Speicher von selbst auf, wenn die Platte eng wird.
+ * Er sucht sich dann Seiten aus, deren Daten er wegwerfen kann, und eine Seite,
+ * die man selten besucht, ist ein guter Kandidat. Genau das ist Karams Sorge,
+ * und sie ist berechtigt: die Bilder liegen nur hier.
+ *
+ * navigator.storage.persist() markiert den Speicher dieser Seite als dauerhaft.
+ * Danach wirft der Browser NICHTS mehr von selbst weg. Das ist kein Vertrag und
+ * keine Sicherung, es ist genau eine Zusage: nicht ohne Zutun.
+ *
+ * Es schuetzt NICHT davor, dass jemand die Browserdaten von Hand loescht, und
+ * es macht die Bilder nicht auf einem zweiten Geraet sichtbar. Wer beides
+ * braucht, braucht eine Kopie ausserhalb des Browsers.
+ *
+ * KEINE RUECKFRAGE. Chrome und Edge entscheiden still, meistens ja, wenn die
+ * Seite regelmaessig benutzt wird. Firefox fragt. Ein Nein ist kein Fehler,
+ * es heisst nur: der Browser behaelt sich das Aufraeumen vor. Deshalb wird das
+ * Ergebnis ANGEZEIGT und nicht verschwiegen.
+ *
+ * @returns {Promise<{dauerhaft: boolean, moeglich: boolean}>}
+ */
+export async function sorgeFuerDauer() {
+  if (!navigator.storage?.persist || !navigator.storage?.persisted) {
+    return { dauerhaft: false, moeglich: false }
+  }
+  try {
+    // Erst nachsehen. Ein zweites persist() waere ueberfluessig und in Firefox
+    // eine zweite Rueckfrage.
+    if (await navigator.storage.persisted()) return { dauerhaft: true, moeglich: true }
+    const zugesagt = await navigator.storage.persist()
+    return { dauerhaft: Boolean(zugesagt), moeglich: true }
+  } catch {
+    return { dauerhaft: false, moeglich: false }
+  }
+}
+
+/**
  * Wie viel Platz der Browser noch gibt.
  *
  * @returns {Promise<{belegt: number, moeglich: number}|null>}

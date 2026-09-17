@@ -82,25 +82,35 @@ function zuletztGeoeffnet() {
  * Filtert und sortiert die Riesenscheine.
  *
  * @param {any[]} riesenscheine
- * @param {{ordnerFilter: string|null, sortierung: string}} wie
+ * @param {{ordnerFilter: string|null, sortierung: string, suche?: string}} wie
  * @param {(id: string) => {einsatzGesamt: number}} rechnungVon
+ * @param {((id: string) => any[])|null} [scheineVon] Fuer die Suche in den Scheinen.
  * @returns {any[]}
  */
-export function ordne(riesenscheine, wie, rechnungVon) {
+export function ordne(riesenscheine, wie, rechnungVon, scheineVon = null) {
   const liste = [...(riesenscheine ?? [])]
 
   /*
-    FILTERN ZUERST.
+    GESUCHT WIRD ZUERST, UND ZWAR UEBER ALLE ORDNER HINWEG.
 
-    null heisst alle. Der leere Text heisst ausdruecklich "die ohne Ordner",
-    und das ist etwas anderes als "alle". Karam hat beides genannt, und
-    ohne die Unterscheidung faende man die Riesenscheine ohne Ordner nie
-    wieder, sobald es viele gibt.
+    Karam am 17.09.2026: "Bitte bei der Uebersicht ein Suchpanel machen, wo man
+    einfach etwas nach Zahl, Name suchen kann, wie beim Explorer, und man die
+    finden kann, wenn man halt sehr viel hat. Dann sucht man den Namen des
+    Riesenscheins oder den Namen des Ordners."
+
+    Eine Suche, die nur im offenen Ordner sucht, ist keine Suche: wer suchen
+    muss, weiss ja gerade nicht mehr, wo etwas liegt. Deshalb hebt ein
+    Suchbegriff den Ordnerfilter auf. Der Ordner steht dafuer an jedem Treffer
+    dabei, damit man sieht, wo er gefunden wurde.
   */
+  const suchtext = String(wie.suche ?? '').trim().toLowerCase()
+
   const gefiltert =
-    wie.ordnerFilter === null
-      ? liste
-      : liste.filter((r) => ordnerVon(r) === wie.ordnerFilter)
+    suchtext !== ''
+      ? liste.filter((r) => passtZurSuche(r, suchtext, rechnungVon, scheineVon))
+      : wie.ordnerFilter === null
+        ? liste
+        : liste.filter((r) => ordnerVon(r) === wie.ordnerFilter)
 
   // Die Einsaetze einmal holen und nicht je Vergleich. Bei sechzig Scheinen je
   // Riesenschein waere das sonst spuerbar.
@@ -142,6 +152,57 @@ export function ordne(riesenscheine, wie, rechnungVon) {
   }
 
   return sortiert
+}
+
+/**
+ * Ob ein Riesenschein zu einem Suchbegriff passt.
+ *
+ * Karam: "nach Zahl, Name suchen, wie beim Explorer."
+ *
+ * GESUCHT WIRD IN:
+ *   dem Namen des Riesenscheins
+ *   dem Namen seines Ordners
+ *   seiner Notiz
+ *   den Anbietern und Scheinnummern der Scheine darin
+ *   dem Gesamteinsatz, als Zahl
+ *
+ * Der Einsatz wird in ZWEI Schreibweisen verglichen: "5481" und "5.481,00".
+ * Karam tippt mal das eine, mal das andere, und eine Suche, die "5481" nicht
+ * findet, weil im Programm "5.481,00" steht, ist keine Hilfe.
+ *
+ * Mehrere Woerter muessen ALLE vorkommen, in beliebiger Reihenfolge. So findet
+ * "spieltag gibbs" den Riesenschein Gibbs im Ordner Spieltag 3, ohne dass man
+ * die Reihenfolge raten muss.
+ *
+ * @param {any} riesenschein
+ * @param {string} suchtext  Schon klein geschrieben und beschnitten.
+ * @param {(id: string) => any} rechnungVon
+ * @param {((id: string) => any[])|null} scheineVon
+ * @returns {boolean}
+ */
+function passtZurSuche(riesenschein, suchtext, rechnungVon, scheineVon) {
+  const teile = [
+    riesenschein.name ?? '',
+    ordnerVon(riesenschein),
+    riesenschein.notiz ?? '',
+  ]
+
+  const rechnung = rechnungVon(riesenschein.id)
+  if (rechnung) {
+    const roh = rechnung.einsatzGesamt ?? 0
+    teile.push(String(Math.round(roh)))
+    teile.push(roh.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+  }
+
+  if (scheineVon) {
+    for (const s of scheineVon(riesenschein.id) ?? []) {
+      if (s.buchmacher?.wert) teile.push(s.buchmacher.wert)
+      if (s.scheinNr?.wert) teile.push(s.scheinNr.wert)
+    }
+  }
+
+  const heuhaufen = teile.join(' ').toLowerCase()
+  return suchtext.split(/\s+/).every((wort) => heuhaufen.includes(wort))
 }
 
 /**

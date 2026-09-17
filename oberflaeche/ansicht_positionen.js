@@ -28,8 +28,8 @@ import * as Dialog from './dialog.js'
 import { aufbaukette, aufbaublock } from './aufbau.js'
 // Was geteilt wird und was nicht, an einer Stelle formuliert.
 // Siehe oberflaeche/geteilt.js.
-import { geteiltblock } from './geteilt.js'
-import { bildmass } from '../daten/ablage.js'
+import { geteiltblock, speicherblock } from './geteilt.js'
+import { bildmass, platz, sorgeFuerDauer } from '../daten/ablage.js'
 
 /**
  * Wie viele Bilder dieses Projekt hat und wie gross sie sind, gemessen.
@@ -44,6 +44,22 @@ import { bildmass } from '../daten/ablage.js'
  * @type {{anzahl: number, bytes: number, mittel: number}|null}
  */
 let gemessenesBildmass = null
+
+/**
+ * Ob der Browser die Bilder dauerhaft behaelt, und wie viel Platz er gibt.
+ *
+ * Karam am 17.09.2026: "Du musst sicherstellen, dass bei Riesenmengen an Fotos
+ * noch immer alle Fotos gespeichert werden koennen, langfristig."
+ *
+ * Beides wird einmal je Sitzung gemessen und dann angezeigt. Gefragt wird der
+ * Browser, nicht geschaetzt.
+ *
+ * @type {{dauerhaft: boolean, moeglich: boolean}|null}
+ */
+let gemessenerDauerstand = null
+
+/** @type {{belegt: number, moeglich: number}|null} */
+let gemessenerPlatz = null
 import { fotoknoepfe } from './fotoknoepfe.js'
 import { istAngeheftet, heftAn } from './nadeln.js'
 // Dieselben Eingabefelder wie im Reiter Scheine, aus einer Quelle
@@ -131,8 +147,30 @@ export function zeichne(ziel) {
     return
   }
 
-  // Ebene 1: die Uebersicht.
+  /*
+    Ebene 1: die Uebersicht.
+
+    DER SCHREIBZEIGER MUSS DAS NEUZEICHNEN UEBERLEBEN. Jeder getippte Buchstabe
+    im Suchfeld aendert den Arbeitsstand, und danach ist das Feld ein ANDERES
+    Element. Ohne das hier koennte man genau ein Zeichen eingeben, dann waere
+    der Fokus weg. Dieselbe Falle steckt im Suchfeld der Ablage und ist dort
+    seit dem 14.09.2026 genauso behandelt.
+  */
+  const hatteFokus =
+    document.activeElement instanceof HTMLElement &&
+    document.activeElement.classList.contains('uebersichtsuche')
+
   fuelle(ziel, [uebersicht(stand)])
+
+  if (hatteFokus) {
+    const feld = ziel.querySelector('.uebersichtsuche')
+    if (feld instanceof HTMLInputElement) {
+      feld.focus()
+      // Der Schreibzeiger gehoert ans Ende, sonst springt er bei jedem Zeichen
+      // an den Anfang und man tippt rueckwaerts.
+      feld.setSelectionRange(feld.value.length, feld.value.length)
+    }
+  }
 }
 
 /**
@@ -196,16 +234,21 @@ function uebersicht(stand) {
   const offenerOrdner = stand.ordnerFilter
 
   // Im offenen Ordner: nur seine. Sonst: nur die, die in keinem liegen.
+  const gesucht = String(stand.suche ?? '').trim() !== ''
+
   const gezeigt = Reihenfolge.ordne(
     stand.riesenscheine,
     {
-      ordnerFilter: offenerOrdner === null ? Ordner.OHNE_ORDNER : offenerOrdner,
+      // Wird gesucht, gilt kein Ordner: die Suche geht ueber alle.
+      ordnerFilter: gesucht ? null : offenerOrdner === null ? Ordner.OHNE_ORDNER : offenerOrdner,
       sortierung: stand.sortierung,
+      suche: stand.suche,
     },
-    Zustand.rechnungVon
+    Zustand.rechnungVon,
+    Zustand.scheineVon
   )
 
-  if (offenerOrdner !== null) return imOrdner(stand, offenerOrdner, gezeigt)
+  if (offenerOrdner !== null && !gesucht) return imOrdner(stand, offenerOrdner, gezeigt)
 
   return el('.uebersicht', {}, [
     el('.uebersichtkopf', {}, [
@@ -245,6 +288,8 @@ function uebersicht(stand) {
       ]),
     ]),
 
+    suchfeld(stand, gezeigt.length),
+
     /*
       DER AUFBAU STEHT DA, WO MAN IHN BRAUCHT.
 
@@ -281,7 +326,9 @@ function uebersicht(stand) {
       Der Abschnitt faellt ganz weg, solange es keinen Ordner gibt. Eine
       Ueberschrift ueber nichts ist eine Frage an den Leser, keine Auskunft.
     */
-    ordner.length > 0
+    // Waehrend der Suche stehen keine Ordner da: die Treffer kommen aus allen,
+    // und eine Ordnerreihe daneben liesse offen, ob sie die Treffer einschraenkt.
+    ordner.length > 0 && !gesucht
       ? el('.ordnerbereich', {}, [
           el('.teiltitel', {
             text: ordner.length === 1 ? '1 Ordner' : `${ordner.length} Ordner`,
@@ -296,8 +343,11 @@ function uebersicht(stand) {
 
     el('.ordnerbereich', {}, [
       el('.teiltitel', {
-        text:
-          ordner.length === 0
+        text: gesucht
+          ? gezeigt.length === 1
+            ? '1 gefundener Riesenschein'
+            : `${gezeigt.length} gefundene Riesenscheine`
+          : ordner.length === 0
             ? gezeigt.length === 1
               ? '1 Riesenschein'
               : `${gezeigt.length} Riesenscheine`
@@ -308,14 +358,17 @@ function uebersicht(stand) {
       gezeigt.length === 0
         ? el('.leerhinweis', {}, [
             el('p.leer-titel', {
-              text:
-                stand.riesenscheine.length === 0
+              text: gesucht
+                ? `Nichts gefunden zu "${String(stand.suche).trim()}"`
+                : stand.riesenscheine.length === 0
                   ? 'Noch kein Riesenschein da.'
                   : 'Alles liegt in Ordnern.',
             }),
             el('p.leer-text', {
-              text:
-                stand.riesenscheine.length === 0
+              text: gesucht
+                ? 'Gesucht wird in Namen, Ordnern, Notizen, Anbietern und im Gesamteinsatz. ' +
+                  'Mehrere Wörter müssen alle vorkommen.'
+                : stand.riesenscheine.length === 0
                   ? 'Mach mit dem Knopf oben einen neuen auf und lade die Bildschirmfotos hinein. ' +
                     'Gleiche Wetten wandern sonst auch von selbst zusammen.'
                   : 'Mach oben einen Ordner auf, dann siehst du, was darin liegt.',
@@ -327,6 +380,73 @@ function uebersicht(stand) {
             gezeigt.map((r) => riesenkarte(r, stand))
           ),
     ]),
+  ])
+}
+
+/**
+ * Das Suchfeld ueber der Uebersicht.
+ *
+ * Karam am 17.09.2026: "Bitte bei der Uebersicht ein Suchpanel machen, wo man
+ * einfach etwas nach Zahl, Name suchen kann, wie beim Explorer, und man die
+ * finden kann, wenn man halt sehr viel hat. Dann sucht man den Namen des
+ * Riesenscheins oder den Namen des Ordners."
+ *
+ * DER FOKUS MUSS UEBERLEBEN. Jede Aenderung baut die ganze Ansicht neu, und das
+ * Feld ist danach ein ANDERES Element. Ohne Zutun waere der Schreibzeiger nach
+ * jedem Buchstaben weg, man koennte genau ein Zeichen eingeben. Dieselbe Falle
+ * steckt im Suchfeld der Ablage, und dort steht sie seit dem 14.09.2026
+ * beschrieben; hier wird sie genauso behandelt.
+ *
+ * GESUCHT WIRD UEBER ALLE ORDNER HINWEG. Wer sucht, weiss ja gerade nicht mehr,
+ * wo etwas liegt. Deshalb hebt ein Suchbegriff den Ordner auf, und an jedem
+ * Treffer steht dafuer, in welchem Ordner er gefunden wurde.
+ *
+ * @param {any} stand
+ * @param {number} treffer
+ * @returns {HTMLElement}
+ */
+function suchfeld(stand, treffer) {
+  const feld = /** @type {HTMLInputElement} */ (
+    el('input.suchfeld.uebersichtsuche', {
+      type: 'search',
+      value: stand.suche ?? '',
+      placeholder: 'Suchen nach Name, Ordner, Anbieter oder Betrag ...',
+      'aria-label': 'Riesenscheine durchsuchen',
+    })
+  )
+
+  feld.addEventListener('input', () => {
+    Zustand.aendere({ suche: feld.value })
+  })
+
+  // Escape leert das Feld. Dasselbe, was ein Dateifenster tut.
+  feld.addEventListener('keydown', (e) => {
+    if (/** @type {KeyboardEvent} */ (e).key !== 'Escape') return
+    e.preventDefault()
+    Zustand.aendere({ suche: '' })
+  })
+
+  const gesucht = String(stand.suche ?? '').trim() !== ''
+
+  return el('.uebersichtsuchleiste', {}, [
+    feld,
+    gesucht
+      ? el('span.suchtreffer', {
+          text:
+            treffer === 0
+              ? 'Nichts gefunden'
+              : treffer === 1
+                ? '1 Treffer, aus allen Ordnern'
+                : `${treffer} Treffer, aus allen Ordnern`,
+        })
+      : null,
+    gesucht
+      ? el('button.knopf.knopf-klein', {
+          type: 'button',
+          text: 'Suche zurücksetzen',
+          onclick: () => Zustand.aendere({ suche: '' }),
+        })
+      : null,
   ])
 }
 
@@ -443,6 +563,29 @@ function ordnerhinweis(stand) {
     new URL('../werkzeug/datenbank_erweitern.html', import.meta.url).href
   )
 
+  if (gemessenerDauerstand === null) {
+    /*
+      EINMAL FRAGEN, DANN ANZEIGEN.
+
+      sorgeFuerDauer() bittet den Browser, den Speicher nicht von selbst
+      wegzuraeumen. Chrome und Edge entscheiden still, Firefox fragt. Ein Nein
+      ist kein Fehler, es wird nur angezeigt: Karam soll wissen, woran er ist.
+    */
+    sorgeFuerDauer().then((ergebnis) => {
+      if (gemessenerDauerstand !== null) return
+      gemessenerDauerstand = ergebnis
+      Zustand.aendere({})
+    })
+  }
+
+  if (gemessenerPlatz === null) {
+    platz().then((ergebnis) => {
+      if (!ergebnis || gemessenerPlatz !== null) return
+      gemessenerPlatz = ergebnis
+      Zustand.aendere({})
+    })
+  }
+
   if (gemessenesBildmass === null && stand.projekt) {
     // Einmal messen, dann neu zeichnen. Liegt kein Bild da, kommt anzahl 0
     // heraus, und die Zeile steht ohne Zahl; erfunden wird nichts.
@@ -453,7 +596,13 @@ function ordnerhinweis(stand) {
     })
   }
 
-  return block
+  // Der Speicherkasten steht UEBER der Teilen-Liste: was Karam am meisten
+  // beschaeftigt, ist nicht, was der Kollege sieht, sondern ob die Fotos
+  // liegen bleiben.
+  return el('.hinweisbereich', {}, [
+    speicherblock(gemessenerDauerstand, gemessenerPlatz, gemessenesBildmass),
+    block,
+  ])
 }
 
 /**
