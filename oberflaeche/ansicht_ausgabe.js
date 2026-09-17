@@ -132,8 +132,8 @@ export function zeichne(ziel) {
             : mitBild === scheine.length
               ? `Zu allen ${scheine.length} Scheinen liegt das Foto vor.`
               : `Zu ${mitBild} von ${scheine.length} Scheinen liegt das Foto noch vor. ` +
-                'Die übrigen fehlen auf dem Bild. Fotos bleiben nur auf dem Gerät, ' +
-                'auf dem sie hochgeladen wurden.',
+                'Die übrigen fehlen auf dem Bild: die Bilddateien liegen auf dem Gerät, ' +
+                'auf dem sie hochgeladen wurden, und dieses hier ist ein anderes.',
       }),
 
       el('.ausgabeknoepfe', {}, [
@@ -268,7 +268,7 @@ async function erzeugeBlatt(riesenscheinId, ziel) {
   if (posten.length === 0) {
     Zustand.melde(
       'fehler',
-      'Zu keinem dieser Scheine liegt noch ein Bild vor. Die Bilder bleiben nur auf diesem Gerät, ' +
+      'Zu keinem dieser Scheine liegt noch eine Bilddatei vor. Die Zahlen sind alle da, nur die Bilder fehlen: sie liegen auf dem Gerät, auf dem sie hochgeladen wurden. ' +
         'bitte die Bildschirmfotos noch einmal hochladen.'
     )
     return

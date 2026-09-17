@@ -240,7 +240,8 @@ function zeichneTor() {
         knopf,
         meldung,
         el('p.torfuss', {
-          text: 'Ohne Anmeldung. Wer den Code hat, sieht alles. Die Bildschirmfotos bleiben auf dem Gerät.',
+          text:
+            'Ein Zugang für alle. Wer den Code hat, sieht dieselben Projekte, Scheine und Zahlen. Nur die Bilddateien bleiben auf dem Gerät, auf dem sie hochgeladen wurden.',
         }),
 
         /*

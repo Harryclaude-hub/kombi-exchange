@@ -26,6 +26,21 @@ import * as Dialog from './dialog.js'
 // und wird von hier, von der Ausgabe und von der Ablage gezeigt
 // (Projektregel 8). Siehe oberflaeche/aufbau.js.
 import { aufbaukette, aufbaublock } from './aufbau.js'
+// Was geteilt wird und was nicht, an einer Stelle formuliert.
+// Siehe oberflaeche/geteilt.js.
+import { geteiltblock } from './geteilt.js'
+import { platz } from '../daten/ablage.js'
+
+/**
+ * Wie viel Platz die Bilder auf diesem Geraet belegen, vom Browser gemessen.
+ *
+ * Steht hier und nicht im Zustand: es ist eine Eigenschaft des GERAETS, nicht
+ * des Projekts, und es aendert sich nur beim Hochladen. Einmal gemessen reicht
+ * fuer die Sitzung.
+ *
+ * @type {{belegt: number, moeglich: number}|null}
+ */
+let gemessenerPlatz = null
 import { fotoknoepfe } from './fotoknoepfe.js'
 import { istAngeheftet, heftAn } from './nadeln.js'
 // Dieselben Eingabefelder wie im Reiter Scheine, aus einer Quelle
@@ -391,55 +406,51 @@ function imOrdner(stand, ordner, gezeigt) {
 }
 
 /**
- * Der Satz darueber, ob die Ordner wirklich geteilt werden.
+ * Der Block, der sagt, was der Kollege sieht und was nicht.
  *
- * Karam am 17.09.2026: "Du musst verstehen, dieses Programm ist ein Account.
- * Es wird alles auf einer Datenbank gespeichert, in Supabase. Und ich sehe
- * jedes Foto, jeden Schein, den eine Person macht."
+ * Karam am 17.09.2026, zum zweiten Mal an einem Tag: "Was soll diese Anzeige
+ * 'nur auf diesem Laptop'? Alles, was ich hier eingebe, sieht die Person
+ * zeitgleich bei sich."
  *
- * Genau so ist es, und genau deshalb steht hier ein Hinweis, solange die
- * Datenbank die Spalte noch nicht hat: dann ueberlebt ein Ordner das Neuladen
- * nicht, und das muss dastehen, BEVOR jemand dreissig Riesenscheine einsortiert.
+ * Vorher stand hier ein Kasten, der sich NUR bei den Ordnern meldete und nur
+ * dann, wenn etwas fehlte. Solange er schwieg, beantwortete er die Frage
+ * "wird das geteilt" gar nicht, und die Saetze ueber die Bilder standen
+ * verstreut an vier anderen Stellen, jeder fuer sich formuliert.
  *
- * DIE ZAHL WIRD GEMESSEN, NICHT BEHAUPTET: app.js sieht beim Laden nach, ob die
- * Zeilen aus der Datenbank das Feld mitbringen. Sobald die Migration gelaufen
- * ist, verschwindet dieser Kasten von selbst, ohne dass jemand etwas umstellt.
+ * Jetzt steht die ganze Auskunft an EINER Stelle, als Liste mit Ja und Nein je
+ * Sache, und der Text dafuer in oberflaeche/geteilt.js (Projektregel 8).
+ *
+ * DER PLATZ WIRD GEMESSEN, nicht geschaetzt: der Browser sagt, wie viel die
+ * Bilder belegen. Die Messung kommt nachtraeglich herein, deshalb zeichnet sie
+ * sich selbst noch einmal, sobald sie da ist.
  *
  * @param {any} stand
- * @returns {HTMLElement|null}
+ * @returns {HTMLElement}
  */
 function ordnerhinweis(stand) {
-  if (stand.ordnerGeteilt === true) return null
-  // null heisst: es kam keine einzige Zeile, also weiss es niemand. Dann wird
-  // auch nichts behauptet.
-  if (stand.ordnerGeteilt === null) return null
+  const block = geteiltblock(
+    stand,
+    gemessenerPlatz,
+    /*
+      Der Weg wird aus der Adresse DIESER Datei gebaut und nicht aus der Adresse
+      der Seite. Das Programm liegt unter /, die Probeseite unter
+      /werkzeug/probe/, und auf GitHub Pages liegt alles noch einmal unter
+      /kombi-exchange/. Ein fester Weg waere in zwei von drei Faellen falsch.
+    */
+    new URL('../werkzeug/datenbank_erweitern.html', import.meta.url).href
+  )
 
-  return el('.ordnerachtung', {}, [
-    el('.ordnerachtungtitel', { text: 'Ordner werden noch nicht geteilt' }),
-    el('p', {
-      text:
-        'Der Datenbank fehlt noch eine Spalte für den Ordner. Bis sie da ist, ' +
-        'bleibt eine Ordnerzuordnung nur in diesem Browser und überlebt das ' +
-        'Neuladen nicht. Alles andere, Scheine, Bilder, Namen, Notizen, wird ' +
-        'wie immer geteilt.',
-    }),
-    el('p', {}, [
-      'Ein einziger Befehl behebt das. Er steht fertig auf der Seite ',
-      el('a', {
-        /*
-          Der Weg wird aus der Adresse DIESER Datei gebaut und nicht aus der
-          Adresse der Seite. Das Programm liegt unter /, die Probeseite unter
-          /werkzeug/probe/, und auf GitHub Pages liegt alles noch einmal unter
-          /kombi-exchange/. Ein fester Weg waere in zwei von drei Faellen falsch.
-        */
-        href: new URL('../werkzeug/datenbank_erweitern.html', import.meta.url).href,
-        text: 'Datenbank erweitern',
-        target: '_blank',
-        rel: 'noopener',
-      }),
-      ' zum Kopieren.',
-    ]),
-  ])
+  if (gemessenerPlatz === null) {
+    // Einmal messen, dann neu zeichnen. platz() fragt den Browser und kann
+    // null geben, wenn er es nicht sagt; dann steht die Zeile ohne Zahl da.
+    platz().then((ergebnis) => {
+      if (!ergebnis || gemessenerPlatz !== null) return
+      gemessenerPlatz = ergebnis
+      Zustand.aendere({})
+    })
+  }
+
+  return block
 }
 
 /**

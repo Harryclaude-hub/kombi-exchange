@@ -103,7 +103,10 @@ function ablegeflaeche() {
     [
       el('.ablage-zeichen', { text: '+' }),
       el('.ablage-titel', { text: 'Bildschirmfotos hierher ziehen' }),
-      el('.ablage-text', { text: 'oder klicken zum Auswählen. Die Bilder bleiben auf diesem Gerät.' }),
+      el('.ablage-text', {
+        text:
+          'oder klicken zum Auswählen. Die gelesenen Zahlen wandern sofort in die Datenbank und sind bei deinem Kollegen da. Die Bilddateien selbst bleiben auf diesem Gerät.',
+      }),
       aufnahmeknoepfe(),
       eingabe,
     ]
