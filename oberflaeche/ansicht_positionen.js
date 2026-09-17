@@ -883,16 +883,14 @@ async function frageNachNeuemRiesenschein(stand, inOrdner) {
         wert: `Riesenschein ${stand.riesenscheine.length + 1}`,
         hilfe: 'Kannst du später jederzeit ändern.',
       },
-      {
-        name: 'ordner',
-        beschriftung: 'In welchen Ordner?',
-        wert: inOrdner,
-        platzhalter: 'leer lassen: in keinen Ordner',
-        hilfe:
-          'Ordner sind nur zum Ordnen da. Leer lassen ist völlig in Ordnung, dann ' +
-          'liegt er lose in der Übersicht.',
-        vorschlaege: Ordner.alleOrdner(stand.riesenscheine).map((o) => o.name),
-      },
+      // Ein Bauplan fuer alle Ordnerfelder, siehe oberflaeche/ordner.js
+      // (Projektregel 8). Er bringt die drei sichtbaren Wege mit: kein
+      // Ordner, ein vorhandener, oder ein neuer gleich hier.
+      Ordner.ordnerfeldbauplan(
+        Ordner.alleOrdner(stand.riesenscheine).map((o) => o.name),
+        inOrdner,
+        new Map(Ordner.alleOrdner(stand.riesenscheine).map((o) => [o.name, o.anzahl]))
+      ),
     ],
     ja: 'Anlegen und aufmachen',
     nein: 'Doch nicht',
@@ -1070,9 +1068,16 @@ function riesenkarte(riesenschein, stand) {
  * @param {string} jetzigerOrdner
  */
 function frageNachOrdner(riesenschein, jetzigerOrdner) {
-  const bekannte = Ordner.alleOrdner(Zustand.hole().riesenscheine)
-    .map((o) => o.name)
-    .filter((n) => n !== jetzigerOrdner)
+  /*
+    ALLE Ordner, auch der jetzige.
+
+    Vorher wurde der jetzige herausgefiltert. Das war gut gemeint und
+    schlecht: wer aus Versehen auf "Ordner aendern" drueckt, findet den
+    Ordner, in dem der Riesenschein GERADE liegt, nicht in der Liste und muss
+    ihn abtippen, um alles so zu lassen, wie es war. Jetzt steht er da und
+    leuchtet, damit man auf einen Blick sieht, wo man ist.
+  */
+  const alle = Ordner.alleOrdner(Zustand.hole().riesenscheine)
 
   Dialog.frage({
     titel: jetzigerOrdner ? 'Ordner ändern' : 'In einen Ordner legen',
@@ -1081,16 +1086,13 @@ function frageNachOrdner(riesenschein, jetzigerOrdner) {
       'Ein Ordner ist nur eine Beschriftung. Er ordnet Riesenscheine, mehr nicht.',
       'Er entsteht, sobald der erste Riesenschein darin liegt, und verschwindet, wenn der letzte heraus ist.',
       'Leer lassen heißt: in keinen Ordner. Das ist völlig in Ordnung.',
-      bekannte.length > 0 ? `Schon da: ${bekannte.join(', ')}` : 'Bisher gibt es keinen Ordner.',
     ],
     felder: [
-      {
-        name: 'ordner',
-        beschriftung: 'Ordnername',
-        wert: jetzigerOrdner,
-        platzhalter: 'leer lassen: lose in der Übersicht',
-        vorschlaege: bekannte,
-      },
+      Ordner.ordnerfeldbauplan(
+        alle.map((o) => o.name),
+        jetzigerOrdner,
+        new Map(alle.map((o) => [o.name, o.anzahl]))
+      ),
     ],
     ja: 'Übernehmen',
   }).then((antwort) => {

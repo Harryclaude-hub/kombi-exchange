@@ -92,6 +92,25 @@
         <h2>Bedeutungsfarben auf ihren eigenen Flaechen</h2>
         <div class="schaureihe" id="marken"></div>
       </div>
+
+      <div class="schaugruppe">
+        <h2>Die Ordnerauswahl im Fenster, beide Zustaende</h2>
+        <!--
+          Steht hier, weil sie sonst nirgends gemessen wuerde: sie erscheint
+          nur in einem offenen Fenster, und ein Fenster ist auf der
+          Probeseite der Oberflaeche nie offen.
+        -->
+        <div class="dialogwahlreihe" data-auch-heiss="true">
+          <button class="dialogwahl" type="button" data-gewaehlt="false">
+            <span class="dialogwahlname">Kein Ordner</span>
+            <span class="dialogwahlzusatz">lose in der Uebersicht</span>
+          </button>
+          <button class="dialogwahl" type="button" data-gewaehlt="true">
+            <span class="dialogwahlname">Spieltag 3</span>
+            <span class="dialogwahlzusatz">2 Stueck</span>
+          </button>
+        </div>
+      </div>
     </main>
 
     <script type="module">

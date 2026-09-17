@@ -49,6 +49,10 @@ import { el, fuelle } from './werkzeug.js'
  * @property {string} [platzhalter]
  * @property {string} [hilfe]       Ein Satz unter dem Feld.
  * @property {string[]} [vorschlaege] Werden als Auswahlliste angeboten.
+ * @property {{wert: string, name: string, zusatz?: string}[]} [auswahl]
+ *   SICHTBARE Knoepfe ueber dem Feld. Ein Klick traegt den Wert ein.
+ * @property {string} [neuHilfe] Was unter dem Feld steht, wenn es um einen
+ *   neuen Eintrag geht.
  */
 
 /**
@@ -119,8 +123,59 @@ function zeige(bauplan, mitAbbruch) {
           })
         )
         felder.push(eingabe)
+
+        /*
+          DIE AUSWAHL STEHT SICHTBAR DA, NICHT IN EINER AUFKLAPPLISTE.
+
+          Karam am 17.09.2026: "Ich kann einen Ordner aussuchen oder ich kann
+          direkt einen neuen Ordner anlegen. Entweder ich kann den Ordner leer
+          lassen oder einen Ordner rein oder direkt einen neuen erstellen."
+
+          Vorher gab es nur ein Textfeld mit einem datalist daran. Ein datalist
+          zeigt sich erst, wenn man tippt, und wer nicht weiss, dass es ihn
+          gibt, sieht seine vorhandenen Ordner ueberhaupt nicht. Man musste den
+          Namen also auswendig koennen, um ihn zu treffen.
+
+          Jetzt stehen alle drei Wege nebeneinander im Bild: der Knopf "kein
+          Ordner", ein Knopf je vorhandenem Ordner, und darunter das Feld fuer
+          einen neuen. Das Feld bleibt, es ist der dritte Weg.
+        */
+        const auswahl = f.auswahl ?? []
+        /** @type {HTMLElement[]} */
+        const knoepfe = []
+
+        // Genau der Knopf leuchtet, dessen Wert im Feld steht. Auch nach dem
+        // Tippen von Hand, sonst leuchteten zwei Wege gleichzeitig.
+        const zeigeGewaehlten = () => {
+          const jetzt = eingabe.value.trim()
+          auswahl.forEach((a, k) => {
+            knoepfe[k].dataset.gewaehlt = String(a.wert === jetzt)
+          })
+        }
+
+        for (const a of auswahl) {
+          knoepfe.push(
+            el('button.dialogwahl', {
+              type: 'button',
+              onclick: () => {
+                eingabe.value = a.wert
+                zeigeGewaehlten()
+                eingabe.focus()
+              },
+            }, [
+              el('span.dialogwahlname', { text: a.name }),
+              a.zusatz ? el('span.dialogwahlzusatz', { text: a.zusatz }) : null,
+            ])
+          )
+        }
+
+        eingabe.addEventListener('input', zeigeGewaehlten)
+        zeigeGewaehlten()
+
         return el('label.dialogfeld', {}, [
           el('span.dialogfeldname', { text: f.beschriftung }),
+          knoepfe.length > 0 ? el('.dialogwahlreihe', {}, knoepfe) : null,
+          f.neuHilfe ? el('span.dialogfeldhilfe', { text: f.neuHilfe }) : null,
           eingabe,
           listenId
             ? el(

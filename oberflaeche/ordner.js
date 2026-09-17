@@ -164,6 +164,74 @@ export function alleOrdner(riesenscheine) {
  * @param {{id: string, ordner?: string}[]} riesenscheine
  * @returns {number}
  */
+/**
+ * Der Bauplan fuer das Ordnerfeld in einem Fenster. EINZIGE Stelle dafuer.
+ *
+ * Karam am 17.09.2026: "Wenn ich was speichere, kann ich einen Ordner
+ * aussuchen oder ich kann direkt einen neuen Ordner anlegen. Entweder ich kann
+ * den Ordner leer lassen oder einen Ordner rein oder direkt einen neuen
+ * erstellen."
+ *
+ * DREI WEGE, UND ALLE DREI SIND ZU SEHEN:
+ *
+ *   "Kein Ordner"      der erste Knopf, immer da
+ *   ein Knopf je Ordner, der schon existiert
+ *   das Textfeld       fuer einen neuen, gleich hier angelegt
+ *
+ * Vorher gab es nur das Textfeld mit einer Liste daran, die sich erst zeigt,
+ * wenn man tippt. Wer seine Ordner nicht auswendig wusste, sah sie nicht.
+ *
+ * DIE LISTE SIND NAMEN, KEINE RIESENSCHEINE. Das ist Absicht: in der Ablage
+ * ordnen Ordner PROJEKTE, hier ordnen sie RIESENSCHEINE. Waeren
+ * Riesenscheine der Parameter, waere diese Funktion fuer die Ablage
+ * unbrauchbar, und es entstuende eine zweite daneben. Genau die Verwechslung
+ * der beiden Ebenen ist das, wovor Karam ausdruecklich Angst hatte.
+ *
+ * WIE VIELE DARIN LIEGEN, steht am Knopf. Sonst waere "Spieltag 3" eine
+ * Behauptung; so ist es eine Angabe.
+ *
+ * @param {string[]} vorhandene   Die Namen, die es schon gibt.
+ * @param {string} [jetziger]     Was gerade gilt, steht vorausgefuellt drin.
+ * @param {Map<string, number>|Record<string, number>} [anzahlen]
+ * @returns {object} Ein Feldbauplan fuer oberflaeche/dialog.js.
+ */
+export function ordnerfeldbauplan(vorhandene, jetziger = OHNE_ORDNER, anzahlen = undefined) {
+  const hole = (name) => {
+    if (!anzahlen) return undefined
+    const n = anzahlen instanceof Map ? anzahlen.get(name) : anzahlen[name]
+    if (typeof n !== 'number' || n <= 0) return undefined
+    return n === 1 ? '1 Stück' : `${n} Stück`
+  }
+
+  const auswahl = [
+    {
+      wert: OHNE_ORDNER,
+      name: 'Kein Ordner',
+      zusatz: 'lose in der Übersicht',
+    },
+    ...vorhandene.filter((n) => n && n !== OHNE_ORDNER).map((name) => ({
+      wert: name,
+      name,
+      zusatz: hole(name),
+    })),
+  ]
+
+  return {
+    name: 'ordner',
+    beschriftung: 'Ordner',
+    wert: jetziger,
+    platzhalter: 'Name eines neuen Ordners',
+    auswahl,
+    neuHilfe:
+      vorhandene.length > 0
+        ? 'Oder tippe hier einen neuen Namen. Der Ordner entsteht damit sofort.'
+        : 'Tippe einen Namen, dann entsteht der erste Ordner. Leer lassen geht auch.',
+    hilfe:
+      'Ein Ordner ist nur eine Beschriftung. Er ordnet Riesenscheine innerhalb ' +
+      'dieses Projekts und verschwindet von selbst, wenn der letzte heraus ist.',
+  }
+}
+
 export function anzahlOhneOrdner(riesenscheine) {
   return (riesenscheine ?? []).filter((r) => ordnerVon(r) === OHNE_ORDNER).length
 }

@@ -5642,3 +5642,71 @@ li[data-schwere="info"] .hinweisart {
   border-style: solid;
   opacity: 0.82;
 }
+
+/*
+  DIE SICHTBARE ORDNERAUSWAHL IM FENSTER.
+
+  Karam am 17.09.2026: "Ich kann einen Ordner aussuchen oder ich kann direkt
+  einen neuen Ordner anlegen. Entweder ich kann den Ordner leer lassen oder
+  einen Ordner rein oder direkt einen neuen erstellen."
+
+  Vorher hing an dem Textfeld nur ein datalist, und der zeigt sich erst beim
+  Tippen. Wer seine Ordner nicht auswendig wusste, sah sie gar nicht.
+
+  Der gewaehlte Knopf traegt die Betonungsfarbe als KANTE und eine leichte
+  Toenung, nicht eine gefuellte Flaeche. Gemessen auf der Fensterflaeche:
+  Kante 5,21:1 (dunkel) und 5,24:1 (hell), Schrift 10,01:1 und 15,07:1.
+  Eine gefuellte Flaeche haette bei sechs Ordnern nebeneinander sechs
+  Leuchtflecken ergeben, und der gewaehlte waere darin untergegangen.
+
+  MINDESTENS 44 PIXEL HOCH. Das ist die Groesse, die man mit dem Finger
+  trifft, und Karam sitzt nicht immer am Laptop.
+*/
+.dialogwahlreihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+  margin-bottom: var(--luft-2);
+}
+
+.dialogwahl {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+
+  min-height: 44px;
+  padding: var(--luft-2) var(--luft-3);
+
+  background: var(--grund-tief);
+  border: 1px solid var(--feldrand);
+  border-radius: var(--rundung);
+  color: var(--schrift);
+
+  font: inherit;
+  font-size: var(--text-klein);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dialogwahl:hover {
+  border-color: var(--betonung);
+}
+
+.dialogwahl[data-gewaehlt="true"] {
+  background: var(--betonung-tief);
+  border-color: var(--betonung);
+  border-width: 2px;
+  /* Der Innenabstand gleicht die zweite Kante aus, sonst huepft der Knopf. */
+  padding: calc(var(--luft-2) - 1px) calc(var(--luft-3) - 1px);
+}
+
+.dialogwahlname {
+  font-weight: 700;
+}
+
+.dialogwahlzusatz {
+  color: var(--schrift-leise);
+  font-size: var(--text-winzig);
+}
