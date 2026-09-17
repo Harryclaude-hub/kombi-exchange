@@ -5407,3 +5407,28 @@ li[data-schwere="info"] .hinweisart {
     grid-column: 1 / -1;
   }
 }
+
+/*
+  Die Hochrechnung auf eine Saison. Zugeklappt, denn sie beantwortet eine Frage,
+  die man einmal stellt und danach kennt.
+*/
+.hochrechnung {
+  margin-top: var(--luft-3);
+  padding: var(--luft-2) var(--luft-3);
+  background: var(--grund-tief);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+}
+
+.hochrechnung > summary {
+  cursor: pointer;
+  font-size: var(--text-klein);
+  font-weight: 700;
+  color: var(--schrift);
+}
+
+/* In der Hochrechnung traegt die Marke eine Zahl, keinen Zustand. */
+.hochrechnung .geteiltmarke {
+  font-family: var(--schriftart-zahl);
+  font-variant-numeric: tabular-nums;
+}

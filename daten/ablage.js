@@ -157,6 +157,48 @@ export async function pruefsumme(datei) {
 }
 
 /**
+ * Wie viel die Bilder EINES PROJEKTS belegen, und wie viele es sind.
+ *
+ * Karam am 17.09.2026: "Wie viel Speicher habe ich bei Supabase, und wie viele
+ * Fotos koennte das aushalten? Weil ich glaube, wir sind schon bei 10 bis
+ * 100.000 Fotos in der Saison, wenn nicht mehr."
+ *
+ * Bei der Frage kommt es auf die MITTLERE GROESSE eines Fotos an, und die
+ * haengt an seinem Geraet und seiner Aufnahmeart. Raten hilft da nicht: der
+ * Unterschied zwischen 200 Kilobyte und 2 Megabyte ist der Unterschied
+ * zwischen 20 und 200 Gigabyte in der Saison.
+ *
+ * Deshalb misst das Programm es. Nach einem Spieltag steht die echte Zahl da.
+ *
+ * Unterschied zu platz(): das hier zaehlt NUR die Bilder dieses Projekts,
+ * platz() fragt den Browser nach allem, was die Seite belegt, einschliesslich
+ * anderer Projekte und des gemerkten Arbeitsstands.
+ *
+ * @param {string} projektId
+ * @returns {Promise<{anzahl: number, bytes: number, mittel: number}>}
+ */
+export async function bildmass(projektId) {
+  try {
+    const bilder = await holeBilderZuProjekt(projektId)
+    let bytes = 0
+    let anzahl = 0
+    for (const b of bilder) {
+      // Ein Eintrag ohne Inhalt zaehlt NICHT mit. Sonst zoege er den Mittelwert
+      // nach unten und die Hochrechnung waere zu guenstig.
+      const groesse = b?.inhalt?.size
+      if (typeof groesse !== 'number' || groesse <= 0) continue
+      bytes += groesse
+      anzahl += 1
+    }
+    return { anzahl, bytes, mittel: anzahl > 0 ? Math.round(bytes / anzahl) : 0 }
+  } catch {
+    // Ohne Browserdatenbank gibt es nichts zu messen. Dann steht die Zeile
+    // ohne Zahl da, statt eine erfundene zu zeigen (Projektregel 1).
+    return { anzahl: 0, bytes: 0, mittel: 0 }
+  }
+}
+
+/**
  * Wie viel Platz der Browser noch gibt.
  *
  * @returns {Promise<{belegt: number, moeglich: number}|null>}

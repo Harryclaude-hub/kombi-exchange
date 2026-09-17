@@ -54,11 +54,13 @@ import { el } from './werkzeug.js'
  * Was geteilt wird und was nicht, zum Anzeigen.
  *
  * @param {any} stand
- * @param {{belegt: number}|null} [platz] Wie viel die Bilder belegen, gemessen.
+ * @param {{anzahl: number, bytes: number, mittel: number}|null} [mass]
+ *   Wie viele Bilder es sind und wie gross sie sind, GEMESSEN.
  * @returns {Sache[]}
  */
-export function sachen(stand, platz = null) {
-  const megabyte = platz ? Math.round((platz.belegt / (1024 * 1024)) * 10) / 10 : null
+export function sachen(stand, mass = null) {
+  const megabyte = mass && mass.bytes > 0 ? Math.round((mass.bytes / (1024 * 1024)) * 10) / 10 : null
+  const mittelKb = mass && mass.mittel > 0 ? Math.round(mass.mittel / 1024) : null
 
   return [
     {
@@ -87,9 +89,25 @@ export function sachen(stand, platz = null) {
       grund:
         'Die Bilder liegen in diesem Browser, auf dem Gerät, auf dem du sie hochgeladen hast. ' +
         'In die Datenbank gehen nur die gelesenen Zahlen und die Angaben zum Bild. ' +
+        'Dein Kollege sieht die Zahlen, aber nicht die Fotos.' +
+        /*
+          DIE GEMESSENE GROESSE, weil davon alles Weitere abhaengt.
+
+          Karam am 17.09.2026: "Wie viel Speicher habe ich bei Supabase, und wie
+          viele Fotos koennte das aushalten? Ich glaube, wir sind schon bei 10
+          bis 100.000 Fotos in der Saison."
+
+          Der Unterschied zwischen 200 Kilobyte und 2 Megabyte je Foto ist in
+          seiner Groessenordnung der Unterschied zwischen 20 und 200 Gigabyte
+          ueber eine Saison. Das laesst sich nicht schaetzen, das muss gemessen
+          werden, und zwar an SEINEN Fotos auf SEINEM Geraet.
+
+          Steht hier nichts, ist noch kein Bild da. Dann wird auch keine Zahl
+          erfunden (Projektregel 1).
+        */
         (megabyte === null
-          ? 'Dein Kollege sieht die Zahlen, aber nicht die Fotos.'
-          : `Hier liegen gerade ${megabyte} MB. Dein Kollege sieht die Zahlen, aber nicht die Fotos.`),
+          ? ''
+          : ` Hier liegen ${mass.anzahl} Bild(er) mit ${megabyte} MB, im Mittel ${mittelKb} KB je Bild.`),
     },
     {
       name: 'Anordnung und eingeklapptes Panel',
@@ -112,12 +130,12 @@ export function sachen(stand, platz = null) {
  * etwas fehlt, das eigentlich geteilt gehoert.
  *
  * @param {any} stand
- * @param {{belegt: number}|null} [platz]
+ * @param {{anzahl: number, bytes: number, mittel: number}|null} [mass]
  * @param {string} [wegZurMigration]
  * @returns {HTMLElement}
  */
-export function geteiltblock(stand, platz = null, wegZurMigration = '') {
-  const liste = sachen(stand, platz)
+export function geteiltblock(stand, mass = null, wegZurMigration = '') {
+  const liste = sachen(stand, mass)
   // Die letzte Zeile ist absichtlich je Geraet, sie zaehlt nicht als Luecke.
   const luecken = liste.slice(0, -1).filter((s) => s.geteilt === false)
 
@@ -172,8 +190,69 @@ export function geteiltblock(stand, platz = null, wegZurMigration = '') {
     el('p.geteilttext', {
       text:
         'Die Fotos zu teilen ginge, sie müssten dann mit hochgeladen werden. Das ist der ' +
-        'einzige Schritt, bei dem Bilder dieses Gerät verlassen, und er kostet Platz in ' +
-        'deiner Datenbank. Sag Bescheid, dann baue ich es.',
+        'einzige Schritt, bei dem Bilder dieses Gerät verlassen, und er kostet Platz bei ' +
+        'Supabase. Sag Bescheid, dann baue ich es.',
+    }),
+
+    mass && mass.mittel > 0 ? hochrechnung(mass) : null,
+  ])
+}
+
+/**
+ * Was die gemessene Bildgroesse fuer eine ganze Saison bedeutet.
+ *
+ * Karam am 17.09.2026: "Ich glaube, wir sind schon bei 10 bis 100.000 Fotos in
+ * der Saison, wenn nicht mehr."
+ *
+ * Gerechnet wird mit SEINER gemessenen Mitteilgroesse, nicht mit einer
+ * angenommenen. Die Zahlen daneben sind die Mengen, die Supabase in seinen
+ * Plaenen nennt (Stand 17.09.2026, aus der Dokumentation):
+ *
+ *   Free   1 GB Speicher,     5 GB Datenverkehr im Monat
+ *   Pro    100 GB Speicher, 250 GB Datenverkehr im Monat, darueber 0,021 USD je GB
+ *
+ * DIE BILDER GEHOEREN IN DEN DATEISPEICHER, NICHT IN DIE DATENBANK. Die
+ * Datenbank hat im Pro-Plan 8 GB, das waeren bei einem Megabyte je Foto
+ * achttausend Stueck. Der Dateispeicher hat das Hundertfache und kostet je
+ * Gigabyte einen Bruchteil.
+ *
+ * @param {{anzahl: number, bytes: number, mittel: number}} mass
+ * @returns {HTMLElement}
+ */
+function hochrechnung(mass) {
+  const gb = (anzahl) => {
+    const wert = (anzahl * mass.mittel) / (1024 * 1024 * 1024)
+    return wert < 10 ? `${Math.round(wert * 10) / 10} GB` : `${Math.round(wert)} GB`
+  }
+
+  return el('details.hochrechnung', {}, [
+    el('summary', { text: 'Was das über eine Saison bedeutet' }),
+    el('p.geteilttext', {
+      text:
+        `Gerechnet mit deinen gemessenen ${Math.round(mass.mittel / 1024)} KB je Bild. ` +
+        'Bei Supabase gehören die Bilder in den Dateispeicher, nicht in die Datenbank: ' +
+        'die Datenbank hat im Pro-Plan 8 GB, der Dateispeicher 100 GB.',
+    }),
+    el(
+      'ul.geteiltliste',
+      {},
+      [10000, 50000, 100000].map((n) =>
+        el('li.geteiltzeile', {}, [
+          el('span.geteiltmarke', { text: gb(n) }),
+          el('span.geteiltname', { text: `${n.toLocaleString('de-DE')} Fotos` }),
+          el('span.geteiltgrund', {
+            text:
+              (n * mass.mittel) / (1024 * 1024 * 1024) <= 100
+                ? 'Passt in den Pro-Plan, ohne Aufpreis.'
+                : 'Über den 100 GB des Pro-Plans. Darüber etwa 0,021 USD je GB und Monat.',
+          }),
+        ])
+      )
+    ),
+    el('p.geteilttext', {
+      text:
+        'Wie viel du gerade wirklich brauchst, steht in deinem Supabase-Konto unter ' +
+        'Organization, Usage. Das kann dieses Programm nicht sehen.',
     }),
   ])
 }

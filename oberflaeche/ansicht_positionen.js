@@ -29,18 +29,21 @@ import { aufbaukette, aufbaublock } from './aufbau.js'
 // Was geteilt wird und was nicht, an einer Stelle formuliert.
 // Siehe oberflaeche/geteilt.js.
 import { geteiltblock } from './geteilt.js'
-import { platz } from '../daten/ablage.js'
+import { bildmass } from '../daten/ablage.js'
 
 /**
- * Wie viel Platz die Bilder auf diesem Geraet belegen, vom Browser gemessen.
+ * Wie viele Bilder dieses Projekt hat und wie gross sie sind, gemessen.
  *
- * Steht hier und nicht im Zustand: es ist eine Eigenschaft des GERAETS, nicht
- * des Projekts, und es aendert sich nur beim Hochladen. Einmal gemessen reicht
- * fuer die Sitzung.
+ * Steht hier und nicht im Zustand: es ist eine Eigenschaft der Bilder auf
+ * DIESEM Geraet, nicht des Projekts, und es aendert sich nur beim Hochladen.
  *
- * @type {{belegt: number, moeglich: number}|null}
+ * Karam am 17.09.2026 wollte wissen, wie viele Fotos eine Saison traegt. Die
+ * Antwort haengt an der mittleren Groesse SEINER Fotos, und die wird hier
+ * gemessen statt geschaetzt.
+ *
+ * @type {{anzahl: number, bytes: number, mittel: number}|null}
  */
-let gemessenerPlatz = null
+let gemessenesBildmass = null
 import { fotoknoepfe } from './fotoknoepfe.js'
 import { istAngeheftet, heftAn } from './nadeln.js'
 // Dieselben Eingabefelder wie im Reiter Scheine, aus einer Quelle
@@ -430,7 +433,7 @@ function imOrdner(stand, ordner, gezeigt) {
 function ordnerhinweis(stand) {
   const block = geteiltblock(
     stand,
-    gemessenerPlatz,
+    gemessenesBildmass,
     /*
       Der Weg wird aus der Adresse DIESER Datei gebaut und nicht aus der Adresse
       der Seite. Das Programm liegt unter /, die Probeseite unter
@@ -440,12 +443,12 @@ function ordnerhinweis(stand) {
     new URL('../werkzeug/datenbank_erweitern.html', import.meta.url).href
   )
 
-  if (gemessenerPlatz === null) {
-    // Einmal messen, dann neu zeichnen. platz() fragt den Browser und kann
-    // null geben, wenn er es nicht sagt; dann steht die Zeile ohne Zahl da.
-    platz().then((ergebnis) => {
-      if (!ergebnis || gemessenerPlatz !== null) return
-      gemessenerPlatz = ergebnis
+  if (gemessenesBildmass === null && stand.projekt) {
+    // Einmal messen, dann neu zeichnen. Liegt kein Bild da, kommt anzahl 0
+    // heraus, und die Zeile steht ohne Zahl; erfunden wird nichts.
+    bildmass(stand.projekt.id).then((ergebnis) => {
+      if (gemessenesBildmass !== null) return
+      gemessenesBildmass = ergebnis
       Zustand.aendere({})
     })
   }
