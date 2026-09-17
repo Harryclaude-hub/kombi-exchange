@@ -7,6 +7,7 @@
  */
 
 import { el, fuelle, such, neueKennung, jetzt, verzoegert, zeitText, ausschnittbild } from './werkzeug.js'
+import * as Bildspeicher from './bildspeicher.js'
 import { formatiere } from '../kern/geld.js'
 import { rechneProjekt, barEinsatz } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
@@ -20,9 +21,8 @@ import * as Dialog from './dialog.js'
 import * as Anleitung from './anleitung.js'
 import * as Datenbank from '../daten/datenbank.js'
 import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL, PROGRAMM_FASSUNG } from '../daten/einstellungen.js'
-import { merkeStand, holeStand, holeBilderZuProjekt, loescheBild } from '../daten/ablage.js'
+import { merkeStand, holeStand, holeBilderZuProjekt, loescheBild, loescheBilderZuProjekt } from '../daten/ablage.js'
 import { sorgeFuerAktuelleDateien } from '../daten/fassung.js'
-import { ladeBild } from '../bild/vorverarbeitung.js'
 
 import * as AnsichtStart from './ansicht_start.js'
 import * as AnsichtAufnahme from './ansicht_aufnahme.js'
@@ -893,10 +893,37 @@ async function loescheProjekte(ids) {
     }
     Zustand.aendere(aenderung)
 
+    /*
+      UND DIE BILDER AUS DER BROWSERDATENBANK.
+
+      Bis zum 17.09.2026 wurde hier nur der Arbeitsstand geleert. Die Bilder
+      blieben liegen, ohne Projekt, ohne Anzeige, ohne Weg sie je
+      wiederzufinden: Waisen, die den Platz belegen, den die naechste Saison
+      braucht. Bei Karams Mengen sind das Gigabyte je geloeschtem Projekt.
+
+      Der Ordner auf der Platte bleibt UNANGETASTET. Er ist die Sicherung.
+    */
+    let geloeschteBilder = 0
+    for (const projektId of weg) {
+      try {
+        geloeschteBilder += await loescheBilderZuProjekt(projektId)
+      } catch (fehler) {
+        Zustand.melde(
+          'warnung',
+          `Die Bilder des gelöschten Projekts blieben liegen: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+        )
+      }
+    }
+    Bildspeicher.leere()
+
     if (aenderung.projekt) await ladeProjektinhalt(aenderung.projekt.id)
+    const wieviel = weg.length === 1 ? 'Projekt gelöscht.' : `${weg.length} Projekte gelöscht.`
     Zustand.melde(
       'erfolg',
-      weg.length === 1 ? 'Projekt gelöscht.' : `${weg.length} Projekte gelöscht.`
+      geloeschteBilder > 0
+        ? `${wieviel} ${geloeschteBilder} Bild(er) sind aus dem Browser verschwunden; ` +
+            'in deinem Ordner auf der Platte liegen sie weiter.'
+        : wieviel
     )
   }
 
@@ -1036,6 +1063,11 @@ async function leereAktuellesProjekt() {
 async function ladeProjektinhalt(projektId) {
   const stand = Zustand.hole()
   Zustand.arbeite(true, 'Projekt wird geladen', 0.4)
+
+  // Die entpackten Bilder des VORIGEN Projekts gehoeren nicht zu diesem. Ohne
+  // das bliebe ein viertel Gigabyte eines Projekts liegen, das gerade
+  // zugeklappt wurde. Die Dateien bleiben, nur das Entpackte geht.
+  Bildspeicher.leere()
 
   const riesenscheine = await Datenbank.holeRiesenscheine(stand.token, projektId)
   const rohe = Array.isArray(riesenscheine.daten) ? riesenscheine.daten : []
@@ -1845,32 +1877,41 @@ async function ladeBilderVomGeraet(projektId) {
     const abgelegt = await holeBilderZuProjekt(projektId)
     if (abgelegt.length === 0) return
 
+    /*
+      HIER WIRD NICHTS ENTPACKT.
+
+      Bis zum 17.09.2026 stand hier ein `await ladeBild(eintrag.inhalt)` je
+      Bild, und damit lag beim Start JEDES Foto des Projekts entpackt im
+      Arbeitsspeicher. Nachgerechnet an Karams Bildern: 1170 mal 2532 Punkte
+      mal vier Byte sind 11 MB je Foto, gleich ob die Datei 300 KB hat. Bei
+      dreihundert Fotos sind das 3,3 GB, und der Reiter stirbt beim Laden. Er
+      rechnet mit zehntausend bis hunderttausend in einer Saison.
+
+      Der Blob dagegen kostet fast nichts, er bleibt auf der Platte liegen.
+      Entpackt wird erst, was jemand wirklich ansieht oder lesen laesst, und
+      hoechstens vierundzwanzig Stueck gleichzeitig: oberflaeche/bildspeicher.js.
+    */
     const bilder = new Map(Zustand.hole().bilder)
     for (const eintrag of abgelegt) {
       if (bilder.has(eintrag.id)) continue
-      try {
-        const element = await ladeBild(eintrag.inhalt)
-        bilder.set(eintrag.id, {
-          bild: {
-            id: eintrag.id,
-            projektId: eintrag.projektId,
-            dateiname: eintrag.dateiname,
-            breite: eintrag.breite,
-            hoehe: eintrag.hoehe,
-            quelle: '',
-            pruefsumme: eintrag.pruefsumme,
-            buchmacher: { wert: null, sicherheit: 0, quelle: 'vorgabe' },
-            konto: { wert: null, sicherheit: 0, quelle: 'vorgabe' },
-            angelegtAm: jetzt(),
-          },
-          element,
-          inhalt: eintrag.inhalt,
-          karten: [],
-          hinweise: [],
-        })
-      } catch {
-        // Ein einzelnes kaputtes Bild darf nicht den ganzen Start blockieren.
-      }
+      bilder.set(eintrag.id, {
+        bild: {
+          id: eintrag.id,
+          projektId: eintrag.projektId,
+          dateiname: eintrag.dateiname,
+          breite: eintrag.breite,
+          hoehe: eintrag.hoehe,
+          quelle: '',
+          pruefsumme: eintrag.pruefsumme,
+          buchmacher: { wert: null, sicherheit: 0, quelle: 'vorgabe' },
+          konto: { wert: null, sicherheit: 0, quelle: 'vorgabe' },
+          angelegtAm: jetzt(),
+        },
+        element: null,
+        inhalt: eintrag.inhalt,
+        karten: [],
+        hinweise: [],
+      })
     }
     Zustand.aendere({ bilder })
   } catch (fehler) {

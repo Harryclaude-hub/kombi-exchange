@@ -481,6 +481,31 @@ for (const ordner of UMLAUT_ORDNER) {
   }
 }
 
+// --- Probehaken gehoeren in die Probe ---
+//
+// daten/plattenspeicher.js hat einen Weg, den Ordnergriff von Hand zu setzen.
+// Ohne ihn liesse sich keine der Zusagen zum Speicherplatz in node nachmessen.
+// Im PROGRAMM darf ihn niemand rufen: ein Ordner, den sich das Programm selbst
+// setzt, waere genau das, was man nicht will.
+
+const HAKEN_ERLAUBT = new Set(['daten/plattenspeicher.js', 'werkzeug/pruefe.mjs'])
+
+for (const datei of dateien) {
+  // Unter Windows kommen die Pfade mit Schraegstrich rueckwaerts. Ohne das
+  // hat diese Regel sich beim ersten Lauf selbst beanstandet.
+  const pfad = datei.split(path.sep).join('/')
+  if (pfad.startsWith('test/') || HAKEN_ERLAUBT.has(pfad)) continue
+  if (!pfad.endsWith('.js') && !pfad.endsWith('.mjs')) continue
+  const text = fs.readFileSync(path.join(wurzel, datei), 'utf8')
+  if (text.includes('__setzeGriffFuerProbe')) {
+    beanstandungen.push({
+      art: 'probehaken',
+      datei,
+      text: '__setzeGriffFuerProbe ist nur fuer test/ gedacht und darf im Programm nicht vorkommen.',
+    })
+  }
+}
+
 // --- Bericht ---
 
 console.log(`${geprueft} Dateien geprueft.`)

@@ -41,8 +41,10 @@
  *
  * DAS GIBT ES NICHT UEBERALL. Chrome und Edge koennen es, Firefox und Safari
  * nicht, auf dem Telefon meistens auch nicht. Deshalb sagt dieses Modul
- * ehrlich, ob es geht, und das Programm bietet dort den anderen Weg an: alles
- * in eine ZIP-Datei, von Hand gesichert.
+ * ehrlich, ob es geht. Wo es nicht geht, gibt es HEUTE keinen Ersatz: die
+ * Fotos liegen dann nur im Browser. Der Kasten in der Uebersicht sagt genau
+ * das, und er verspricht keinen Weg, den es nicht gibt (Projektregel 1: eine
+ * Luecke mit Warnung ist besser als ein erfundener Wert).
  *
  * HIER WIRD NICHTS GELOESCHT. Dieses Modul schreibt nur. Was einmal im Ordner
  * liegt, bleibt dort, auch wenn das Bild im Programm entfernt wird: der Ordner
@@ -87,6 +89,23 @@ async function gemerkterGriff() {
     // fragt das Programm eben noch einmal nach dem Ordner.
   }
   return null
+}
+
+/**
+ * Setzt den Ordnergriff von Hand. NUR FUER DIE PROBE.
+ *
+ * In node gibt es weder showDirectoryPicker noch die Browserdatenbank, aus der
+ * der Griff sonst kommt. Ohne diesen Weg liesse sich keine der Zusagen zum
+ * Speicherplatz nachmessen, und Projektregel 3 sagt: eine Sicherung zaehlt
+ * erst, wenn sie ausgeloest hat.
+ *
+ * Im Programm ruft das niemand; `werkzeug/pruefe.mjs` wacht darueber.
+ *
+ * @param {any} neuerGriff
+ */
+export function __setzeGriffFuerProbe(neuerGriff) {
+  griff = neuerGriff
+  schonGeschrieben.clear()
 }
 
 /**
@@ -153,6 +172,87 @@ export async function waehleOrdner() {
       name: '',
       meldung: `Der Ordner liess sich nicht öffnen: ${fehler instanceof Error ? fehler.message : String(fehler)}`,
     }
+  }
+}
+
+/**
+ * Holt die Schreiberlaubnis fuer den gemerkten Ordner zurueck.
+ *
+ * DER WEG, DER GEFEHLT HAT. Der Browser vergisst die Erlaubnis bei jedem
+ * Neustart; der Griff auf den Ordner bleibt, das Ja dazu nicht. Am 17.09.2026
+ * gefunden: der Knopf, der "Ordner wieder freigeben" hiess, rief in Wahrheit
+ * das Sichern auf, und das scheiterte genau an der fehlenden Erlaubnis. Es gab
+ * keinen Weg zurueck ausser den Ordner neu auszusuchen.
+ *
+ * MUSS AUS EINEM KLICK HERAUS LAUFEN. requestPermission verlangt eine
+ * Handlung des Menschen; von selbst aufgerufen lehnt der Browser ab.
+ *
+ * @returns {Promise<{gelungen: boolean, name: string, meldung: string}>}
+ */
+export async function holeErlaubnis() {
+  const g = await gemerkterGriff()
+  if (!g) return { gelungen: false, name: '', meldung: 'Es ist kein Ordner gemerkt.' }
+
+  try {
+    if ((await g.queryPermission({ mode: 'readwrite' })) === 'granted') {
+      return { gelungen: true, name: g.name ?? '', meldung: '' }
+    }
+    const erlaubnis = await g.requestPermission({ mode: 'readwrite' })
+    if (erlaubnis !== 'granted') {
+      return {
+        gelungen: false,
+        name: g.name ?? '',
+        meldung: 'Ohne Schreibrecht kann nichts in den Ordner geschrieben werden.',
+      }
+    }
+    return { gelungen: true, name: g.name ?? '', meldung: '' }
+  } catch (fehler) {
+    return {
+      gelungen: false,
+      name: g.name ?? '',
+      meldung: `Die Erlaubnis liess sich nicht holen: ${fehler instanceof Error ? fehler.message : String(fehler)}`,
+    }
+  }
+}
+
+/**
+ * Sieht im Ordner NACH, welche dieser Bilder wirklich fehlen.
+ *
+ * NACHGESEHEN STATT GERATEN. Bis zum 17.09.2026 stand in der Uebersicht
+ * "N Bild(er) liegen noch nicht im Ordner", und N war in Wahrheit die
+ * Gesamtzahl ALLER Bilder des Projekts, auch der laengst gesicherten. Wer
+ * zweimal auf Sichern drueckte, sah dieselbe Zahl wieder. Das ist kein
+ * Messwert, das ist eine Behauptung.
+ *
+ * Der Ordner kann seine Dateinamen aufzaehlen, und dateinameFuer() ist
+ * eindeutig. Also wird verglichen.
+ *
+ * Gibt null zurueck, wenn sich nichts feststellen laesst: kein Ordner, keine
+ * Erlaubnis, kein Aufzaehlen moeglich. Dann steht in der Anzeige, dass es
+ * nicht nachgesehen wurde, statt einer erfundenen Zahl.
+ *
+ * @param {{id: string, dateiname?: string}[]} bilder
+ * @returns {Promise<number|null>}
+ */
+export async function fehlende(bilder) {
+  const g = await gemerkterGriff()
+  if (!g || typeof g.keys !== 'function') return null
+
+  try {
+    if ((await g.queryPermission({ mode: 'readwrite' })) !== 'granted') return null
+
+    /** @type {Set<string>} */
+    const drin = new Set()
+    for await (const name of g.keys()) drin.add(name)
+
+    let fehlt = 0
+    for (const bild of bilder) {
+      if (!drin.has(dateinameFuer(bild))) fehlt += 1
+      else schonGeschrieben.add(bild.id)
+    }
+    return fehlt
+  } catch {
+    return null
   }
 }
 

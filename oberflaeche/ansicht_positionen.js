@@ -543,8 +543,22 @@ function imOrdner(stand, ordner, gezeigt) {
 /** @type {{moeglich: boolean, gewaehlt: boolean, name: string, erlaubt: boolean}|null} */
 let ordnerstand = null
 
-/** @type {{offen: number, laeuft: boolean, fertig: number, gesamt: number}} */
-let sicherungsstand = { offen: 0, laeuft: false, fertig: 0, gesamt: 0 }
+/**
+ * Wie viele Bilder des Projekts noch nicht im Ordner liegen.
+ *
+ * offen ist NULL, solange nicht nachgesehen wurde. Nicht 0.
+ *
+ * Am 17.09.2026 gefunden: der Anfangswert war 0, und ohne Ordner oder ohne
+ * Erlaubnis wurde nie gemessen. Der Kasten sagte dann "Alle Bilder dieses
+ * Projekts liegen im Ordner", waehrend gerade gar nichts geschrieben wurde.
+ * Die gefaehrlichste Art von Anzeige: eine, die beruhigt, wo sie nichts weiss.
+ *
+ * @type {{offen: number|null, laeuft: boolean, fertig: number, gesamt: number}}
+ */
+let sicherungsstand = { offen: null, laeuft: false, fertig: 0, gesamt: 0 }
+
+/** Zu welchem Projekt der gemessene Stand gehoert. */
+let gemessenFuerProjekt = ''
 
 /**
  * Sieht nach, ob ein Ordner gewaehlt ist und wie viele Bilder noch fehlen.
@@ -555,12 +569,22 @@ async function pruefeOrdner(stand) {
   ordnerstand = await Platte.stand()
 
   if (ordnerstand.gewaehlt && ordnerstand.erlaubt && stand.projekt) {
-    // Wie viele Bilder es ueberhaupt gibt. Welche davon schon im Ordner liegen,
-    // weiss nur der Ordner selbst; hier wird nur gezaehlt, was da ist, und der
-    // Knopf schreibt dann alles. Zweimal dieselbe Datei zu schreiben schadet
-    // nicht, sie wird ueberschrieben.
-    const mass = await bildmass(stand.projekt.id)
-    sicherungsstand = { ...sicherungsstand, offen: mass.anzahl }
+    /*
+      IM ORDNER NACHSEHEN, NICHT IM BROWSER ZAEHLEN.
+
+      Bis zum 17.09.2026 stand hier bildmass(), also die Gesamtzahl ALLER
+      Bilder des Projekts, und die Anzeige nannte sie "liegen noch nicht im
+      Ordner". Wer gesichert hatte und neu lud, sah dieselbe Zahl wieder.
+
+      Platte.fehlende() zaehlt die Dateinamen im Ordner auf und vergleicht.
+      Findet es nichts heraus, kommt null zurueck, und die Anzeige sagt, dass
+      nicht nachgesehen wurde.
+    */
+    const bilder = await holeBilderZuProjekt(stand.projekt.id)
+    sicherungsstand = { ...sicherungsstand, offen: await Platte.fehlende(bilder) }
+  } else {
+    // Ohne Ordner oder ohne Erlaubnis gibt es nichts nachzusehen.
+    sicherungsstand = { ...sicherungsstand, offen: null }
   }
 
   Zustand.aendere({})
@@ -576,6 +600,24 @@ async function waehleOrdner() {
     return
   }
   Zustand.melde('erfolg', `Der Ordner "${ergebnis.name}" ist gesetzt. Neue Fotos gehen ab jetzt mit dorthin.`)
+  ordnerstand = null
+  await pruefeOrdner(Zustand.hole())
+}
+
+/**
+ * Holt die Schreiberlaubnis fuer den gemerkten Ordner zurueck.
+ *
+ * Der Browser vergisst sie bei jedem Neustart. Ohne diesen Weg gab es nur
+ * "Ordner neu aussuchen", und der Knopf, der das versprach, rief das Sichern
+ * auf und scheiterte an genau der fehlenden Erlaubnis.
+ */
+async function erlaubeOrdner() {
+  const ergebnis = await Platte.holeErlaubnis()
+  if (!ergebnis.gelungen) {
+    if (ergebnis.meldung) Zustand.melde('warnung', ergebnis.meldung)
+    return
+  }
+  Zustand.melde('erfolg', `Der Ordner "${ergebnis.name}" ist wieder freigegeben.`)
   ordnerstand = null
   await pruefeOrdner(Zustand.hole())
 }
@@ -608,7 +650,9 @@ async function sichereAlles() {
     Zustand.aendere({})
   })
 
-  sicherungsstand = { offen: 0, laeuft: false, fertig: 0, gesamt: 0 }
+  // Nicht 0 behaupten, sondern nachsehen: ein Sichern kann teilweise
+  // scheitern, und dann liegen eben doch noch welche draussen.
+  sicherungsstand = { offen: await Platte.fehlende(bilder), laeuft: false, fertig: 0, gesamt: 0 }
 
   if (ergebnis.fehler.length > 0) {
     Zustand.melde(
@@ -686,6 +730,26 @@ function ordnerhinweis(stand) {
     })
   }
 
+  /*
+    BEIM PROJEKTWECHSEL NEU MESSEN.
+
+    Am 17.09.2026 gefunden: gemessenesBildmass, gemessenerPlatz und
+    gemessenerDauerstand wurden genau einmal je Sitzung gesetzt und nirgends
+    wieder auf null. Wer das Projekt wechselte, sah die Zahlen des anderen
+    Projekts, und nach dem Hochladen von sechzig Fotos stand dort weiter die
+    Zahl von vorher. Der Kommentar oben ("aendert sich nur beim Hochladen")
+    war genau die Stelle, an der es schiefging: es aendert sich auch beim
+    Wechseln, und das Hochladen setzte es ebenfalls nicht zurueck.
+  */
+  const projektJetzt = stand.projekt?.id ?? ''
+  if (projektJetzt !== gemessenFuerProjekt) {
+    gemessenFuerProjekt = projektJetzt
+    gemessenesBildmass = null
+    gemessenerPlatz = null
+    sicherungsstand = { offen: null, laeuft: false, fertig: 0, gesamt: 0 }
+    if (projektJetzt) pruefeOrdner(stand)
+  }
+
   if (gemessenesBildmass === null && stand.projekt) {
     // Einmal messen, dann neu zeichnen. Liegt kein Bild da, kommt anzahl 0
     // heraus, und die Zeile steht ohne Zahl; erfunden wird nichts.
@@ -707,8 +771,8 @@ function ordnerhinweis(stand) {
       Was ihm am wichtigsten ist, steht zuerst, und zwar vor der Frage, was der
       Kollege sieht.
     */
-    ordnerblock(stand, ordnerstand, sicherungsstand, waehleOrdner, sichereAlles),
-    speicherblock(gemessenerDauerstand, gemessenerPlatz, gemessenesBildmass),
+    ordnerblock(stand, ordnerstand, sicherungsstand, waehleOrdner, sichereAlles, erlaubeOrdner),
+    speicherblock(gemessenerDauerstand, gemessenerPlatz, gemessenesBildmass, ordnerstand),
     block,
   ])
 }

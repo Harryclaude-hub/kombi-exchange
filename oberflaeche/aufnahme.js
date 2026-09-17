@@ -31,6 +31,7 @@ import { pruefsumme, legeBildAb, loescheBild } from '../daten/ablage.js'
 // Siehe daten/plattenspeicher.js.
 import * as Platte from '../daten/plattenspeicher.js'
 import { neueKennung, jetzt, atmen } from './werkzeug.js'
+import * as Bildspeicher from './bildspeicher.js'
 import * as Zustand from './zustand.js'
 
 /** @type {Awaited<ReturnType<typeof starteLeserGruppe>>|null} */
@@ -171,40 +172,58 @@ export async function nimmAuf(dateien) {
       }
       karten = karten.sort((a, b) => a.x - b.x || a.y - b.y)
 
-      await legeBildAb({
-        id,
-        projektId,
-        dateiname: datei.name,
-        pruefsumme: abdruck,
-        breite: element.naturalWidth,
-        hoehe: element.naturalHeight,
-        inhalt: datei,
-      })
-
       /*
-        SOFORT AUCH AUF DIE PLATTE, wenn ein Ordner gewaehlt ist.
+        DIE REIHENFOLGE IST DER GANZE PUNKT.
 
-        Karam am 17.09.2026: "Du musst wirklich sicherstellen, dass der
-        Speicherplatz immer optimal gespeichert wird. Dass der Nutzer immer
-        seine Fotos irgendwo hat."
+        Bis zum 17.09.2026 abends stand legeBildAb HIER OBEN und das Schreiben
+        auf die Platte darunter. Lief die Browserdatenbank voll, warf
+        legeBildAb, der Ablauf sprang in den catch am Ende der Schleife, und
+        Platte.sichere wurde NIE erreicht. Das Foto war dann nirgends, obwohl
+        auf der Platte noch hunderte Gigabyte frei waren.
 
-        HIER UND NICHT SPAETER: ein Foto, das erst beim naechsten Sichern
-        hinausgeht, ist bis dahin genau einmal vorhanden. Bei sechzig Scheinen
-        am Spieltag ist die Luecke zwischen Aufnehmen und Sichern die
-        gefaehrlichste Stelle.
-
-        OHNE await AUF DAS ERGEBNIS ZU WARTEN waere falsch herum gedacht: das
-        Schreiben dauert Millisekunden, und wenn es NICHT klappt, will man das
-        wissen, bevor sechzig weitere Fotos hinterherkommen. Faellt es aus,
-        haelt es das Lesen trotzdem nicht auf, denn sichere() wirft nie.
+        Also zuerst die Platte: sie ist die Kopie, die einen geloeschten
+        Browser ueberlebt, sie hat kein Limit ausser der Platte selbst, und
+        sichere() wirft nie. Danach der Browser, in einem EIGENEN Versuch, denn
+        ein voller Browser darf ein Foto nicht mehr aus der Hand geben, das
+        drei Zeilen vorher sicher abgelegt wurde.
       */
       const gesichert = await Platte.sichere({ id, dateiname: datei.name, inhalt: datei })
+
+      let imBrowser = true
+      try {
+        await legeBildAb({
+          id,
+          projektId,
+          dateiname: datei.name,
+          pruefsumme: abdruck,
+          breite: element.naturalWidth,
+          hoehe: element.naturalHeight,
+          inhalt: datei,
+        })
+      } catch (fehler) {
+        imBrowser = false
+        const grund = fehler instanceof Error ? fehler.message : String(fehler)
+        Zustand.melde(
+          'fehler',
+          gesichert.geschrieben
+            ? `"${datei.name}" konnte nicht in den Browser gelegt werden: ${grund} ` +
+                'Das Bild liegt aber in deinem Ordner auf der Platte, es ist nicht verloren. ' +
+                'Der Schein wird trotzdem gelesen; nur das Foto ist nach dem Neuladen weg.'
+            : `"${datei.name}" konnte NIRGENDS abgelegt werden: ${grund} ` +
+                'Wähle einen Ordner auf der Platte, dann liegt jedes Foto zusätzlich dort.'
+        )
+      }
+
       if (!gesichert.geschrieben && gesichert.grund && gesichert.grund !== 'kein Ordner gewählt') {
         Zustand.melde(
           'warnung',
           `"${datei.name}" liegt im Browser, konnte aber nicht in deinen Ordner geschrieben werden: ${gesichert.grund}`
         )
       }
+
+      // Nirgends gelandet: dann gibt es auch nichts anzuzeigen. Der Schein
+      // waere ohne Bild, und beim naechsten Hochladen kaeme er doppelt.
+      if (!imBrowser && !gesichert.geschrieben) continue
 
       bilder.set(id, {
         bild: {
@@ -366,7 +385,26 @@ export async function leseBilder(bildIds, einstellungen = {}) {
 
   for (const bildId of bildIds) {
     const eintrag = bilder.get(bildId)
-    if (!eintrag || !eintrag.element) continue
+    if (!eintrag) continue
+
+    /*
+      DAS BILD NACHHOLEN, NICHT UEBERSPRINGEN.
+
+      Seit dem 17.09.2026 liegt nach einem Neuladen kein entpacktes Bild mehr
+      am Eintrag (oberflaeche/bildspeicher.js). Hier stand vorher ein
+      `continue`, und damit haette das Lesen nach jedem Neuladen still
+      uebersprungen, was es lesen sollte: keine Scheine, keine Meldung.
+    */
+    const element = eintrag.element ?? (await Bildspeicher.hole(eintrag))
+    if (!element) {
+      fehlerzahl += 1
+      Zustand.melde('warnung', `"${eintrag.bild.dateiname}" ließ sich nicht öffnen und wurde übersprungen.`)
+      continue
+    }
+    if (!eintrag.element) {
+      bilder.set(bildId, { ...eintrag, element })
+      eintrag.element = element
+    }
 
     try {
       // Kopfbereich UND alle Karten gleichzeitig.
@@ -623,17 +661,23 @@ export function setzeKarten(bildId, karten) {
  * @param {string} bildId
  * @param {import('../kern/typen.js').Rechteck|null} bereich  null hebt den Rahmen auf.
  */
-export function setzeBereich(bildId, bereich) {
+export async function setzeBereich(bildId, bereich) {
   const stand = Zustand.hole()
   const bilder = new Map(stand.bilder)
   const eintrag = bilder.get(bildId)
-  if (!eintrag || !eintrag.element) return
+  if (!eintrag) return
+
+  // Nach einem Neuladen liegt das Bild nur als Datei da. Zum Zerlegen wird es
+  // gebraucht, also wird es hier geholt (oberflaeche/bildspeicher.js).
+  const element = eintrag.element ?? (await Bildspeicher.hole(eintrag))
+  if (!element) return
+  eintrag.element = element
 
   const voll = {
     x: 0,
     y: 0,
-    breite: eintrag.element.naturalWidth,
-    hoehe: eintrag.element.naturalHeight,
+    breite: element.naturalWidth,
+    hoehe: element.naturalHeight,
   }
 
   let gewaehlt = voll
@@ -654,9 +698,9 @@ export function setzeBereich(bildId, bereich) {
   let karten = []
 
   try {
-    const spalten = findeSpalten(eintrag.element, gewaehlt)
+    const spalten = findeSpalten(element, gewaehlt)
     for (const spalte of spalten) {
-      const ergebnis = zerlege(eintrag.element, {
+      const ergebnis = zerlege(element, {
         bereich: { x: spalte.von, y: gewaehlt.y, breite: spalte.bis - spalte.von, hoehe: gewaehlt.hoehe },
       })
       karten.push(...ergebnis.karten)

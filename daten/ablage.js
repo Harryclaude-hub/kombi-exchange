@@ -70,9 +70,60 @@ async function imLager(lager, art, arbeit) {
   return new Promise((erfuellen, ablehnen) => {
     const vorgang = db.transaction(lager, art)
     const anfrage = arbeit(vorgang.objectStore(lager))
+
+    /*
+      BEIM SCHREIBEN ZAEHLT DER ABSCHLUSS, NICHT DIE ANFRAGE.
+
+      Am 17.09.2026 gefunden: hier stand nur anfrage.onsuccess. Das kommt,
+      sobald die Anfrage in der Reihe steht, nicht wenn sie auf der Platte
+      liegt. Ist der Speicher voll, bricht der Browser den ganzen Vorgang
+      ERST BEIM ABSCHLUSS ab, mit QuotaExceededError. Das Programm hatte
+      da laengst "gespeichert" gemeldet und das Foto aus der Hand gegeben.
+
+      Genau der stille Verlust, gegen den der ganze Rest gebaut ist.
+
+      Beim Lesen bleibt es bei onsuccess: dort IST das Ergebnis das Ziel,
+      und auf den Abschluss zu warten wuerde nur bremsen.
+    */
+    if (art === 'readwrite') {
+      /** @type {any} */
+      let ergebnis = null
+      anfrage.onsuccess = () => {
+        ergebnis = anfrage.result
+      }
+      vorgang.oncomplete = () => erfuellen(ergebnis)
+      vorgang.onerror = () => ablehnen(fehlerVon(vorgang.error ?? anfrage.error))
+      vorgang.onabort = () => ablehnen(fehlerVon(vorgang.error ?? anfrage.error))
+      anfrage.onerror = () => {
+        // Der Vorgang bricht daraufhin selbst ab; dort wird abgelehnt.
+      }
+      return
+    }
+
     anfrage.onsuccess = () => erfuellen(/** @type {any} */ (anfrage.result))
-    anfrage.onerror = () => ablehnen(anfrage.error ?? new Error('Die lokale Datenbank meldet einen Fehler.'))
+    anfrage.onerror = () => ablehnen(fehlerVon(anfrage.error))
   })
+}
+
+/**
+ * Macht aus dem Fehler des Browsers einen Satz, der sagt, was zu tun ist.
+ *
+ * Der volle Speicher ist der einzige Fehler, den der Mensch selbst beheben
+ * kann, und er ist auch der einzige, der bei Karams Mengen wirklich kommt.
+ * Deshalb steht er als eigener Satz da und nicht als "DOMException".
+ *
+ * @param {any} fehler
+ * @returns {Error}
+ */
+function fehlerVon(fehler) {
+  const name = fehler?.name ?? ''
+  if (name === 'QuotaExceededError') {
+    return new Error(
+      'Der Speicher dieses Browsers ist voll. Das Bild wurde NICHT abgelegt. ' +
+        'Wenn du einen Ordner auf der Platte gewählt hast, liegt es trotzdem dort.'
+    )
+  }
+  return fehler instanceof Error ? fehler : new Error('Die lokale Datenbank meldet einen Fehler.')
 }
 
 /**
@@ -109,6 +160,46 @@ export async function holeBilderZuProjekt(projektId) {
     const anfrage = vorgang.objectStore(LAGER_BILDER).index('projekt').getAll(projektId)
     anfrage.onsuccess = () => erfuellen(anfrage.result ?? [])
     anfrage.onerror = () => ablehnen(anfrage.error ?? new Error('Die Bilder liessen sich nicht laden.'))
+  })
+}
+
+/**
+ * Loescht alle Bilder eines Projekts und sagt, wie viele es waren.
+ *
+ * DER WEG, DER GEFEHLT HAT. Am 17.09.2026 gefunden: beim Loeschen eines
+ * Projekts wurde nur `bilder = new Map()` gesetzt, also der Arbeitsstand
+ * geleert. Die Bilder blieben in der Browserdatenbank liegen, ohne Projekt,
+ * ohne Anzeige, ohne Weg sie je wiederzufinden. Bei Karams Mengen waeren das
+ * nach zwei geloeschten Projekten Gigabyte an Waisen, und der Speicher, den
+ * er fuer die naechste Saison braucht, waere von der vorletzten belegt.
+ *
+ * Der Index 'projekt' ist dafuer da; er wurde nur nie zum Aufraeumen benutzt.
+ *
+ * ACHTUNG: der Ordner auf der Platte wird NICHT angefasst. Dort bleibt alles
+ * liegen. Eine Sicherung, die mitloescht, ist keine.
+ *
+ * @param {string} projektId
+ * @returns {Promise<number>}
+ */
+export async function loescheBilderZuProjekt(projektId) {
+  const db = await oeffne()
+  return new Promise((erfuellen, ablehnen) => {
+    const vorgang = db.transaction(LAGER_BILDER, 'readwrite')
+    const lager = vorgang.objectStore(LAGER_BILDER)
+    const zeiger = lager.index('projekt').openKeyCursor(IDBKeyRange.only(projektId))
+    let weg = 0
+
+    zeiger.onsuccess = () => {
+      const stelle = zeiger.result
+      if (!stelle) return
+      lager.delete(stelle.primaryKey)
+      weg += 1
+      stelle.continue()
+    }
+    // Der Abschluss zaehlt, nicht die einzelne Anfrage. Siehe imLager.
+    vorgang.oncomplete = () => erfuellen(weg)
+    vorgang.onerror = () => ablehnen(fehlerVon(vorgang.error))
+    vorgang.onabort = () => ablehnen(fehlerVon(vorgang.error))
   })
 }
 

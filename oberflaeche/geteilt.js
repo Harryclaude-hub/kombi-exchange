@@ -88,8 +88,9 @@ export function sachen(stand, mass = null) {
       geteilt: false,
       grund:
         'Die Bilder liegen in diesem Browser, auf dem Gerät, auf dem du sie hochgeladen hast. ' +
-        'In die Datenbank gehen nur die gelesenen Zahlen und die Angaben zum Bild. ' +
-        'Dein Kollege sieht die Zahlen, aber nicht die Fotos.' +
+        'In die Datenbank gehen NUR die gelesenen Zahlen. Nicht einmal Dateiname und ' +
+        'Größe gehen mit: die Tabelle dafür steht bereit, wird aber heute nicht ' +
+        'beschrieben. Dein Kollege sieht die Zahlen, aber nicht die Fotos.' +
         /*
           DIE GEMESSENE GROESSE, weil davon alles Weitere abhaengt.
 
@@ -139,12 +140,13 @@ export function sachen(stand, mass = null) {
  *
  * @param {any} stand
  * @param {{moeglich: boolean, gewaehlt: boolean, name: string, erlaubt: boolean}|null} ordner
- * @param {{offen: number, laeuft: boolean, fertig: number, gesamt: number}} sicherung
+ * @param {{offen: number|null, laeuft: boolean, fertig: number, gesamt: number}} sicherung
  * @param {() => void} aufWaehlen
  * @param {() => void} aufSichern
+ * @param {() => void} aufErlauben
  * @returns {HTMLElement|null}
  */
-export function ordnerblock(stand, ordner, sicherung, aufWaehlen, aufSichern) {
+export function ordnerblock(stand, ordner, sicherung, aufWaehlen, aufSichern, aufErlauben) {
   if (!ordner) return null
 
   if (!ordner.moeglich) {
@@ -200,25 +202,59 @@ export function ordnerblock(stand, ordner, sicherung, aufWaehlen, aufSichern) {
           'wieder von selbst.',
     }),
 
+    /*
+      DREI LAGEN, UND KEINE DAVON WIRD BEHAUPTET.
+
+      Am 17.09.2026 gefunden: hier stand bei offen === 0 immer "Alle Bilder
+      dieses Projekts liegen im Ordner." Der Anfangswert von offen WAR 0, und
+      ohne Erlaubnis wurde nie gemessen. Der Kasten sagte also genau dann, es
+      liege alles sicher, wenn gerade gar nichts geschrieben wurde.
+
+      offen === null heisst jetzt: nicht nachgesehen. Das steht da auch so.
+    */
     sicherung.laeuft
       ? el('p.geteilttext', {
           text: `Wird gesichert: ${sicherung.fertig} von ${sicherung.gesamt} ...`,
         })
-      : sicherung.offen > 0
+      : sicherung.offen === null
         ? el('p.geteilttext', {
-            text:
-              `${sicherung.offen} Bild(er) aus diesem Projekt liegen noch nicht im Ordner. ` +
-              'Das sind die, die du vor dem Auswählen hochgeladen hast.',
+            text: ordner.erlaubt
+              ? 'Wie viele Bilder schon im Ordner liegen, wurde noch nicht nachgesehen.'
+              : 'Solange die Erlaubnis fehlt, kann niemand im Ordner nachsehen, und es ' +
+                'wird auch nichts hineingeschrieben.',
           })
-        : el('p.geteilttext', { text: 'Alle Bilder dieses Projekts liegen im Ordner.' }),
+        : sicherung.offen > 0
+          ? el('p.geteilttext', {
+              text:
+                `${sicherung.offen} Bild(er) aus diesem Projekt liegen noch nicht im Ordner. ` +
+                'Nachgesehen wurde im Ordner selbst.',
+            })
+          : el('p.geteilttext', {
+              text: 'Alle Bilder dieses Projekts liegen im Ordner. Im Ordner selbst nachgesehen.',
+            }),
 
     el('.ausgabeknoepfe', {}, [
-      el('button.knopf.knopf-haupt', {
-        type: 'button',
-        text: ordner.erlaubt ? 'Alle Bilder jetzt sichern' : 'Ordner wieder freigeben',
-        disabled: sicherung.laeuft ? 'disabled' : null,
-        onclick: aufSichern,
-      }),
+      /*
+        DER KNOPF TUT, WAS AUF IHM STEHT.
+
+        Bis zum 17.09.2026 hiess er ohne Erlaubnis "Ordner wieder freigeben"
+        und rief trotzdem das Sichern auf. Das Sichern scheitert aber genau an
+        der fehlenden Erlaubnis. Von aussen: ein Knopf, der nichts tut, und
+        kein Weg zurueck ausser den Ordner neu auszusuchen.
+      */
+      ordner.erlaubt
+        ? el('button.knopf.knopf-haupt', {
+            type: 'button',
+            text: 'Alle Bilder jetzt sichern',
+            disabled: sicherung.laeuft ? 'disabled' : null,
+            onclick: aufSichern,
+          })
+        : el('button.knopf.knopf-haupt', {
+            type: 'button',
+            text: 'Ordner wieder freigeben',
+            disabled: sicherung.laeuft ? 'disabled' : null,
+            onclick: aufErlauben,
+          }),
       el('button.knopf.knopf-klein', {
         type: 'button',
         text: 'Anderen Ordner wählen',
@@ -253,9 +289,10 @@ export function ordnerblock(stand, ordner, sicherung, aufWaehlen, aufSichern) {
  * @param {{dauerhaft: boolean, moeglich: boolean}|null} dauer
  * @param {{belegt: number, moeglich: number}|null} platz
  * @param {{anzahl: number, bytes: number, mittel: number}|null} mass
+ * @param {{moeglich: boolean, gewaehlt: boolean, name: string, erlaubt: boolean}|null} [ordner]
  * @returns {HTMLElement|null}
  */
-export function speicherblock(dauer, platz, mass) {
+export function speicherblock(dauer, platz, mass, ordner = null) {
   if (!dauer && !platz) return null
 
   const gb = (bytes) => {
@@ -319,14 +356,22 @@ export function speicherblock(dauer, platz, mass) {
     /*
       DIE EHRLICHE GRENZE.
 
-      Der Browser gibt viel, aber er gibt es nur auf DIESEM Geraet. Eine zweite
-      Kopie ausserhalb gibt es nicht, und das muss dastehen, bevor jemand eine
-      Saison lang darauf baut.
+      Der Browser gibt viel, aber er gibt es nur auf DIESEM Geraet.
+
+      AM 17.09.2026 BERICHTIGT: hier stand pauschal "Eine zweite Kopie gibt es
+      nicht", und zwei Kaesten darueber stand, dass jedes Foto in den Ordner
+      auf der Platte geht. Beides im selben Bild. Der Satz war von vor dem
+      Ordner und stimmte danach nicht mehr. Jetzt haengt er am gemessenen
+      Zustand, nicht an der Erinnerung.
     */
     el('p.geteilttext', {
-      text:
-        'Eine zweite Kopie gibt es nicht. Formatierst du den Laptop oder löschst du die ' +
-        'Browserdaten, sind die Bilder weg. Die Zahlen überleben, die liegen in der Datenbank.',
+      text: ordner?.gewaehlt && ordner?.erlaubt
+        ? `Die zweite Kopie liegt in deinem Ordner "${ordner.name}". Löschst du die ` +
+          'Browserdaten, bleiben die Dateien dort. Die Zahlen überleben ohnehin, die ' +
+          'liegen in der Datenbank.'
+        : 'Eine zweite Kopie gibt es im Moment nicht. Formatierst du den Laptop oder ' +
+          'löschst du die Browserdaten, sind die Bilder weg. Ein Ordner auf der Platte ' +
+          'ändert das; die Zahlen überleben ohnehin, die liegen in der Datenbank.',
     }),
   ])
 }

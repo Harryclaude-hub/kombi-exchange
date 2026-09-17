@@ -12,6 +12,8 @@
  */
 
 import { el, fuelle, neueKennung } from './werkzeug.js'
+import * as Bildspeicher from './bildspeicher.js'
+import { loescheBild } from '../daten/ablage.js'
 import * as Zustand from './zustand.js'
 import * as Dialog from './dialog.js'
 import {
@@ -675,17 +677,52 @@ function leseleiste(bilder) {
       type: 'button',
       text: 'Alle Bilder verwerfen',
       onclick: async () => {
+        /*
+          AM 17.09.2026 BERICHTIGT.
+
+          Hier stand nur `Zustand.aendere({ bilder: new Map() })`. Die Bilder
+          verschwanden aus der Liste und blieben in der Browserdatenbank
+          liegen. Nach dem naechsten Neuladen waren sie alle wieder da, der
+          Rueckfragetext war also schlicht falsch. Schlimmer: die
+          Doppelpruefung beim Hochladen fragt nur den Arbeitsstand, deshalb
+          wurde dasselbe Foto beim erneuten Hochladen ein ZWEITES Mal
+          abgelegt, und der Platz war doppelt belegt.
+
+          Jetzt wird wirklich geloescht, und die Rueckfrage sagt, was das
+          heisst. Der Ordner auf der Platte bleibt unangetastet.
+        */
+        const stand = Zustand.hole()
+        const anzahl = stand.bilder.size
         const ja = await Dialog.bestaetige({
-          titel: 'Alle Bilder aus der Ansicht nehmen?',
+          titel: `${anzahl} Bild(er) aus diesem Projekt wirklich löschen?`,
           punkte: [
-            'Die gelesenen Scheine BLEIBEN. Es verschwinden nur die Bilder aus dieser Liste.',
-            'Zu den Scheinen wird dann kein Foto mehr angezeigt.',
+            'Die gelesenen Scheine BLEIBEN. Es verschwinden nur die Fotos.',
+            'Sie werden aus dem Browser gelöscht, nicht nur ausgeblendet: nach dem ' +
+              'Neuladen sind sie NICHT wieder da.',
+            'In deinem Ordner auf der Platte bleiben sie liegen, falls du einen gewählt hast.',
             'Willst du die Scheine loswerden, geht das im Reiter Scheine, einzeln.',
           ],
-          ja: 'Bilder aus der Ansicht nehmen',
+          ja: `${anzahl} Bild(er) löschen`,
         })
         if (!ja) return
+
+        let weg = 0
+        for (const eintrag of stand.bilder.values()) {
+          try {
+            await loescheBild(eintrag.bild.id)
+            weg += 1
+          } catch {
+            // Ein einzelnes darf den Rest nicht aufhalten.
+          }
+        }
+        Bildspeicher.leere()
         Zustand.aendere({ bilder: new Map() })
+        Zustand.melde(
+          'erfolg',
+          weg === anzahl
+            ? `${weg} Bild(er) gelöscht.`
+            : `${weg} von ${anzahl} Bild(ern) gelöscht; der Rest ließ sich nicht entfernen.`
+        )
       },
     }),
   ])

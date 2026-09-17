@@ -241,7 +241,7 @@ export function anbieterzeichen(name) {
  * liegen): dann bleibt die Leinwand leer statt zu verschwinden. Ein leerer
  * Rahmen sagt "hier gehoert ein Bild hin", nichts sagt gar nichts.
  *
- * @param {{element?: HTMLImageElement|null}|null|undefined} bild
+ * @param {{element?: HTMLImageElement|null, inhalt?: Blob|null, bild?: {id: string}}|null|undefined} bild
  * @param {{x: number, y: number, breite: number, hoehe: number}|null|undefined} ausschnitt
  * @returns {HTMLElement}
  */
@@ -253,8 +253,38 @@ export function ausschnittbild(bild, ausschnitt) {
   leinwand.height = hoehe
 
   const kontext = leinwand.getContext('2d')
-  if (kontext && bild?.element && ausschnitt) {
+  if (!kontext || !ausschnitt) return leinwand
+
+  if (bild?.element) {
     kontext.drawImage(bild.element, ausschnitt.x, ausschnitt.y, breite, hoehe, 0, 0, breite, hoehe)
+    return leinwand
   }
+
+  /*
+    NACH EINEM NEULADEN IST DAS BILD NOCH NICHT ENTPACKT.
+
+    Seit dem 17.09.2026 entpackt das Programm beim Start nichts mehr (sonst
+    laegen bei dreihundert Fotos 3,3 GB im Arbeitsspeicher). Der Ausschnitt
+    holt sich das Bild deshalb selbst nach und zeichnet, sobald es da ist.
+
+    Bis dahin steht die leere Leinwand. Ein leerer Rahmen sagt "hier gehoert
+    ein Bild hin"; nichts sagt gar nichts.
+
+    Der Import steht ABSICHTLICH in der Funktion und nicht oben: werkzeug.js
+    wird von fast allem geladen, bildspeicher.js nur von den Stellen, die
+    wirklich ein Bild brauchen.
+  */
+  if (bild?.inhalt) {
+    import('./bildspeicher.js')
+      .then((Bildspeicher) => Bildspeicher.hole(bild))
+      .then((element) => {
+        if (!element || !leinwand.isConnected) return
+        kontext.drawImage(element, ausschnitt.x, ausschnitt.y, breite, hoehe, 0, 0, breite, hoehe)
+      })
+      .catch(() => {
+        // Ein Bild, das sich nicht entpacken laesst, laesst den Rahmen leer.
+      })
+  }
+
   return leinwand
 }

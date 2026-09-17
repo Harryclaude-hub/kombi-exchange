@@ -1,26 +1,93 @@
 # Uebergabe an die naechste Sitzung
 
-Stand: 17.09.2026, Fassung 2026-09-17-c. Diese Datei ist so geschrieben, dass
-jemand ohne jede Vorgeschichte weiterarbeiten kann. Zuerst lesen, dann anfangen.
+**Stand: 17.09.2026, Fassung 2026-09-17-j, oeffentlich ausgeliefert.**
 
-**Auftrag der naechsten Sitzung: Design und Bedienung.** Was am Programm
-gerechnet wird, bleibt unberuehrt (Regel 5).
-
-**Zuerst pushen, dann arbeiten.** Am 16.09. lagen neun Commits nur oertlich, und
-Karam sah auf der oeffentlichen Seite tagelang den alten Stand. Nach JEDEM
-Arbeitsgang: `git push origin main`. Und: GitHub Pages sagt dem Browser
-`max-age=600`, also zehn Minuten ohne Nachfrage. Die Fassung steht deshalb oben
-rechts in der Kopfzeile; steht dort nicht die neueste, ein Klick darauf laedt
-erzwungen neu.
+Diese Datei ist so geschrieben, dass jemand ohne jede Vorgeschichte weiterarbeiten
+kann. Zuerst lesen, dann anfangen. Sie ist lang; die ersten fuenf Abschnitte
+reichen fuer den Anfang, der Rest ist Nachschlagewerk.
 
 ---
 
-## In einem Satz
+## Die drei Saetze, die alles andere erklaeren
 
-Karam setzt dieselbe Kombiwette bei bis zu sechzig Anbietern gleichzeitig,
-zusammen zwanzigtausend Euro und mehr. Er fotografiert die Scheine ab. Dieses
-Programm liest die Bilder, fuehrt gleiche Wetten zu einem Riesenschein
-zusammen und gibt ein Blatt und eine Excel-Mappe aus.
+1. **Karam setzt DIESELBE Kombiwette bei bis zu sechzig Buchmachern gleichzeitig.**
+   Ueber 20.000 EUR je Spieltag, eine ganze NFL-Saison lang. Er fotografiert jeden
+   Schein; das Programm liest die Zahlen und fasst gleiche Wetten zu einem
+   "Riesenschein" zusammen.
+
+2. **Es gibt genau EINEN Zugang.** Kein Login, keine Benutzer. Wer den Code hat,
+   sieht alles: Karam und sein Kollege arbeiten am selben Bestand, zeitgleich.
+   Das ist Absicht und keine Luecke.
+
+3. **Wo eine Zahl falsch werden kann, ist das der einzige Fehler, der zaehlt.**
+   Alles andere ist Kosmetik. Bei sechzig Scheinen je Wette faellt eine falsche
+   Zahl nicht auf, bis sie Geld gekostet hat.
+
+---
+
+## Zuerst dies, dann alles andere
+
+**Jede Antwort an Karam beginnt mit "Passt, Karam."** Bei einer reinen
+Designaufgabe stattdessen mit "Jawohl, Chef."
+
+**Nach JEDEM Arbeitsschritt veroeffentlichen.** Karam sieht ausschliesslich
+`https://harryclaude-hub.github.io/kombi-exchange/`. Was nicht dort ist,
+existiert fuer ihn nicht.
+
+```
+git add -A
+git commit -F -   (lange deutsche Nachricht: Problem, Grund, Messung)
+git push origin main
+gh run list --limit 1
+curl -s "https://harryclaude-hub.github.io/kombi-exchange/fassung.json?t=$(date +%s%N)"
+```
+
+**BEIDE Fassungskennungen hochsetzen**, sonst beanstandet es `werkzeug/pruefe.mjs`:
+`fassung.json` und `PROGRAMM_FASSUNG` in `daten/einstellungen.js`.
+
+**Vor jedem Commit:**
+```
+npm test                 (das sind 274 Faelle)
+node werkzeug/pruefe.mjs (96 Dateien)
+```
+
+**Und dann im Browser nachsehen.** Gruene Tests sind nicht fertig (Regel 2).
+`werkzeug/probe/oberflaeche.html` zeigt die ganze Oberflaeche mit echten
+Scheinen aus dem Testkorpus, ohne Zugangscode.
+
+---
+
+## Wo die Daten liegen. Das ist die wichtigste Tabelle in dieser Datei.
+
+Karam hat an einem einzigen Tag DREIMAL nachfragen muessen, weil das Programm
+eine Luecke wie eine Entscheidung aussehen liess. Wer hier etwas aendert, prueft
+diese Tabelle nach.
+
+| Was | Wo | Geteilt? | Ueberlebt Neuladen? |
+|---|---|---|---|
+| Projekte, Scheine, Riesenscheine | Supabase | ja | ja |
+| Namen, Notizen, Ausgaenge | Supabase | ja | ja |
+| Ordner am Riesenschein | Supabase, **nach Migration 0009** | nach 0009 | nach 0009 |
+| Reihenfolge der Scheine | Supabase (`schein_ids`) | ja | ja |
+| **Bildschirmfotos** | **Browser + Ordner auf der Platte** | **nein** | ja |
+| Ordner der Projekte, Anpinnen | Supabase | ja | ja |
+| Sortierung, "zuletzt geoeffnet", Panel | Browser | nein, absichtlich | ja |
+
+**Die Fotos sind der Sonderfall.** `kombi.bilder` speichert Dateiname, Groesse
+und Pruefsumme, NICHT das Bild. In 0001 steht das woertlich so. Der Grund ist
+Geld: Supabase gibt kostenlos 1 GB Dateispeicher, das sind rund tausend Fotos,
+und Karam rechnet mit 10.000 bis 100.000 in einer Saison. Pro kostet 25 USD im
+Monat, und das will er nicht.
+
+Stattdessen liegen die Fotos zweimal auf seinem Geraet:
+
+- **Browserdatenbank** (`daten/ablage.js`), und das Programm bittet den Browser
+  ueber `sorgeFuerDauer()`, sie nicht von selbst aufzuraeumen.
+- **Ein Ordner auf der Platte** (`daten/plattenspeicher.js`), den er einmal
+  aussucht. Jedes neue Foto geht sofort mit dorthin, als ganz normale Datei.
+
+Das Programm ZEIGT diesen Stand an, in der Uebersicht, gemessen statt behauptet:
+`oberflaeche/geteilt.js`.
 
 ---
 
@@ -28,39 +95,88 @@ zusammen und gibt ein Blatt und eine Excel-Mappe aus.
 
 | | |
 |---|---|
-| Quelltext | `https://github.com/Harryclaude-hub/kombi-exchange` (oeffentlich) |
+| Quelltext | `https://github.com/Harryclaude-hub/kombi-exchange` (oeffentlich!) |
 | Seite | `https://harryclaude-hub.github.io/kombi-exchange/` |
 | Datenbank | Supabase, Projekt `appload`, Kennung `eybwhnvjavovcxvimtxr` |
 | Zugangscode | **steht nirgends im Quelltext.** Karam fragen. |
-| Karams Fotos | `FOTOS_KARAM.md`: alle 36 Scheine aus seinen 13 Bildschirmfotos, nachgerechnet. Die BILDDATEIEN gibt es nicht auf der Platte. |
+| Karams Fotos | `FOTOS_KARAM.md`: 36 Scheine aus 13 Bildschirmfotos, nachgerechnet. Die BILDDATEIEN gibt es nicht auf der Platte. |
 
-Der Code liegt nur als Einwegwert in `kombi.zugangscodes`. Niemals in eine
-Datei schreiben. Im Programm gibt es oben rechts "Code wechseln".
+Der Code liegt nur als Einwegwert (bcrypt) in `kombi.zugangscodes`. **Niemals in
+eine Datei schreiben, niemals in eine Commit-Nachricht.** Das Repository ist
+oeffentlich.
 
 **Karam am 16.09.2026, woertlich:** "Bitte lass ihn nie wieder aendern, okay?
-Der soll einfach gleich bleiben. Ausser ich schreibe das in diesen Chat, ich
-muss diesen Code aendern." Also: den Code NICHT wechseln, NICHT neu setzen,
+Der soll einfach gleich bleiben. Ausser ich schreibe das in diesen Chat, ich muss
+diesen Code aendern." Also: den Code NICHT wechseln, NICHT neu setzen,
 `update kombi.zugangscodes` NICHT ausfuehren, solange Karam es nicht selbst im
 Gespraech verlangt.
 
-**Ist der Code weg: `NOTFALL.md`.** Dort steht der eine SQL-Befehl, mit dem
-Karam sich selbst einen neuen setzt. Er steht auch im Programm am
-Anmeldefenster unter "Code verloren?". Ein Wert steht an keiner der beiden
-Stellen und darf dort nie stehen: das Repository ist oeffentlich.
+**Ist der Code weg: `NOTFALL.md`**, und im Programm `werkzeug/code_setzen.html`.
+Dort wuerfelt sein Browser einen neuen und baut den SQL-Befehl darum; der Wert
+laeuft nirgends durch, wo er nicht hingehoert.
+
+**Die Datenbank gehoert Karam.** In dieser Sitzung wurde NICHTS gegen sie
+ausgefuehrt. Der MCP-Zugang dieser Umgebung fuehrt auf ein anderes Konto,
+`eybwhnvjavovcxvimtxr` ist von hier nicht erreichbar. Migrationen werden
+geschrieben und von Karam ausgefuehrt, ueber `werkzeug/datenbank_erweitern.html`.
+
+---
+
+## Wie das Programm fuer den Nutzer aufgebaut ist
+
+Vier Stufen, von aussen nach innen. Der Text dazu steht EINMAL, in
+`oberflaeche/aufbau.js`, und wird von der Uebersicht, der Ausgabe und der Ablage
+gezeigt.
+
+```
+Projekt        Ein eigener Arbeitsplatz. Eine Saison, eine Sportart.
+  |            Teilt NICHTS mit anderen Projekten.
+  v
+Ordner         Nur zum Ordnen. Rechnet seine Riesenscheine zusammen.
+  |            Ein Riesenschein muss in keinem liegen.
+  v
+Riesenschein   EINE Wette, bei vielen Anbietern gesetzt.
+  |            Gesamteinsatz, Durchschnittsquote, hoechstmoeglicher Gewinn.
+  v
+Scheine        Die einzelnen Wettscheine. Hunderte je Riesenschein.
+               Jeder aus einem Bildschirmfoto, das Bild bleibt daneben.
+```
+
+**ACHTUNG, ZWEI VERSCHIEDENE ORDNER.** In der Ablage ordnen Ordner PROJEKTE, bei
+den Riesenscheinen ordnen sie RIESENSCHEINE. Dasselbe Wort, zwei Ebenen. Karam
+hatte ausdruecklich Angst vor dieser Verwechslung; deshalb steht in der Ablage
+ein Satz, der sagt, welche Stufe dort gemeint ist.
+
+### Die Reiter
+
+`Uebersicht` `Riesenscheine` `Scheine` `Aufnahme` `Ausgabe` `Ablage` `Erklaerung`
+
+### Die drei Ebenen bei den Riesenscheinen
+
+Sie stehen NICHT eigens im Zustand, sie folgen aus zwei Feldern:
+
+| Ebene | Bedingung | Mitte | Spalte links |
+|---|---|---|---|
+| 1 | `auswahl` ist null | Ordner und lose Riesenscheine, Suche | alle Riesenscheine |
+| 1b | `ordnerFilter` gesetzt | nur dieser Ordner, mit seinen drei Summen | nur seine |
+| 2 | `auswahl` gesetzt | der Riesenschein und seine Scheine | die Scheine darin |
+| 3 | `scheinAuswahl` gesetzt | ein Schein, gross und aenderbar | die Scheine darin |
+
+Eine dritte Angabe koennte mit diesen beiden auseinanderlaufen (Regel 8).
 
 ---
 
 ## Sofort loslegen
 
 ```bash
-npm test                      # 212 Tests
-node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 68 Dateien
+npm test                      # 274 Faelle
+node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 96 Dateien
 node werkzeug/messe_lesen.mjs # Wie gut wird gelesen
 node werkzeug/server.mjs      # Server auf http://localhost:4173
 ```
 
-`npm test` meldet einen uebersprungenen Test, solange es noch keine echten
-Fotos gibt. Das ist richtig so, siehe "Der Auftrag: trainieren".
+`npm test` meldet EINEN uebersprungenen Test, solange es keine echten Fotos
+gibt. Das ist richtig so, siehe "Der Auftrag: trainieren".
 
 `messe_lesen` gibt zwei Zahlen aus. Die erste gilt fuer **nachgebaute** Bilder
 und steht bei 100 Prozent. Die zweite gilt fuer **echte Fotos**, und solange
@@ -69,7 +185,22 @@ so im Ausdruck.
 
 Es gibt **keinen Bauschritt**. Reine ES-Module, Bibliotheken liegen fertig in
 `lib/`. `npm install` wird nicht gebraucht und ist in diesem Container schon
-einmal gescheitert.
+einmal an esbuild gescheitert.
+
+### Die Probeseiten brauchen KEINEN Zugangscode
+
+| | |
+|---|---|
+| `werkzeug/probe/oberflaeche.html` | die ganze Oberflaeche, echte Scheine aus dem Korpus |
+| `werkzeug/probe/anbieter.html` | der ganze Leseweg an nachgebauten Bildern |
+| `werkzeug/probe/hilfe.html` | die Erklaerungsseite |
+| `werkzeug/probe/anbieterzeichen.html` | alle sechzig Anbieterzeichen |
+| `werkzeug/datenbank_erweitern.html` | der SQL-Befehl fuer Migration 0009 |
+| `werkzeug/code_setzen.html` | einen neuen Zugangscode wuerfeln |
+
+Alles andere liegt hinter dem Code. Wer ihn nicht hat, kann die Reiter Aufnahme,
+Scheine, Riesenscheine, Ausgabe und Ablage nicht selbst ansehen und muss das
+ehrlich sagen (Regel 2).
 
 ---
 
@@ -536,6 +667,99 @@ Alt-Test auf.
 
 ---
 
+## DIE FALLEN. Wenn du nur einen Abschnitt liest, dann diesen.
+
+Jede davon hat in diesem Projekt schon einmal zugeschlagen, meistens ohne dass
+ein Test es gemerkt haette.
+
+### 1. Was am Riesenschein haengt, ueberlebt ordneNeu nur, wenn es dort steht
+
+`kern/gruppierung.js` baut die Riesenscheine bei jedem Lauf NEU. `ordneNeu` in
+`oberflaeche/zustand.js` rettet danach von der alten Zeile auf die neue:
+**Name, Notiz, Anlagedatum, Ordner, Reihenfolge der Scheine**.
+
+Steht etwas nicht in dieser Liste, ist es nach dem naechsten Neuordnen weg. Neu
+geordnet wird nach JEDER berichtigten Zahl, nach jedem Ausgang, nach jedem Foto.
+
+Am 17.09.2026 zweimal passiert: die Ordner (vormittags), die Reihenfolge der
+Scheine (abends). Beide Male ohne Meldung, beide Male erst durch eine
+Gegenpruefung gefunden.
+
+**Wer dem Riesenschein ein Feld hinzufuegt, hat ZWEI Stellen zu bedienen, und die
+zweite ist ordneNeu.**
+
+Dazu: verlass dich nicht auf die KENNUNG eines Riesenscheins. Sie bleibt nur,
+solange die Scheine ihre `gruppeId` tragen; entsteht eine Gruppe frisch, ist sie
+neu. Stabil ist die SIGNATUR.
+
+### 2. Eine offene Huelle haengt die Gruppierung aus
+
+Wer "Neuer Riesenschein" drueckt, macht eine Huelle auf. Danach bekommt JEDER
+neu gelesene Schein deren `gruppeId`, und `kern/gruppierung.js` bricht eine
+Gruppe mit gesetzter `gruppeId` NIE wieder auf.
+
+Am 16.09.2026 hat das drei verschiedene Wetten zu einer Position von
+17.717,48 EUR verschmolzen. Aufgebrochen wird trotzdem nichts: Karam legt die
+Scheine selbst dorthin. Stattdessen gibt es die Warnung `gewonnen_und_verloren`
+und die Marke "nimmt neue Fotos auf" an der Karte.
+
+### 3. Die Merkmale --auf-gut, --auf-offen, --auf-schlecht
+
+Sie sind die SCHRIFT, die AUF der gleichnamigen Flaeche liegt. Dunkel sind sie
+fast schwarz, hell reines Weiss. Auf der normalen Flaeche ergibt das 1,3 bis
+2,6 zu 1, also unlesbar. Warnender Text auf normaler Flaeche nimmt `--schlecht`
+oder `--offen`. Landet das auf der Grenze, traegt die KANTE das Signal und die
+Schrift bleibt `--schrift`.
+
+Fuenf von neun Farbfehlern eines Tages kamen genau daher.
+
+### 4. Kein Uebergang auf Farben
+
+Ein `transition` auf `background` oder `border-color` laeuft NICHT neu an, wenn
+sich nur das CSS-Merkmal dahinter aendert. Beim Umschalten von Dunkel auf Hell
+blieb jeder Knopf dunkel, waehrend die Schrift hell wurde: 1,08 zu 1. Der
+Merksatz steht oben in `stil/bauteile.css`.
+
+### 5. Suchen und Ersetzen in Zeichenketten
+
+Am 16.09.2026 hat ein Umlaut-Durchgang dreimal Code beschaedigt: Bezeichner
+umbenannt, Ausdruecke in `${...}` zerschnitten. Der Durchgang steht jetzt als
+PRUEFUNG in `werkzeug/pruefe.mjs` und geht Zeichen fuer Zeichen durch, mit
+Kenntnis von Kommentar, Zeichenkette und Code. Er MELDET und ersetzt nicht.
+
+Wer trotzdem ersetzt: danach `git diff` ansehen und pruefen, dass JEDE geaenderte
+Zeile wirklich das Gewollte enthaelt. Bei 105 Aenderungen war das die einzige
+Sicherung, die gegriffen hat.
+
+### 6. Die Migrationen 0001 bis 0009 zusammen lesen
+
+Die schreibende Funktion fuer Riesenscheine hiess in 0001
+`public.kombi_riesenscheine_speichern(text, uuid, jsonb)`. In **0004** ist sie
+nach `kombi.riesenscheine_schreiben` umgezogen, in **0005** wurde die Huelle in
+`public` noch einmal ersetzt, jetzt mit vier Parametern.
+
+Wer nur 0001 liest und die alte Signatur neu anlegt, bekommt eine ZWEITE
+Funktion, die niemand ruft. Es haette gespeichert ausgesehen und waere nie
+angekommen.
+
+### 7. Eine Luecke ist keine Entscheidung
+
+Karam hat an einem Tag DREIMAL nachfragen muessen, weil im Programm ein Satz
+stand wie "liegt nur auf diesem Geraet". Jeder dieser Saetze war WAHR und las
+sich trotzdem wie eine Entscheidung statt wie etwas, das noch fehlt.
+
+**Wenn eine Einschraenkung im Programm steht, muss dabeistehen, WORAN sie liegt
+und WAS sie aufhebt.** Sonst richtet der Besitzer seine Arbeit danach ein.
+
+### 8. Bash-Heredocs in diesem Container
+
+Sie scheitern an Umlauten, an Anfuehrungszeichen und an `${...}`. Fuer jede
+Aenderung an einer Quelldatei: ein Python-Skript mit dem Write-Werkzeug
+schreiben und das ausfuehren. Das Skript prueft mit `count(alt) == 1`, dass es
+genau eine Stelle trifft, und bricht sonst ab.
+
+---
+
 ## Die Regeln, nach denen hier gearbeitet wird
 
 Diese sind aus echten Fehlern in diesem Projekt entstanden. Sie sind nicht
@@ -612,55 +836,201 @@ weggeworfen. Was nie angezeigt wird, wird nie korrigiert.
 ## Wie das Programm aufgebaut ist
 
 ```
-kern/          Reine Logik, keine Anzeige. Hier wird gerechnet.
+kern/          Reine Logik, keine Anzeige. HIER WIRD GERECHNET, sonst nirgends.
   zahlen.js      Text zu Zahl. EINZIGE Stelle dafuer.
-  handeingabe.js Was der Mensch tippt, ueber zahlen.js gelesen. Neu 16.09.
+  handeingabe.js Was der Mensch tippt, ueber zahlen.js gelesen.
   quoten.js      Amerikanisch, dezimal, Bruch. Und versoehne().
   parser.js      Aus Textzeilen einen Schein machen.
   reparatur.js   Verlesene Ziffern anhand der Rechnung berichtigen.
   rechnung.js    Summen, jede auf zwei Wegen gegengerechnet.
   gruppierung.js Gleiche Wetten zu einem Riesenschein zusammenfuehren.
   kennung.js     Erkennen, ob zwei Scheine dieselbe Wette sind.
-  etiketten.js   Beschriftungen der Buchmacher, mehrsprachig.
-  buchmacher.js  Anbieterliste, plus schluesselFuerName und kuerzelFuer.
+  etiketten.js   Muster, an denen gelesener Text erkannt wird. NICHT ANFASSEN
+                 ohne zu verstehen, dass dort "moegliche" NEBEN "moegliche"
+                 stehen muss, beide Schreibweisen (siehe pruefe.mjs).
+  buchmacher.js  Anbieterliste, schluesselFuerName, kuerzelFuer.
   status.js      Was ein Stand bedeutet. EINZIGE Stelle dafuer.
+  geld.js        formatiere(), formatiereQuote().
+  typen.js       Alle Typen als JSDoc.
+
 bild/          Bildzerlegung. segmentierung.js ist das Herzstueck.
-lesen/         Texterkennung (tesseract.js).
-oberflaeche/   Anzeige und Bedienung.
-  app.js             Zusammenbau, Kopfzeile, Reiter, Speichern.
-  zustand.js         Der eine Arbeitsstand.
-  werkzeug.js        el(), fuelle(), anbieterzeichen().
-  fotoknoepfe.js     Die drei Aufnahmewege. EINZIGE Stelle. Neu 16.09.
-  scheinfelder.js    Die Eingabefelder eines Scheins. EINZIGE Stelle. Neu 17.09.
-  ordner.js          Ordner fuer Riesenscheine, am Riesenschein. Neu 17.09.
-  reihenfolge.js     Filtern, Anordnen, Ordnersumme. EINZIGE Stelle. Neu 17.09.
-  ansicht_*.js       Je Reiter eine Datei, dazu ansicht_hilfe.js (neu 16.09).
+lesen/         Texterkennung (tesseract.js, vendorisiert in lib/).
+
+oberflaeche/   Anzeige und Bedienung. HIER WIRD NICHT GERECHNET.
+  app.js             Zusammenbau, Kopfzeile, Reiter, Panel links, Speichern.
+  zustand.js         Der EINE Arbeitsstand. ordneNeu() ist die heikelste
+                     Funktion des ganzen Programms, siehe "Die Fallen".
+  werkzeug.js        el(), fuelle(), anbieterzeichen(), ausschnittbild().
+  dialog.js          sag/bestaetige/frage. EINZIGE Stelle fuer Rueckfragen.
+                     Es gibt KEIN window.confirm mehr im Programm.
+  aufbau.js          Projekt > Ordner > Riesenschein > Scheine. EINZIGE Stelle
+                     fuer diesen Text.
+  geteilt.js         Was geteilt wird, was gespeichert bleibt, wie viel Platz.
+  ordner.js          Ordner fuer Riesenscheine. Liest nur, schreibt nie.
+  reihenfolge.js     Filtern, Suchen, Anordnen, Ordnersumme. EINZIGE Stelle.
+  scheinfelder.js    Die Eingabefelder eines Scheins. EINZIGE Stelle.
+  fotoknoepfe.js     Die drei Aufnahmewege. EINZIGE Stelle.
+  nadeln.js          Angeheftete Riesenscheine.
+  anleitung.js       Die gefuehrte Anleitung in neun Schritten.
+  aufnahme.js        Bild lesen, Scheine daraus machen, beides ablegen.
+  bildschirmfoto.js  Bildschirmfoto direkt aufnehmen.
+  ansicht_*.js       Je Reiter eine Datei.
+
+daten/
+  datenbank.js       Supabase, ausschliesslich ueber RPC.
+  ablage.js          Browserdatenbank fuer Bilder. bildmass(), platz(),
+                     sorgeFuerDauer().
+  plattenspeicher.js Der Ordner auf der Platte. Neu 17.09. abends.
+  einstellungen.js   PROGRAMM_FASSUNG und Schluessel.
+  fassung.js         Sorgt dafuer, dass der Browser die neue Fassung holt.
+
 ausgabe/       Excel und CSV.
-stil/          NUR Design. Loeschbar.
-  marken.css     Alle Farben, Groessen, Abstaende.
+stil/          NUR Design. Loeschbar, ohne dass etwas aufhoert zu arbeiten.
+  marken.css     Alle Farben, Groessen, Abstaende. NUR HIER.
   grund.css      Aufbau der Seite.
   bauteile.css   Aussehen der einzelnen Bausteine.
-  logos.css      Hausfarben der Anbieter. Neu 16.09.
-  buehne.js      Optionale Bewegung.
-daten/         Datenbank und oertliche Ablage.
-werkzeug/      Pruefskript, Server, Messwerkzeug, Probe- und Trainingsseiten.
-  probe/anbieter.html         Der ganze Leseweg an nachgebauten Bildern.
-  probe/hilfe.html            Vorschau der Hilfeseite, ohne Zugangscode.
-  probe/oberflaeche.html      Die ganze Oberflaeche, ohne Zugangscode.
-  probe/anbieterzeichen.html  Alle sechzig Anbieterzeichen. Neu 16.09.
-supabase/migrations/  Der Datenbankaufbau, 0001 bis 0008.
-test/          256 Tests.
+  logos.css      Hausfarben der Anbieter.
+  buehne.css     Optionale Bewegung.
+
+werkzeug/      Pruefskript, Server, Messwerkzeug, Probe- und Hilfsseiten.
+supabase/migrations/  0001 bis 0009. 0009 ist GESCHRIEBEN, NICHT AUSGEFUEHRT.
+test/          26 Testdateien, 274 Faelle.
 ```
 
-**Die Oberflaeche laesst sich ohne Zugangscode ansehen und messen:**
-`werkzeug/probe/oberflaeche.html`. Sie zeichnet Kopfzeile, Panel, Uebersicht,
-Riesenscheine und Scheine mit ECHTEN Scheinen aus dem Testkorpus, durch den
-echten Parser gelesen, und setzt `angemeldet: false`, damit nichts gespeichert
-werden kann. Sie startet auf Ebene 1, damit man die Uebersicht sieht.
+### Die Stellen, die man nur EINMAL anfassen darf
 
-**Probeseiten brauchen KEINEN Zugangscode.** Alles andere schon. Wer ohne Code
-arbeitet, kann die Reiter Aufnahme, Scheine, Riesenscheine, Ausgabe und Ablage
-nicht selbst ansehen und muss das ehrlich sagen (Regel 2).
+Regel 8 ist im Programm ernst gemeint. Wer eine dieser Sachen an einer zweiten
+Stelle nachbaut, baut die naechste Drift ein:
+
+| Sache | Lebt in |
+|---|---|
+| Text zu Zahl | `kern/zahlen.js` |
+| Was ein Stand bedeutet | `kern/status.js` |
+| Alle Summen | `kern/rechnung.js` |
+| Filtern, Suchen, Anordnen | `oberflaeche/reihenfolge.js` |
+| Eingabefelder eines Scheins | `oberflaeche/scheinfelder.js` |
+| Rueckfragen an den Menschen | `oberflaeche/dialog.js` |
+| Aufnahmewege | `oberflaeche/fotoknoepfe.js` |
+| Der Aufbau als Text | `oberflaeche/aufbau.js` |
+| Farben und Groessen | `stil/marken.css` |
+
+## Was am 17.09.2026 zuletzt gebaut wurde
+
+Fassung 2026-09-17-j.
+
+### Der Speicherplatz, und warum er so geloest ist
+
+Karam: "Ich habe keinen Bock, so viel auf Supabase zu machen, wenn das dann Geld
+kostet. Aber ich will wirklich, dass immer die Fotos gespeichert bleiben, dann
+geht nichts verloren. Das ist mir sehr wichtig, sehr, sehr wichtig. Du musst
+sicherstellen, dass bei Riesenmengen an Fotos noch immer alle Fotos gespeichert
+werden koennen, langfristig. Also am besten noch auf dem Desktop, den er gerade
+nutzt."
+
+Er rechnet mit **10.000 bis 100.000 Fotos in einer Saison**. Meine erste
+Schaetzung lag bei 140 und war damit um drei Groessenordnungen daneben; sie kam
+daher, dass auf einem seiner Fotos neun Scheine nebeneinander standen.
+
+**Die Zahlen aus der Supabase-Dokumentation, am 17.09.2026 abgefragt:**
+
+| | Free | Pro (25 USD/Monat) |
+|---|---|---|
+| Datenbank | 500 MB je Projekt | 8 GB, dann 0,125 USD/GB |
+| Dateispeicher | 1 GB | 100 GB, dann 0,021 USD/GB |
+| Datenverkehr | 5 GB/Monat | 250 GB/Monat, dann 0,09 USD/GB |
+
+Daraus folgt: **1 GB sind rund tausend Fotos.** Free traegt das nicht, und Pro
+will Karam nicht bezahlen. Also liegen die Fotos auf seinem Geraet, und zwar
+ZWEIMAL:
+
+**1. Browserdatenbank** (`daten/ablage.js`). Kostenlos, gross, schnell. Seit dem
+17.09. ruft das Programm `sorgeFuerDauer()`, also
+`navigator.storage.persist()`: danach raeumt der Browser NICHTS mehr von selbst
+weg. Chrome und Edge entscheiden still, Firefox fragt, ein Nein ist kein Fehler.
+Das ERGEBNIS wird angezeigt, nicht behauptet.
+
+**2. Ein Ordner auf der Platte** (`daten/plattenspeicher.js`, neu). Karam sucht
+einmal einen Ordner aus; der Griff darauf liegt in der Browserdatenbank und
+ueberlebt das Schliessen des Fensters. **Jedes neue Foto geht sofort mit
+dorthin**, in `oberflaeche/aufnahme.js` direkt neben `legeBildAb`. Nicht spaeter:
+ein Foto, das erst beim naechsten Sichern hinausgeht, ist bis dahin genau einmal
+vorhanden.
+
+Dazu ein Knopf, der alles Alte nachtraegt, mit Fortschritt. Er zeichnet nur alle
+25 Bilder neu; bei zehntausend waeren es sonst zehntausend Neuzeichnungen.
+
+**Die zwei Fallen am Dateinamen**, beide in `test/plattenspeicher.test.mjs`:
+
+- **Ueberschreiben.** Bildschirmfotos heissen bei jedem "Screenshot.png".
+  Sechzig davon in einen Ordner, und am Ende liegt EINES da. Jeder Name traegt
+  deshalb die Kennung: `Screenshot__aaa-111.png`.
+- **Pfad.** Ein Dateiname aus einem Bild ist fremder Text. Gemessen:
+  `../../boese/pfad.jpg` wird zu `_b_se_pfad__ddd.jpg`. Kein Schraegstrich,
+  kein Punktpunkt.
+
+**Chrome und Edge koennen das, Firefox und Safari nicht**, auf dem Telefon
+meistens auch nicht. Dort steht der Kasten mit genau diesem Satz, statt eines
+Knopfes, der nichts tut.
+
+**HIER WIRD NICHTS GELOESCHT.** Was einmal im Ordner liegt, bleibt dort, auch
+wenn das Bild im Programm entfernt wird. Der Ordner ist die Sicherung, und eine
+Sicherung, die mitloescht, ist keine.
+
+### Die Suche
+
+Karam: "Bitte bei der Uebersicht ein Suchpanel machen, wo man einfach etwas nach
+Zahl, Name suchen kann, wie beim Explorer."
+
+Gesucht wird in **Name, Ordnername, Notiz, Anbieter, Scheinnummer und
+Gesamteinsatz**. Der Einsatz in ZWEI Schreibweisen, `5481` und `5.481,00`: wer
+"5000" tippt, soll den mit 5.000,00 finden. Mehrere Woerter muessen alle
+vorkommen, in beliebiger Reihenfolge.
+
+**Eine Suche hebt den Ordner auf.** Wer sucht, weiss ja gerade nicht mehr, wo
+etwas liegt. Die Ordnerkacheln verschwinden dabei, sonst bliebe offen, ob sie
+die Treffer einschraenken.
+
+**Die Falle**: jeder getippte Buchstabe aendert den Arbeitsstand, und danach ist
+das Feld ein ANDERES Element. Ohne Zutun waere der Schreibzeiger nach dem ersten
+Zeichen weg. Nachgemessen, indem Zeichen fuer Zeichen getippt wurde:
+
+```
+"spieltag"   1 Treffer   ueber den ORDNERNAMEN
+"5000"       1 Treffer   ueber den Gesamteinsatz
+"schein 12"  4 Treffer
+"zzz"        Nichts gefunden
+```
+
+Waere der Fokus verlorengegangen, haette die Probe beim zweiten Zeichen
+abgebrochen.
+
+### Eigene Fenster statt Browser-Popups
+
+`oberflaeche/dialog.js`. Es gibt KEIN `window.confirm`, `window.prompt` oder
+`window.alert` mehr im ganzen Programm, an dreizehn Stellen ersetzt. Drei Wege:
+`sag()`, `bestaetige()`, `frage()`, alle mit Versprechen, alle mit
+Stichpunkten.
+
+**Der Fehler darin, beim Messen gefunden**: zuerst hing das Ergebnis am Ereignis
+`close`. Der Klick setzte `returnValue` auf "ja" und schloss das Fenster, aber
+`close` kam nicht an. Das Versprechen loeste sich nie ein, und der neue
+Riesenschein entstand NICHT. Von aussen ein Knopf, der nichts tut. Jetzt haengt
+jeder Weg an seinem eigenen Ereignis: `submit`, `click`, `cancel`, alle drei
+einzeln nachgemessen.
+
+### Die Bilder auf jeder Ebene
+
+| Wo | Groesse |
+|---|---|
+| Spalte links | Daumennagel, 34 Pixel hoch |
+| Scheinzeile in der Ablage | Streifen, 56 mal 28 |
+| Liste in der Mitte | bis 120 Pixel |
+| Aufgemachter Schein | ohne Hoehenbegrenzung |
+
+Ist kein Bild mehr da, bleibt der leere Rahmen stehen. Er sagt, dass hier ein
+Bild hingehoert; nichts sagt gar nichts.
+
+---
 
 ## Was am 17.09.2026 abends gebaut wurde
 
@@ -1163,11 +1533,13 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 | | |
 |---|---|
-| Tests | 261, davon 260 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 274, davon 273 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, die Fotos fehlen |
-| Aufbaupruefung | 90 Dateien, keine Beanstandung |
-| Fassung | 2026-09-17-c, oeffentlich ausgeliefert und nachgeprueft |
+| Aufbaupruefung | 96 Dateien, keine Beanstandung |
+| Fassung | 2026-09-17-j, oeffentlich ausgeliefert und nachgeprueft |
+| Quelltext | rund 23.700 Zeilen JavaScript, ohne lib/ |
+| Commits am 17.09.2026 | 11, jeder einzeln veroeffentlicht |
 | Farbkontrast | Ebene 1, 2, 3, Ausgabe und Ablage, hell und dunkel, bei 1440 und bei 375 Pixeln: 0 Beanstandungen |
 | Probeseite (nachgebaute Bilder) | bet365 und BetOnline sauber, PS3838 2 von 3, Betway und Stake melden ihre Fehler laut |
 

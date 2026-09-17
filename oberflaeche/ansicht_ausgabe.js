@@ -15,6 +15,7 @@
  */
 
 import { el, fuelle, atmen } from './werkzeug.js'
+import * as Bildspeicher from './bildspeicher.js'
 import { formatiere } from '../kern/geld.js'
 import { baueMosaik, alsDatei, statusText } from '../bild/mosaik.js'
 import { baueMappe } from '../ausgabe/excel.js'
@@ -96,7 +97,12 @@ export function zeichne(ziel) {
   const scheine = Zustand.scheineVon(gewaehlt)
   // Ohne Bild kein Ausschnitt auf dem Bild. Das steht hier, BEVOR man drueckt,
   // und nicht erst als Anmerkung darunter, wenn das Bild schon gebaut ist.
-  const mitBild = scheine.filter((s) => stand.bilder.get(s.bildId)?.element).length
+  // Gezaehlt wird die DATEI, nicht das Entpackte: seit dem 17.09.2026 ist nach
+  // einem Neuladen nichts entpackt, die Fotos sind aber alle da.
+  const mitBild = scheine.filter((s) => {
+    const b = stand.bilder.get(s.bildId)
+    return Boolean(b?.element || b?.inhalt)
+  }).length
 
   fuelle(ziel, [
     erklaerzeile(),
@@ -258,11 +264,14 @@ async function erzeugeBlatt(riesenscheinId, ziel) {
   const fehlend = []
   for (const schein of scheine) {
     const bild = stand.bilder.get(schein.bildId)
-    if (!bild || !bild.element) {
+    // Das Bild wird hier geholt, wenn es noch nicht entpackt ist. In die
+    // Datei kommt es ohnehin nur entpackt hinein.
+    const element = bild?.element ?? (await Bildspeicher.hole(bild))
+    if (!element) {
       fehlend.push(schein.scheinNr.wert ?? schein.id)
       continue
     }
-    posten.push({ schein, bild: bild.element, ausschnitt: schein.ausschnitt })
+    posten.push({ schein, bild: element, ausschnitt: schein.ausschnitt })
   }
 
   if (posten.length === 0) {
