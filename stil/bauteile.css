@@ -5768,3 +5768,119 @@ li[data-schwere="info"] .hinweisart {
 .probewarnung {
   max-width: var(--lesebreite);
 }
+
+/*
+  DIE DREI SYMBOLE.
+
+  Karam am 17.09.2026: "Kannst du bitte fuer Ordner, Scheine und Riesenscheine
+  drei unterschiedliche Symbole ausdenken?"
+
+  Und sie sagen etwas ueber die Sache selbst:
+
+    Ordner        eine Mappe
+    Riesenschein  ein STAPEL Scheine, denn genau das ist er: dieselbe Wette
+                  bei vielen Anbietern, hundertfach
+    Schein        EIN Schein, mit den Zeilen darauf
+    Projekt       ein Arbeitsplatz, ein Rahmen mit Kopfleiste
+
+  WARUM ALS MASKE UND NICHT ALS BILD ODER ALS ZEICHEN AUS DER SCHRIFT
+
+  Eine Maske nimmt ihre Farbe von der Schrift (currentColor). Damit gilt
+  dieselbe Stufenfarbe fuer Symbol und Rand, ohne dass irgendwo eine zweite
+  Farbe steht. Ein Emoji koennte das nicht: es bringt seine eigene Farbe mit,
+  sieht auf jedem Betriebssystem anders aus und laesst sich nicht einfaerben.
+
+  WARUM DER BUCHSTABE TROTZDEM IM PROGRAMM BLEIBT
+
+  Projektregel 5: stil/ muss loeschbar sein. Faellt diese Datei weg, faellt
+  die Maske weg, und darunter steht wieder das O, R oder S. Die Stufe ist dann
+  immer noch ablesbar, und keine einzige Zahl aendert sich. Deshalb wird der
+  Buchstabe hier nur VERSTECKT, nicht ersetzt.
+*/
+.stufenzeichen {
+  position: relative;
+  /* Der Buchstabe bleibt im Text, aber unsichtbar: siehe oben. */
+  color: transparent;
+}
+
+.stufenzeichen::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  background-color: var(--stufenfarbe);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+/* Eine Mappe. */
+.stufenzeichen[data-stufe="ordner-projekt"]::before,
+.stufenzeichen[data-stufe="ordner-riesenschein"]::before {
+  -webkit-mask-image: var(--sinnbild-ordner);
+  mask-image: var(--sinnbild-ordner);
+}
+
+/* Ein Stapel: drei Scheine hintereinander. */
+.stufenzeichen[data-stufe="riesenschein"]::before {
+  -webkit-mask-image: var(--sinnbild-stapel);
+  mask-image: var(--sinnbild-stapel);
+}
+
+/* Ein einzelner Schein, mit Zeilen darauf. */
+.stufenzeichen[data-stufe="schein"]::before {
+  -webkit-mask-image: var(--sinnbild-schein);
+  mask-image: var(--sinnbild-schein);
+}
+
+/* Ein Arbeitsplatz: Rahmen mit Kopfleiste. */
+.stufenzeichen[data-stufe="projekt"]::before {
+  -webkit-mask-image: var(--sinnbild-projekt);
+  mask-image: var(--sinnbild-projekt);
+}
+
+/* Unbekannt bekommt kein Sinnbild: dann steht das Fragezeichen da. */
+.stufenzeichen[data-stufe="unbekannt"] {
+  color: var(--stufenfarbe);
+}
+.stufenzeichen[data-stufe="unbekannt"]::before {
+  content: none;
+}
+
+/*
+  EINE FARBE JE NAME.
+
+  Karam: "Man kann Riesenscheine benennen, Farben zurichten, Ordner und
+  Projekte genauso."
+
+  Die Farbe wird aus dem NAMEN abgeleitet, nicht von Hand gewaehlt. Das hat
+  drei Vorteile, die eine Handauswahl nicht haette:
+
+    - Sie gilt sofort und ueberall gleich, auch bei Karams Kollegen, ohne dass
+      irgendetwas gespeichert oder eine Datenbankspalte ergaenzt werden muss.
+    - "Spieltag 3" ist auf jedem Geraet dieselbe Farbe, fuer immer.
+    - Es kann nicht passieren, dass zwei Ordner zufaellig gleich aussehen,
+      weil jemand zweimal dasselbe angeklickt hat.
+
+  Eine Farbe von Hand zu waehlen ginge auch, braucht aber eine neue Spalte in
+  kombi.riesenscheine und damit eine Migration. Das steht in der Uebergabe.
+
+  ACHT TOENE, alle gegen ihre Flaeche gemessen. Sie sind bewusst gedaempft:
+  eine Liste aus sechzig leuchtenden Kacheln ist keine Hilfe mehr.
+*/
+.ordnerkachel[data-ton],
+.panelknopf[data-ton],
+.projektzeile[data-ton] {
+  border-left: 3px solid var(--ton);
+}
+
+.ordnerkachel[data-ton="1"], .panelknopf[data-ton="1"], .projektzeile[data-ton="1"] { --ton: var(--ton-1); }
+.ordnerkachel[data-ton="2"], .panelknopf[data-ton="2"], .projektzeile[data-ton="2"] { --ton: var(--ton-2); }
+.ordnerkachel[data-ton="3"], .panelknopf[data-ton="3"], .projektzeile[data-ton="3"] { --ton: var(--ton-3); }
+.ordnerkachel[data-ton="4"], .panelknopf[data-ton="4"], .projektzeile[data-ton="4"] { --ton: var(--ton-4); }
+.ordnerkachel[data-ton="5"], .panelknopf[data-ton="5"], .projektzeile[data-ton="5"] { --ton: var(--ton-5); }
+.ordnerkachel[data-ton="6"], .panelknopf[data-ton="6"], .projektzeile[data-ton="6"] { --ton: var(--ton-6); }
+.ordnerkachel[data-ton="7"], .panelknopf[data-ton="7"], .projektzeile[data-ton="7"] { --ton: var(--ton-7); }
+.ordnerkachel[data-ton="8"], .panelknopf[data-ton="8"], .projektzeile[data-ton="8"] { --ton: var(--ton-8); }

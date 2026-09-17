@@ -31,6 +31,7 @@
  */
 
 import { el, fuelle, zeitText, anbieterzeichen, ausschnittbild } from './werkzeug.js'
+import { tonFuer } from './ordner.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { barEinsatz, realisierterRueckfluss, offenePotenzialauszahlung } from '../kern/rechnung.js'
 // Der Stand eines Scheins steht in der Datenbank als Schluessel, also
@@ -523,7 +524,12 @@ function projektzeile(p, stand) {
 
   const zeile = el(
     '.projektzeile',
-    { daten: { offen: String(offen), gepinnt: String(p.angepinnt === true) }, draggable: 'true' },
+    {
+      // Der Ton haengt am Projektnamen, genau wie bei den Ordnern.
+      // Siehe oberflaeche/ordner.js, tonFuer().
+      daten: { offen: String(offen), gepinnt: String(p.angepinnt === true), ton: tonFuer(p.name) },
+      draggable: 'true',
+    },
     [
       kaestchen,
       /*

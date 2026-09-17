@@ -1390,6 +1390,9 @@ function panelRiesenscheine(stand, schmal) {
         */
         onclick: () =>
           Zustand.aendere({ ordnerFilter: wert, auswahl: null, scheinAuswahl: null }),
+        // Derselbe Ton wie an der Kachel in der Uebersicht: derselbe Ordner
+        // sieht an beiden Stellen gleich aus.
+        daten: { ton: wert && wert !== Ordner.OHNE_ORDNER ? Ordner.tonFuer(wert) : '' },
       },
       [
         el('span.panelzeichen', {

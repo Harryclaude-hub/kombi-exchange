@@ -12,6 +12,8 @@
  */
 
 import { el, fuelle, neueKennung } from './werkzeug.js'
+import * as KI from '../daten/kileser.js'
+import { leseMitKI, schluesselkasten } from './kilesen.js'
 import * as Bildspeicher from './bildspeicher.js'
 import { loescheBild } from '../daten/ablage.js'
 import * as Zustand from './zustand.js'
@@ -673,6 +675,37 @@ function leseleiste(bilder) {
         if (ergebnis.gelesen > 0) Zustand.aendere({ ansicht: 'scheine' })
       },
     }),
+
+    /*
+      DER ZWEITE LESER.
+
+      Karam am 17.09.2026: "Es darf nicht Fehler machen, vor allem bei
+      BetOnline. Da kommen ein paar hundert Scheine taeglich und mehrere
+      Scheine in einem Foto."
+
+      Der Knopf steht NEBEN dem oertlichen Lesen, nicht an seiner Stelle. Der
+      oertliche Weg kostet nichts und braucht kein Netz; der KI-Weg kostet
+      Geld und kann ausfallen. Karam soll beides haben und selbst waehlen.
+    */
+    // Der Kasten mit dem Schluessel steht direkt daneben, damit klar ist,
+    // woher der zweite Knopf kommt.
+    schluesselkasten(() => Zustand.aendere({})),
+
+    KI.bereit()
+      ? el('button.knopf', {
+          type: 'button',
+          text: 'Mit KI lesen',
+          title:
+            'Schickt das ganze Foto an die KI. Sie findet auch mehrere Scheine ' +
+            'nebeneinander. Jeder Wert wird danach gegengerechnet.',
+          disabled: stand.arbeit.laeuft ? 'disabled' : null,
+          onclick: async () => {
+            const ids = [...Zustand.hole().bilder.keys()]
+            const ergebnis = await leseMitKI(ids)
+            if (ergebnis.scheine > 0) Zustand.aendere({ ansicht: 'scheine' })
+          },
+        })
+      : null,
     el('button.knopf', {
       type: 'button',
       text: 'Alle Bilder verwerfen',

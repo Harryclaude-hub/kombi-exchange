@@ -227,6 +227,21 @@ export function misseSeite(wurzel) {
     const vorn = farbe(stil.color)
     if (!vorn) continue
 
+    /*
+      DURCHSICHTIGE SCHRIFT IST KEINE SCHRIFT.
+
+      Seit dem 17.09.2026 tragen die Stufenzeichen ihr Sinnbild als Maske, und
+      der Buchstabe darunter steht auf transparent: er ist nur der Rueckfall,
+      falls stil/ geloescht wird. Dasselbe gilt fuer ein Anbieterzeichen mit
+      echter Logodatei.
+
+      Ohne diese Zeile haette der Messer jedes davon mit 1,00:1 beanstandet,
+      also genau die Stellen gemeldet, an denen mit Absicht nichts zu lesen
+      ist. Ein Messwerkzeug, das falsche Beanstandungen liefert, wird nach
+      drei Tagen ignoriert, und dann faengt es auch die echten nicht mehr.
+    */
+    if (vorn.a === 0) continue
+
     const hinten = unterlageVon(element)
     // Halbdurchsichtige Schrift liegt auf ihrer eigenen Unterlage.
     const schrift = vorn.a < 1 ? lege(vorn, hinten) : vorn

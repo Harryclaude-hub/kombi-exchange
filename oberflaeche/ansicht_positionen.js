@@ -931,6 +931,9 @@ function ordnerkachel(stand, wert, beschriftung, anzahl) {
     'button.ordnerkachel',
     {
       type: 'button',
+      // Der Ton haengt am Namen, siehe oberflaeche/ordner.js. Welche Farbe
+      // dazugehoert, steht in stil/marken.css (Projektregel 5).
+      daten: { ton: Ordner.tonFuer(beschriftung) },
       title: `Ordner "${beschriftung}" aufmachen`,
       onclick: () => Zustand.aendere({ ordnerFilter: wert, auswahl: null, scheinAuswahl: null }),
     },

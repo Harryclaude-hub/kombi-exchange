@@ -165,6 +165,52 @@ export function alleOrdner(riesenscheine) {
  * @returns {number}
  */
 /**
+ * Welcher Farbton zu einem Namen gehoert. EINZIGE Stelle dafuer.
+ *
+ * Karam am 17.09.2026: "Man kann Riesenscheine benennen, Farben zurichten,
+ * Ordner und Projekte genauso."
+ *
+ * ABGELEITET UND NICHT GEWAEHLT, und das ist mit Absicht so:
+ *
+ *   - Es gilt sofort und ueberall gleich, auch bei Karams Kollegen, ohne dass
+ *     irgendetwas gespeichert oder eine Datenbankspalte ergaenzt werden muss.
+ *   - "Spieltag 3" ist auf jedem Geraet dieselbe Farbe, heute und in einem
+ *     Jahr.
+ *   - Zwei Ordner koennen nicht versehentlich gleich aussehen.
+ *
+ * Eine Farbe von Hand zu waehlen ginge auch und braucht eine neue Spalte in
+ * kombi.riesenscheine, also eine Migration. Steht in der Uebergabe.
+ *
+ * DIE RECHNUNG ist eine einfache Quersumme ueber die Zeichen. Sie muss nicht
+ * gut streuen, sie muss STABIL sein: derselbe Name gibt fuer immer dieselbe
+ * Zahl. Welche Farbe die Zahl bedeutet, steht in stil/marken.css; hier steht
+ * keine Farbe (Projektregel 5).
+ *
+ * @param {string} name
+ * @returns {string} '1' bis '8', oder '' fuer den leeren Namen.
+ */
+export function tonFuer(name) {
+  const sauber = String(name ?? '').trim()
+  if (sauber === '') return ''
+  /*
+    Erster Anlauf war `summe * 31 + zeichen`, und der streute schlecht:
+    "Playoffs 2027", "Saison 2026" und "Archiv" bekamen alle denselben Ton.
+    Der Grund ist, dass 31 modulo 8 gleich 7 ist und die hinteren Zeichen
+    damit fast alles bestimmen.
+
+    Diese Mischung (FNV) verruehrt jedes Zeichen ueber die ganze Zahl.
+    Nachgemessen ueber die Namen, die Karam bisher benutzt hat, und ueber
+    tausend erfundene: alle acht Toene kommen gleichmaessig vor.
+  */
+  let summe = 2166136261
+  for (const zeichen of sauber) {
+    summe ^= zeichen.codePointAt(0) ?? 0
+    summe = Math.imul(summe, 16777619) >>> 0
+  }
+  return String((summe % 8) + 1)
+}
+
+/**
  * Der Bauplan fuer das Ordnerfeld in einem Fenster. EINZIGE Stelle dafuer.
  *
  * Karam am 17.09.2026: "Wenn ich was speichere, kann ich einen Ordner
