@@ -80,10 +80,14 @@ for (const rel of dateien) {
   //   mosaik  bringt eigene Vorgabefarben mit, damit das Blatt auch dann entsteht,
   //           wenn der Ordner stil geloescht wurde.
   //   werkzeug/probe  baut Testbilder nach und muss dafuer echte Farben zeichnen.
+  //   werkzeug/kontrastmesser.js  MISST Farben und setzt keine. Er muss die
+  //           Schreibweisen des Browsers lesen koennen, sonst kann er nicht
+  //           nachrechnen, ob das Design lesbar ist.
   const istBildrechnung =
     rel.startsWith('stil') ||
     rel.startsWith(`bild${path.sep}`) ||
     rel.startsWith(`werkzeug${path.sep}probe`) ||
+    rel === `werkzeug${path.sep}kontrastmesser.js` ||
     rel.includes('mosaik')
   if (!istBildrechnung) {
     const farbe = inhalt.match(/#[0-9a-fA-F]{6}\b|rgba?\(/)

@@ -20,6 +20,36 @@
   --linie: #465a78;
   --linie-hell: #5b7190;
 
+  /*
+    DER RAND EINES BEDIENELEMENTS IST KEINE ZIERLINIE.
+
+    --linie und --linie-hell trennen Abschnitte. Das ist Schmuck, und Schmuck
+    darf leise sein. Der Rand eines Eingabefeldes sagt dagegen, WO DAS FELD
+    AUFHOERT, und wer ihn nicht sieht, weiss nicht, wohin er klicken soll.
+    Die Norm verlangt dafuer 3:1, fuer Zierlinien nichts.
+
+    Am 17.09.2026 mit werkzeug/probe/kontrast.html gemessen, an der echten
+    Oberflaeche, beide Farbzustaende:
+
+      --linie      auf flaeche-heiss   1,68:1   (dunkel)
+      --linie      auf flaeche          1,57:1   (hell)
+      --linie-hell auf flaeche          2,10:1   (hell)
+
+    Im hellen Zustand hatte damit KEIN einziges Eingabefeld und keine
+    Auswahlliste einen sichtbaren Rand. 13 verschiedene Bauteile, 232 Stellen.
+
+    --feldrand ist gegen JEDE Flaeche gerechnet, auf der ein Feld liegen kann,
+    und der schlechteste Fall gibt den Ausschlag:
+
+      dunkel  #7b8fae   schlechtester Fall 3,59:1 (auf flaeche-heiss)
+      hell    #737f96   schlechtester Fall 3,41:1 (auf grund-tief)
+
+    NICHT --linie dunkler machen: dann wuerde jede Trennlinie im Programm
+    mitschwer, und Karam hat ausdruecklich nach Harmonie gefragt, nicht nach
+    mehr Strichen.
+  */
+  --feldrand: #7b8fae;
+
   /* ---- Schrift ---- */
   --schrift: #f2f6fc;
   --schrift-leise: #b3c2d8;
@@ -157,6 +187,7 @@
     --flaeche-heiss: #eef2f8;
     --linie: #c6cfdc;
     --linie-hell: #a7b4c7;
+    --feldrand: #737f96;
 
     --schrift: #0e1522;
     --schrift-leise: #4c5a6f;
@@ -235,6 +266,15 @@
   --flaeche-heiss: #eef2f8;
   --linie: #c6cfdc;
   --linie-hell: #a7b4c7;
+  /*
+    ES GIBT ZWEI HELLE BLOECKE, und eine Marke muss in BEIDEN stehen.
+
+    Oben der fuer "richte dich nach dem Betriebssystem", hier der fuer "immer
+    hell". Beim ersten Einbau von --feldrand stand die Marke nur oben. Der
+    Messer hat es sofort gezeigt: bei data-farbe="hell" trug der Rand weiter
+    den DUNKLEN Wert, 2,78:1 statt 3,41:1. Von aussen sah alles richtig aus.
+  */
+  --feldrand: #737f96;
 
   --schrift: #0e1522;
   --schrift-leise: #4c5a6f;

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: Kontrast nachmessen</title>
+    <style>
+      /*
+        DIESE SEITE HAT MIT ABSICHT KEIN EIGENES DESIGN aus stil/.
+
+        Sie misst das Design. Wuerde sie dieselben Marken benutzen, wuerde sie
+        beim naechsten Farbfehler selbst unlesbar und man saehe die Zahlen
+        nicht mehr, die einem sagen, was kaputt ist. Also schlichtes
+        Schwarz auf Weiss, fest verdrahtet.
+      */
+      body {
+        margin: 0;
+        font: 14px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+        background: #ffffff;
+        color: #111111;
+      }
+      header {
+        padding: 12px 16px;
+        border-bottom: 2px solid #111111;
+        position: sticky;
+        top: 0;
+        background: #ffffff;
+      }
+      h1 { font-size: 16px; margin: 0 0 6px; }
+      p { margin: 4px 0; }
+      button {
+        font: inherit;
+        padding: 6px 12px;
+        border: 2px solid #111111;
+        background: #ffffff;
+        color: #111111;
+        cursor: pointer;
+      }
+      button:hover { background: #111111; color: #ffffff; }
+      #rahmen { border: 0; width: 1440px; height: 900px; }
+      #buehne { overflow: auto; height: 0; opacity: 0; pointer-events: none; }
+      pre { padding: 12px 16px; margin: 0; white-space: pre-wrap; }
+      .lauf { border-bottom: 1px solid #cccccc; }
+      .lauf h2 { font-size: 14px; margin: 0; padding: 8px 16px; background: #eeeeee; }
+      .schlecht { color: #a00000; font-weight: bold; }
+      .gut { color: #006000; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <!--
+      WOZU DIESE SEITE
+
+      Karam am 17.09.2026: "designtechnisch will ich, dass du Kontrast einmal
+      komplett ueberpruefst".
+
+      Am 16.09.2026 wurden neun Farbfehler von Hand gefunden. Von Hand heisst:
+      einmal. Beim naechsten Umbau faellt keiner davon mehr auf, und Farbfehler
+      melden sich nicht, sie sehen einfach nur schlecht aus.
+
+      Diese Seite laedt die ECHTE Oberflaeche in einen Rahmen, stellt nach-
+      einander beide Farbzustaende und zwei Breiten ein und fragt bei jedem
+      Element den Browser, welche Farbe am Ende herauskam. Gemessen wird also
+      das Ergebnis, nicht die Absicht.
+
+      Warum ein Rahmen und keine Nachbildung: bei CSS gewinnt die letzte
+      passende Regel. Welche das ist, weiss nur der Browser. Fuenf der neun
+      Fehler von damals kamen daher, dass eine Regel eine andere ueberschrieb.
+    -->
+    <header>
+      <h1>Kontrast nachmessen</h1>
+      <p>Misst die echte Oberflaeche in beiden Farbzustaenden, bei 1440 und bei 375 Pixeln.</p>
+      <p><button id="start" type="button">Alle vier Durchgaenge messen</button></p>
+      <p id="stand">Bereit.</p>
+    </header>
+
+    <div id="buehne"><iframe id="rahmen" src="oberflaeche.html"></iframe></div>
+    <div id="ausgabe"></div>
+
+    <script type="module">
+      import { misseSeite, misseRaender, bericht } from '../kontrastmesser.js'
+
+      const rahmen = document.getElementById('rahmen')
+      const ausgabe = document.getElementById('ausgabe')
+      const stand = document.getElementById('stand')
+
+      /**
+       * Die vier Durchgaenge. Mehr braucht es nicht und weniger reicht nicht:
+       * beide Farbzustaende, weil eine Marke im hellen fehlen kann, und beide
+       * Breiten, weil bei 375 Pixeln andere Regeln greifen.
+       */
+      const DURCHGAENGE = [
+        { name: 'dunkel, 1440 Pixel', farbe: 'dunkel', breite: 1440 },
+        { name: 'hell, 1440 Pixel', farbe: 'hell', breite: 1440 },
+        { name: 'dunkel, 375 Pixel', farbe: 'dunkel', breite: 375 },
+        { name: 'hell, 375 Pixel', farbe: 'hell', breite: 375 },
+      ]
+
+      /** Wartet, bis der Rahmen fertig gezeichnet hat. */
+      function atme(ms = 350) {
+        return new Promise((fertig) => setTimeout(fertig, ms))
+      }
+
+      /**
+       * Geht jede Ansicht durch, nicht nur die erste.
+       *
+       * Sonst wuerde nur die Uebersicht gemessen, und die Fehler der
+       * Riesenscheine, der Scheine und der Ablage blieben unentdeckt. Genau
+       * dort lagen am 16.09. die meisten.
+       */
+      async function jedeAnsicht(dok, tuWas) {
+        // Die Reiter SIND die Knoepfe: <button class="reiter">. Ein Selektor
+        // '.reiter button' findet nichts, und dann waere nur die erste
+        // Ansicht gemessen worden, ohne dass es auffiele.
+        const reiter = [...dok.querySelectorAll('button.reiter')]
+        if (reiter.length === 0) {
+          await tuWas('einzige Ansicht')
+          return
+        }
+        for (const knopf of reiter) {
+          knopf.click()
+          await atme(250)
+          await tuWas(knopf.textContent.trim() || 'ohne Namen')
+        }
+      }
+
+      document.getElementById('start').addEventListener('click', async () => {
+        ausgabe.textContent = ''
+        let fehlerGesamt = 0
+        let geprueftGesamt = 0
+
+        for (const d of DURCHGAENGE) {
+          stand.textContent = `Messe: ${d.name} ...`
+          rahmen.style.width = `${d.breite}px`
+          rahmen.contentDocument.documentElement.setAttribute('data-farbe', d.farbe)
+          await atme(400)
+
+          const kasten = document.createElement('div')
+          kasten.className = 'lauf'
+          const titel = document.createElement('h2')
+          titel.textContent = d.name
+          kasten.appendChild(titel)
+
+          const zeilen = []
+          await jedeAnsicht(rahmen.contentDocument, async (wo) => {
+            const dok = rahmen.contentDocument
+            const text = misseSeite(dok.body)
+            const raender = misseRaender(dok.body)
+            geprueftGesamt += text.geprueft
+            fehlerGesamt += text.fehler.length + raender.fehler.length
+
+            zeilen.push(`--- ${wo} ---`)
+            zeilen.push(bericht(text))
+            if (raender.fehler.length > 0) {
+              zeilen.push('', `${raender.fehler.length} Rand/Flaeche unter 3:1:`)
+              for (const f of raender.fehler) {
+                zeilen.push(`  ${f.wert.toFixed(2)}:1  ${f.wo}  ${f.rand} auf ${f.dahinter}`)
+              }
+            }
+            zeilen.push('')
+          })
+
+          const pre = document.createElement('pre')
+          pre.textContent = zeilen.join('\n')
+          kasten.appendChild(pre)
+          ausgabe.appendChild(kasten)
+        }
+
+        rahmen.contentDocument.documentElement.removeAttribute('data-farbe')
+        rahmen.style.width = '1440px'
+        stand.innerHTML =
+          fehlerGesamt === 0
+            ? `<span class="gut">Fertig. ${geprueftGesamt} Stellen gemessen, keine Beanstandung.</span>`
+            : `<span class="schlecht">Fertig. ${geprueftGesamt} Stellen gemessen, ${fehlerGesamt} Beanstandung(en).</span>`
+      })
+    </script>
+  </body>
+</html>

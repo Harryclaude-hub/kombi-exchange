@@ -740,7 +740,7 @@ summary:focus-visible,
   min-width: 180px;
   padding: var(--luft-2) var(--luft-3);
   background: var(--grund-tief);
-  border: 1px solid var(--linie-hell);
+  border: 1px solid var(--feldrand);
   border-radius: var(--rundung);
 }
 
@@ -1015,7 +1015,9 @@ li[data-schwere="info"] .hinweisart {
 
 .feldwahl {
   background: var(--grund-tief);
-  border-color: var(--linie);
+  /* Siehe --feldrand in marken.css: hier stand --linie, und damit war der
+     Rand im hellen Zustand mit 1,33:1 schlicht unsichtbar. */
+  border-color: var(--feldrand);
 }
 
 .feldwahl-breit {
@@ -2002,7 +2004,7 @@ li[data-schwere="info"] .hinweisart {
 .ablage-suche,
 .ablage-sortierung {
   padding: var(--luft-2) var(--luft-3);
-  border: 1px solid var(--linie);
+  border: 1px solid var(--feldrand);
   border-radius: var(--rundung);
   background: var(--flaeche);
   color: var(--schrift);
@@ -3420,7 +3422,7 @@ li[data-schwere="info"] .hinweisart {
   gap: var(--luft-2);
   padding: var(--luft-4);
   background: var(--flaeche);
-  border: 1px solid var(--linie-hell);
+  border: 1px solid var(--feldrand);
   border-radius: var(--rundung-gross);
   color: var(--schrift);
   font: inherit;
