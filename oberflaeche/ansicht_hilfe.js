@@ -105,7 +105,7 @@ function wieManSichBewegt() {
     }),
     el('dl.hilfebegriffe', {}, wege.flatMap(([wort, was]) => [
       el('dt.hilfewort', { text: wort }),
-      el('dd.hilfeerklärung', { text: was }),
+      el('dd.hilfeerklaerung', { text: was }),
     ])),
   ])
 }
@@ -404,7 +404,7 @@ function bereich(b, hervor = false) {
   return el('.hilfeblock.hilfe-bereich', { daten: { bereich: b.schluessel, hervor: String(hervor) } }, [
     el('h2.hilfetitel', {}, [
       el('span.hilfereiter', { text: b.reiter }),
-      el('span.hilfewofür', { text: b.wofuer }),
+      el('span.hilfewofuer', { text: b.wofuer }),
     ]),
     el('.hilfezeile', {}, [
       el('.hilfebildseite', {}, [schaubild(b.bild)]),

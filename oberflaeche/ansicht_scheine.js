@@ -10,25 +10,32 @@
  * statt in einer langen Liste unterzugehen.
  */
 
-import { el, fuelle, zeitText, sicherheitsstufe, anbieterzeichen, ausschnittbild } from './werkzeug.js'
+import { el, fuelle, ausschnittbild } from './werkzeug.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
-import { statusText } from '../bild/mosaik.js'
 import { barEinsatz } from '../kern/rechnung.js'
-import { leseGeldEingabe, leseQuoteEingabe } from '../kern/handeingabe.js'
 import * as Zustand from './zustand.js'
 
-/** Alle Status, die von Hand gesetzt werden koennen. */
-const STATUSLISTE = [
-  'offen',
-  'gewonnen',
-  'verloren',
-  'halb_gewonnen',
-  'halb_verloren',
-  'push',
-  'storniert',
-  'cashout',
-  'unbekannt',
-]
+/*
+  DIE EINGABEFELDER STEHEN SEIT DEM 17.09.2026 IN oberflaeche/scheinfelder.js.
+
+  Sie standen bis dahin hier, als eigene Funktionen dieser Datei. Seit es die
+  dritte Ebene bei den Riesenscheinen gibt, wird derselbe Schein an zwei
+  Stellen von Hand berichtigt. Zwei Abschriften waeren zwei Stellen, an denen
+  sich das Verhalten auseinanderentwickelt (Projektregel 8).
+
+  Es ist nichts geloescht und nichts geaendert worden: die Funktionen sind
+  wortgleich umgezogen und haben nur einen zusaetzlichen Zusatz fuer die
+  Klasse der Huelle bekommen, weil dieselben Felder in der Tabelle anders
+  liegen als im grossen Formular.
+*/
+import {
+  textfeld,
+  zahlfeld,
+  quotenfeld,
+  zeitfeld,
+  statuswahl,
+  schalter,
+} from './scheinfelder.js'
 
 /** @type {{nurProbleme: boolean, suche: string, offen: Set<string>}} */
 const filter = { nurProbleme: false, suche: '', offen: new Set() }
@@ -224,37 +231,8 @@ function scheinzeile(schein, stand) {
     textfeld(schein, 'konto', 'Konto'),
     textfeld(schein, 'scheinNr', 'Nummer'),
 
-    el('.zelle', {}, [
-      el('input.feldeingabe', {
-        type: 'text',
-        value: schein.gesetztAm.wert ? schein.gesetztAm.wert.replace('T', ' ') : '',
-        placeholder: 'JJJJ-MM-TT hh:mm',
-        daten: { stufe: sicherheitsstufe(schein.gesetztAm.sicherheit) },
-        title: zeitText(schein.gesetztAm.wert),
-        onchange: (e) => {
-          const roh = /** @type {HTMLInputElement} */ (e.target).value.trim().replace(' ', 'T')
-          Zustand.setzeFeld(schein.id, 'gesetztAm', roh === '' ? null : roh)
-        },
-      }),
-    ]),
-
-    el('.zelle', {}, [
-      el(
-        'select.feldwahl',
-        {
-          daten: { status: schein.status },
-          onchange: (e) =>
-            Zustand.setzeFeld(schein.id, 'status', /** @type {HTMLSelectElement} */ (e.target).value),
-        },
-        STATUSLISTE.map((s) =>
-          el('option', {
-            value: s,
-            text: statusText(/** @type {any} */ (s)),
-            selected: s === schein.status ? 'selected' : null,
-          })
-        )
-      ),
-    ]),
+    zeitfeld(schein),
+    statuswahl(schein),
 
     zahlfeld(schein, 'einsatz', w),
     quotenfeld(schein),
@@ -335,124 +313,6 @@ function gruppenwahl(schein, stand) {
         ),
       ]
     ),
-  ])
-}
-
-/**
- * @param {import('../kern/typen.js').Schein} schein
- * @param {'buchmacher'|'konto'|'scheinNr'} feldname
- * @param {string} platzhalter
- * @returns {HTMLElement}
- */
-function textfeld(schein, feldname, platzhalter) {
-  const feld = schein[feldname]
-  return el('.zelle', {}, [
-    // Beim Anbieter steht sein Zeichen vor dem Feld. Ueberall sonst waere es
-    // sinnlos, deshalb genau hier und nirgends sonst.
-    feldname === 'buchmacher' ? anbieterzeichen(feld.wert) : null,
-    el('input.feldeingabe', {
-      type: 'text',
-      value: feld.wert ?? '',
-      placeholder: platzhalter,
-      daten: { stufe: sicherheitsstufe(feld.sicherheit) },
-      title: feld.roh ? `Gelesen: ${feld.roh}` : '',
-      onchange: (e) => {
-        const wert = /** @type {HTMLInputElement} */ (e.target).value.trim()
-        Zustand.setzeFeld(schein.id, feldname, wert === '' ? null : wert)
-      },
-    }),
-  ])
-}
-
-/**
- * @param {import('../kern/typen.js').Schein} schein
- * @param {'einsatz'|'auszahlung'|'ausgezahlt'} feldname
- * @param {import('../kern/typen.js').Waehrung} waehrung
- * @returns {HTMLElement}
- */
-function zahlfeld(schein, feldname, waehrung) {
-  const feld = schein[feldname]
-  return el('.zelle.zelle-zahl', {}, [
-    el('input.feldeingabe.eingabe-zahl', {
-      type: 'text',
-      inputmode: 'decimal',
-      value: feld.wert === null ? '' : formatiere(feld.wert, 'UNBEKANNT', 'de', { ohneZeichen: true }),
-      daten: { stufe: sicherheitsstufe(feld.sicherheit), quelle: feld.quelle },
-      title: `${feld.quelle === 'berechnet' ? 'Berechnet. ' : ''}${feld.roh ? `Gelesen: ${feld.roh}` : ''}`,
-      onchange: (e) => {
-        // Ueber kern/handeingabe.js, nicht mit einer eigenen Umwandlung.
-        //
-        // Hier stand bis zum 16.09.2026 replace(/\./g, '') plus Number(): das
-        // strich ALLE Punkte, und aus "5000.00" wurde 500000, aus "5,000.00"
-        // wurde 5. Der Wert bekam Sicherheit 1 und die Herkunft hand und wurde
-        // nie wieder ueberschrieben.
-        const feldEl = /** @type {HTMLInputElement} */ (e.target)
-        const gelesen = leseGeldEingabe(feldEl.value, schein.leseumgebung?.gebiet ?? 'de')
-        if (feldEl.value.trim() === '') {
-          feldEl.removeAttribute('data-fehler')
-          feldEl.title = ''
-          Zustand.setzeFeld(schein.id, feldname, null)
-          return
-        }
-        if (gelesen.wert === null) {
-          // Nicht deutbar: NICHTS speichern, stehen lassen, Grund anzeigen.
-          feldEl.dataset.fehler = 'true'
-          feldEl.title = gelesen.grund
-          Zustand.melde('warnung', gelesen.grund)
-          return
-        }
-        feldEl.removeAttribute('data-fehler')
-        feldEl.title = gelesen.grund
-        Zustand.setzeFeld(schein.id, feldname, gelesen.wert)
-      },
-    }),
-    el('span.waehrungszeichen', { text: waehrung === 'UNBEKANNT' ? '?' : waehrung }),
-  ])
-}
-
-/**
- * @param {import('../kern/typen.js').Schein} schein
- * @returns {HTMLElement}
- */
-function quotenfeld(schein) {
-  return el('.zelle.zelle-zahl', {}, [
-    el('input.feldeingabe.eingabe-zahl', {
-      type: 'text',
-      inputmode: 'decimal',
-      value: schein.quoteDezimal.wert === null ? '' : formatiereQuote(schein.quoteDezimal.wert, 'dezimal', 'de'),
-      daten: { stufe: sicherheitsstufe(schein.quoteDezimal.sicherheit) },
-      title:
-        schein.quoteAmerikanisch.wert !== null
-          ? `Angezeigt beim Anbieter: ${schein.quoteAmerikanisch.wert > 0 ? '+' : ''}${Math.round(schein.quoteAmerikanisch.wert)}`
-          : '',
-      onchange: (e) => {
-        // Ebenfalls ueber kern/handeingabe.js. "1.854" ergab hier frueher
-        // 1.854, "1,90." dagegen still null: die Quote war weg, ohne dass es
-        // jemand merkte.
-        const quoteEl = /** @type {HTMLInputElement} */ (e.target)
-        const gelesen = leseQuoteEingabe(quoteEl.value, schein.leseumgebung?.gebiet ?? 'de')
-        if (quoteEl.value.trim() === '') {
-          quoteEl.removeAttribute('data-fehler')
-          quoteEl.title = ''
-          Zustand.setzeFeld(schein.id, 'quoteDezimal', null)
-          return
-        }
-        if (gelesen.wert === null) {
-          quoteEl.dataset.fehler = 'true'
-          quoteEl.title = gelesen.grund
-          Zustand.melde('warnung', gelesen.grund)
-          return
-        }
-        quoteEl.removeAttribute('data-fehler')
-        quoteEl.title = gelesen.grund
-        Zustand.setzeFeld(schein.id, 'quoteDezimal', gelesen.wert)
-      },
-    }),
-    schein.quoteAmerikanisch.wert !== null
-      ? el('span.quoteUS', {
-          text: `${schein.quoteAmerikanisch.wert > 0 ? '+' : ''}${Math.round(schein.quoteAmerikanisch.wert)}`,
-        })
-      : null,
   ])
 }
 
@@ -572,23 +432,6 @@ function aufklappung(schein, stand) {
   ])
 }
 
-/**
- * @param {import('../kern/typen.js').Schein} schein
- * @param {'gratiswette'|'eachWay'|'ausgeschlossen'} feldname
- * @param {string} beschriftung
- * @returns {HTMLElement}
- */
-function schalter(schein, feldname, beschriftung) {
-  return el('label.schalter', {}, [
-    el('input', {
-      type: 'checkbox',
-      checked: schein[feldname] ? 'checked' : null,
-      onchange: (e) =>
-        Zustand.setzeFeld(schein.id, feldname, /** @type {HTMLInputElement} */ (e.target).checked),
-    }),
-    el('span', { text: beschriftung }),
-  ])
-}
 
 /*
   ausschnittbild ist am 16.09.2026 nach oberflaeche/werkzeug.js gewandert,

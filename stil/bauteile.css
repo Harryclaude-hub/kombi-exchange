@@ -2147,7 +2147,8 @@ li[data-schwere="info"] .hinweisart {
   opacity: 0.5;
 }
 
-.projektkopf {
+/* Die Zeile mit Name und Ordner INNERHALB einer Projektzeile in der Ablage. */
+.projektzeilenkopf {
   display: flex;
   align-items: baseline;
   gap: var(--luft-2);
@@ -2765,34 +2766,6 @@ li[data-schwere="info"] .hinweisart {
   color: var(--schrift-leise);
 }
 
-/*
-  Die rechte Spalte: alle Scheine eines Riesenscheins, nummeriert, mit den
-  Fotoknoepfen oben. Eigene Hoehe und eigenes Scrollen, damit die Zahlen in der
-  Mitte stehen bleiben, waehrend man die Scheine durchgeht.
-*/
-.scheinpanel {
-  background: var(--flaeche);
-  border: 1px solid var(--linie);
-  border-radius: var(--rundung-gross);
-  padding: var(--luft-3);
-  max-height: calc(100vh - var(--kopfhoehe) - var(--reiterhoehe) - 4rem);
-  overflow-y: auto;
-}
-
-.scheinpanel .spaltentitel {
-  background: var(--flaeche);
-}
-
-.scheinpanel .scheinreihe {
-  display: grid;
-  gap: var(--luft-2);
-}
-
-/* In der schmalen Spalte stehen die Kaertchen untereinander, nicht nebeneinander. */
-.scheinpanel .scheinkaertchen {
-  width: auto;
-}
-
 /* ---- Fotoknoepfe, ueberall gleich ---- */
 
 .fotoknoepfe {
@@ -2984,11 +2957,24 @@ li[data-schwere="info"] .hinweisart {
     padding: var(--luft-3) var(--luft-1);
   }
 
+  /*
+    In der Spur ist nur Platz fuer ein Zeichen. Alles, was aus Woertern oder
+    Zahlen besteht, wird hier ausgeblendet, sonst steht es halb abgeschnitten da.
+
+    Am 17.09.2026 dazugekommen: die Anordnung, die Ordnersumme und die Betraege
+    an den Eintraegen. Gemessen bei 375 Pixeln: aus dem Auswahlfeld
+    "Neueste zuerst" war "Ne v" geworden, und neben der Nummer stand ein
+    einzelnes Dollarzeichen. Eine halbe Zahl ist schlimmer als keine.
+  */
   .seitenpanel .paneltitel,
   .seitenpanel .panelname,
   .seitenpanel .panelgruppentitel,
   .seitenpanel .panelprojekt,
-  .seitenpanel .panelleer {
+  .seitenpanel .panelleer,
+  .seitenpanel .panelanordnung,
+  .seitenpanel .panelanordnungwarnung,
+  .seitenpanel .panelordnersumme,
+  .seitenpanel .panelzahl {
     display: none;
   }
 }
@@ -4138,77 +4124,6 @@ li[data-schwere="info"] .hinweisart {
 /* --------------------------------------------- Die offene Huelle, 16.09.2026 */
 
 /*
-  Karam: "die Buttons vor allem um das Erstellen eines neuen Riesenscheines
-  ist mir sehr wichtig."
-
-  Der Streifen steht ganz oben, ueber allen Zahlen. Ist keine Huelle offen,
-  ist er ruhig und erklaert nur, wie Riesenscheine sonst entstehen. Ist eine
-  offen, faellt er auf: dann ist die automatische Zuordnung fuer neue Scheine
-  ABGESCHALTET, und das darf man nicht uebersehen.
-*/
-.huellenleiste {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--luft-3);
-  padding: var(--luft-3) var(--luft-4);
-  margin-bottom: var(--luft-4);
-  background: var(--flaeche);
-  border: 1px solid var(--linie);
-  border-radius: var(--rundung);
-}
-
-.huellenleiste[data-offen='true'] {
-  background: var(--betonung-tief);
-  border-color: var(--betonung);
-  border-left: 4px solid var(--betonung);
-}
-
-.huellentext {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--luft-2) var(--luft-3);
-  min-width: 0;
-}
-
-.huellenmarke {
-  padding: 2px var(--luft-2);
-  border-radius: var(--rundung);
-  background: var(--betonung);
-  color: var(--knopf-haupt-schrift);
-  font-size: var(--text-winzig);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.huellenname {
-  font-size: var(--text-gross);
-  font-weight: 700;
-}
-
-.huellenhinweis {
-  font-size: var(--text-klein);
-  color: var(--schrift-leise);
-  max-width: 68ch;
-}
-
-.huellenknoepfe {
-  display: flex;
-  align-items: center;
-  gap: var(--luft-2);
-  flex-wrap: wrap;
-}
-
-/* Der wichtigste Knopf der Ansicht darf groesser sein als die anderen. */
-.huellenknopf {
-  font-size: var(--text-normal);
-  padding: var(--luft-2) var(--luft-5);
-  min-height: 44px;
-}
-
-/*
   Die Ueberschrift ueber der Projektsumme.
 
   Karam am 16.09.2026: "wenn ich einen Riesenschein erstelle, dann ist wieder
@@ -4235,4 +4150,577 @@ li[data-schwere="info"] .hinweisart {
   font-size: var(--text-klein);
   line-height: 1.6;
   color: var(--schrift-leise);
+}
+
+/* ================================================================ Drei Ebenen
+   Karam am 17.09.2026: Uebersicht -> Riesenschein -> einzelner Schein.
+   Alle Farben und Groessen kommen aus marken.css, hier steht keine einzige
+   feste Farbe (Projektregel 5).
+   ========================================================================= */
+
+/* ---- Der Weg zurueck. Immer oben, immer gleich, damit man ihn nicht sucht. */
+
+.zurueckleiste {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+  margin-bottom: var(--luft-4);
+}
+
+.zurueckknopf {
+  font-weight: 700;
+}
+
+.zurueckstand {
+  margin-left: auto;
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Ebene 1: die Uebersicht ---- */
+
+.uebersicht {
+  display: grid;
+  gap: var(--luft-5);
+}
+
+.uebersichtkopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--luft-3);
+}
+
+.uebersichttitel h2 {
+  margin: 0;
+  font-size: var(--text-riesig);
+  color: var(--schrift);
+}
+
+.uebersichtunter {
+  margin: var(--luft-1) 0 0;
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+/*
+  Der wichtigste Knopf der Ansicht darf groesser sein als die anderen.
+  Karam am 16.09.2026: "die Buttons vor allem um das Erstellen eines neuen
+  Riesenscheines ist mir sehr wichtig. Es wird einfach taeglich mehrere
+  Riesenscheine gespielt."
+*/
+.neuerknopf {
+  font-size: var(--text-normal);
+  padding: var(--luft-2) var(--luft-5);
+  min-height: 44px;
+}
+
+/* ---- Die Ordner, mit ihren Summen ---- */
+
+.ordnerbereich {
+  display: grid;
+  gap: var(--luft-2);
+}
+
+.ordnerkacheln {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--luft-3);
+}
+
+.ordnerkachel {
+  display: grid;
+  gap: var(--luft-1);
+  padding: var(--luft-3);
+  text-align: left;
+  background: var(--flaeche);
+  color: var(--schrift);
+  border: 2px solid var(--linie);
+  border-radius: var(--rundung-gross);
+  cursor: pointer;
+  font: inherit;
+}
+
+.ordnerkachel:hover {
+  background: var(--flaeche-hoch);
+  border-color: var(--betonung);
+}
+
+/* Der gewaehlte Ordner traegt eine deutliche Kante, nicht nur einen Hauch. */
+.ordnerkachel[data-gewaehlt='true'] {
+  background: var(--betonung-tief);
+  border-color: var(--betonung);
+}
+
+.ordnerkachelname {
+  font-weight: 700;
+  font-size: var(--text-normal);
+  overflow-wrap: anywhere;
+}
+
+.ordnerkachelzahl {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.ordnerkachelsumme {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--luft-1) var(--luft-2);
+  margin-top: var(--luft-1);
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.ordnerkachelsumme strong {
+  justify-self: end;
+  color: var(--schrift);
+  font-family: var(--schriftart-zahl);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  WARNENDER TEXT AUF DER NORMALEN FLAECHE NIMMT --schlecht, NICHT --auf-schlecht.
+
+  Gefunden am 17.09.2026 im Browser, nachdem ich es falsch gebaut hatte:
+  --auf-schlecht ist die SCHRIFT, die auf einer roten Flaeche liegt. Dunkel
+  ist sie fast schwarz (#1a0206), hell ist sie reines Weiss. Auf dem Panel
+  gemessen: rgb(26, 2, 6) auf dunklem Grund, also unlesbar, und hell waere es
+  weiss auf weiss gewesen, also gar nichts.
+*/
+.ordnerkachelwarnung {
+  margin-top: var(--luft-1);
+  font-size: var(--text-winzig);
+  color: var(--schlecht);
+}
+
+.ordnerhinweis {
+  margin: 0;
+  max-width: 88ch;
+  font-size: var(--text-klein);
+  line-height: 1.6;
+  color: var(--schrift-leise);
+}
+
+/* ---- Eine Karte je Riesenschein ---- */
+
+.riesenkarten {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--luft-3);
+}
+
+.riesenkarte {
+  display: grid;
+  gap: var(--luft-2);
+  padding: var(--luft-3);
+  text-align: left;
+  background: var(--flaeche);
+  color: var(--schrift);
+  border: 1px solid var(--linie);
+  border-left: 4px solid var(--schrift-still);
+  border-radius: var(--rundung-gross);
+  cursor: pointer;
+  font: inherit;
+}
+
+.riesenkarte:hover {
+  background: var(--flaeche-hoch);
+}
+
+/* Anmerkungen faerben die Kante, damit sie in der Liste auffallen. */
+.riesenkarte[data-schwere='warnung'] {
+  border-left-color: var(--offen);
+}
+
+.riesenkarte[data-schwere='fehler'] {
+  border-left-color: var(--schlecht);
+}
+
+.riesenkartekopf {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+}
+
+.riesenkartename {
+  font-weight: 700;
+  font-size: var(--text-normal);
+  overflow-wrap: anywhere;
+}
+
+.ordnermarke,
+.empfangsmarke {
+  padding: 2px var(--luft-2);
+  border-radius: var(--rundung);
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ordnermarke {
+  background: var(--flaeche-hoch);
+  color: var(--schrift-leise);
+  border: 1px solid var(--linie);
+}
+
+/*
+  "nimmt neue Fotos auf" ist eine Warnung und sieht auch so aus: solange sie
+  steht, ist die automatische Zuordnung fuer neue Scheine abgeschaltet.
+
+  DIE FARBEN SIND DIE DES OFFENEN STANDES, nicht die des Hauptknopfes.
+
+  Hier stand zuerst --betonung als Flaeche mit --knopf-haupt-schrift darauf,
+  wie bei der alten Huellenmarke. Gemessen am 17.09.2026 im dunklen
+  Farbschema: 2,63 zu 1. Die beiden Merkmale gehoeren nicht zusammen: die
+  Schrift ist fuer --knopf-haupt gemacht, nicht fuer --betonung. Die alte
+  Huellenmarke trug denselben Fehler, nur hat ihn nie jemand gemessen.
+*/
+.empfangsmarke {
+  background: var(--offen-tief);
+  /*
+    Die Schrift ist die normale, das Signal traegt die Kante. Mit --offen als
+    Schriftfarbe kam im hellen Farbschema genau 4,50 zu 1 heraus, also haargenau
+    die Grenze. Eine Zahl, die auf der Grenze steht, faellt beim naechsten
+    Farbdreh darunter, ohne dass jemand daran gedacht hat.
+  */
+  color: var(--schrift);
+  border: 1px solid var(--offen);
+}
+
+.riesenkartezahlen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--luft-2);
+}
+
+.riesenkartefuss {
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+}
+
+/* ---- Der Ordner am Riesenschein selbst ---- */
+
+.riesenkopf-ordner {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  margin-top: var(--luft-2);
+}
+
+.riesenkopf-ordnerwort {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+.riesenkopf-ordnerfeld {
+  width: min(24ch, 100%);
+  padding: var(--luft-1) var(--luft-2);
+  background: var(--grund-tief);
+  color: var(--schrift);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  font: inherit;
+  font-size: var(--text-klein);
+}
+
+.riesenkopf-ordnerfeld:focus {
+  outline: 2px solid var(--betonung);
+  outline-offset: 1px;
+}
+
+.empfangsleiste {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  flex-wrap: wrap;
+}
+
+/* ---- Ebene 3: ein einzelner Schein, gross ---- */
+
+.scheingross {
+  display: grid;
+  gap: var(--luft-4);
+  max-width: 96ch;
+}
+
+.scheingrosskopf {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--luft-3);
+  padding: var(--luft-3);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 4px solid var(--schrift-still);
+  border-radius: var(--rundung-gross);
+}
+
+.scheingrosskopf[data-status='gewonnen'] {
+  border-left-color: var(--gut);
+}
+
+.scheingrosskopf[data-status='verloren'] {
+  border-left-color: var(--schlecht);
+}
+
+.scheingrosskopf[data-status='offen'] {
+  border-left-color: var(--offen);
+}
+
+.scheingrossname {
+  display: grid;
+  min-width: 0;
+}
+
+.scheingrossname strong {
+  font-size: var(--text-gross);
+}
+
+.scheingrossname span {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.scheingrossstatus {
+  margin-left: auto;
+  font-size: var(--text-klein);
+  font-weight: 700;
+  color: var(--schrift-leise);
+}
+
+.formularblock {
+  padding: var(--luft-4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+}
+
+/*
+  Zwei Spalten, solange Platz ist. Die Beschriftung steht UEBER dem Feld und
+  nicht daneben: bei sechzig Scheinen am Tag sucht man das Feld, nicht das
+  Wort, und ein Wort daneben schiebt das Feld jedes Mal an eine andere Stelle.
+*/
+.formulargitter {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--luft-3);
+  margin-top: var(--luft-2);
+}
+
+.formularzeile {
+  display: grid;
+  gap: var(--luft-1);
+  min-width: 0;
+}
+
+.formularname {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+.formularwert {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  min-width: 0;
+}
+
+.formularwert .feldeingabe,
+.formularwert .feldwahl {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--text-normal);
+  min-height: 40px;
+}
+
+.formularhilfe {
+  font-size: var(--text-winzig);
+  color: var(--schrift-leise);
+}
+
+.formularschalter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--luft-2) var(--luft-4);
+  margin-top: var(--luft-4);
+  padding-top: var(--luft-3);
+  border-top: 1px solid var(--linie);
+}
+
+.formularzurueck {
+  margin: var(--luft-3) 0 0;
+  font-size: var(--text-klein);
+  color: var(--offen);
+}
+
+.beinliste {
+  margin: var(--luft-2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--luft-2);
+}
+
+.beinliste li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--luft-2);
+  padding-bottom: var(--luft-2);
+  border-bottom: 1px solid var(--linie-hell);
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.beinliste li strong {
+  color: var(--schrift);
+  font-size: var(--text-normal);
+}
+
+.scheingrossfoto {
+  margin-top: var(--luft-2);
+  max-width: 100%;
+  overflow: auto;
+}
+
+.scheingrossfuss {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--luft-2);
+}
+
+/* ---- Die linke Spalte: Ordner, Anordnung, Weg zurueck ---- */
+
+/*
+  Der Weg zurueck steht ganz oben in der Spalte und sieht anders aus als die
+  Eintraege darunter: er fuehrt woanders hin, und das soll man sehen, bevor man
+  klickt.
+*/
+.panelzurueck {
+  margin-bottom: var(--luft-3);
+  border-bottom: 1px solid var(--linie);
+  padding-bottom: var(--luft-2);
+  font-weight: 700;
+}
+
+/*
+  DER GEWAEHLTE ORDNER SIEHT AUS WIE JEDER ANDERE GEWAEHLTE EINTRAG.
+
+  Hier stand kurz eine eigene, blassere Flaeche. Gemessen am 17.09.2026 im
+  hellen Farbschema: 1,35 zu 1. Der Grund: .panelknopf[data-offen='true']
+  setzt Flaeche UND Schrift, und ich hatte nur die Flaeche ueberschrieben.
+  Weisse Schrift blieb auf einer fast weissen Flaeche stehen.
+
+  Es braucht die Sonderregel gar nicht: "ausgewaehlt" soll ueberall im Panel
+  gleich aussehen, sonst fragt man sich, ob es dasselbe bedeutet.
+*/
+
+.panelanordnung {
+  display: grid;
+  gap: var(--luft-1);
+  margin: var(--luft-3) 0;
+}
+
+.panelanordnung .feldwahl {
+  width: 100%;
+  min-height: 36px;
+  font-size: var(--text-klein);
+}
+
+.panelordnersumme {
+  display: grid;
+  gap: var(--luft-1);
+  margin: var(--luft-2) 0;
+  padding: var(--luft-2);
+  background: var(--betonung-tief);
+  border: 1px solid var(--betonung);
+  border-radius: var(--rundung);
+}
+
+/*
+  Der Kasten hat eine eigene, getoente Flaeche, deshalb eigene Schriftfarben
+  und nicht die des Projektblocks darunter. Gemessen am 17.09.2026: mit
+  --schrift-still kam im hellen Farbschema 4,25 zu 1 heraus, gefordert sind 4,5.
+*/
+.panelordnername {
+  font-weight: 700;
+  font-size: var(--text-klein);
+  color: var(--schrift);
+  overflow-wrap: anywhere;
+}
+
+.panelordneranzahl {
+  font-size: var(--text-winzig);
+  line-height: 1.5;
+  color: var(--schrift-leise);
+}
+
+.panelordnerzeile {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--luft-2);
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.panelordnerzeile .panelzahl {
+  color: var(--schrift);
+}
+
+/* Der Stand eines Scheins faerbt die Kante, so wie bei den Kaertchen auch. */
+.panelknopf-schein {
+  border-left: 3px solid var(--schrift-still);
+}
+
+.panelknopf-schein[data-status='gewonnen'] {
+  border-left-color: var(--gut);
+}
+
+.panelknopf-schein[data-status='verloren'] {
+  border-left-color: var(--schlecht);
+}
+
+.panelknopf-schein[data-status='offen'] {
+  border-left-color: var(--offen);
+}
+
+/*
+  Schmaler Bildschirm: die Karten und Kacheln stehen untereinander. Bei 640
+  Pixeln blieben fuer zwei Spalten unter 300 uebrig, und dort stehen
+  vierstellige Betraege nebeneinander.
+*/
+@media (max-width: 640px) {
+  .ordnerkacheln,
+  .riesenkarten {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .riesenkartezahlen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scheingrossfuss {
+    flex-direction: column;
+  }
+}
+
+/*
+  Der Hinweis unter der Anordnung: nach Geld ordnen ueber mehrere Waehrungen
+  hinweg ist kein Vergleich. Umgerechnet wird nicht, gesagt wird es.
+*/
+.panelanordnungwarnung {
+  font-size: var(--text-winzig);
+  line-height: 1.5;
+  color: var(--schlecht);
 }

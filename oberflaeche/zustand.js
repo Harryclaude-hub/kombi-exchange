@@ -13,6 +13,7 @@
 import { gruppiere, verschmelzeDoppelte, schlageNamenVor } from '../kern/gruppierung.js'
 import { rechne } from '../kern/rechnung.js'
 import { neueKennung, jetzt } from './werkzeug.js'
+import * as Ordner from './ordner.js'
 
 /**
  * @typedef {object} Meldung
@@ -47,6 +48,9 @@ import { neueKennung, jetzt } from './werkzeug.js'
  * @property {import('../kern/gruppierung.js').Doppelfund[]} verdacht
  * @property {'start'|'aufnahme'|'scheine'|'positionen'|'ausgabe'|'ablage'|'hilfe'} ansicht
  * @property {string|null} hilfeZu
+ * @property {string|null} scheinAuswahl
+ * @property {string|null} ordnerFilter
+ * @property {'neueste'|'alphabetisch'|'meisteGeld'|'wenigsteGeld'|'zuletztGeoeffnet'} sortierung
  * @property {{id: string, name: string}|null} huelle
  * @property {string|null} auswahl
  * @property {number|null} fassung
@@ -93,6 +97,29 @@ const stand = {
   huelle: null,
   ansicht: 'start',
   auswahl: null,
+  /*
+    DREI EBENEN, seit dem 17.09.2026.
+
+    Karam: "ganz links sind entweder Riesenscheine, wenn man noch keinen auf
+    hat, oder wenn man einen Riesenschein aufmacht, kommt der in die Mitte, und
+    ganz links werden dann alle Scheine angezeigt, die in diesem Riesenschein
+    sind. Kann man sie dann separat aufmachen, und dann sieht man im grossen
+    Bereich, welche Einsaetze man hat, da kann man sie auch bearbeiten. Man
+    kann dann auch auf Zurueck druecken."
+
+      auswahl null                     Ebene 1, alle Riesenscheine
+      auswahl gesetzt, scheinAuswahl null   Ebene 2, ein Riesenschein
+      scheinAuswahl gesetzt            Ebene 3, ein einzelner Schein
+
+    Die Ebene wird nicht eigens gespeichert, sie folgt aus diesen beiden
+    Feldern. Eine dritte Angabe koennte mit ihnen auseinanderlaufen
+    (Projektregel 8).
+  */
+  scheinAuswahl: null,
+  /* Welcher Ordner in der linken Spalte gewaehlt ist. null heisst: alle. */
+  ordnerFilter: null,
+  /* Wonach die Riesenscheine links sortiert sind. */
+  sortierung: 'neueste',
   // Aus welcher Ansicht heraus die Erklaerung geoeffnet wurde. Damit springt
   // die Erklaerung an die richtige Stelle. null heisst: von vorne.
   hilfeZu: null,
@@ -219,20 +246,32 @@ export function fuegeScheineHinzu(neue) {
 }
 
 /**
- * Macht einen neuen, leeren Riesenschein auf.
+ * Macht einen neuen, leeren Riesenschein auf UND schlaegt ihn auf.
  *
- * Alles, was danach gelesen wird, wandert hinein, bis eine andere Huelle
- * aufgemacht oder diese geschlossen wird. Der bisherige Riesenschein bleibt
- * unveraendert im Projekt stehen.
+ * Karam am 17.09.2026: "ein neuer Riesenschein, wenn ich diesen Knopf druecke,
+ * komme ich auf einen neuen Riesenschein. Das heisst, ich habe jetzt 10, dann
+ * bekomme ich 11. Einen komplett neuen, keine Huelle schliessen, nichts."
+ *
+ * Es gibt deshalb keine Zeremonie mehr: ein Druck, und der neue Riesenschein
+ * ist da und liegt vorne. Der bisherige bleibt unveraendert im Projekt stehen.
+ *
+ * ALLES, WAS DANACH GELESEN WIRD, WANDERT HINEIN, bis der naechste aufgemacht
+ * wird. Das steht so auch am Riesenschein selbst, gut sichtbar: es schaltet
+ * die automatische Zuordnung fuer neue Scheine ab, und wer das nicht sieht,
+ * wundert sich sonst, warum zwei verschiedene Wetten zusammen liegen. Genau
+ * dieser Fall hat am 16.09.2026 drei verschiedene Wetten zu einer Position von
+ * 17.717,48 EUR verschmolzen (test/huelle_mischt.test.mjs).
  *
  * @param {string} name
- * @returns {string} die Kennung der neuen Huelle
+ * @returns {string} die Kennung des neuen Riesenscheins
  */
 export function macheHuelleAuf(name) {
   const id = neueKennung()
   aendere({ huelle: { id, name: String(name || '').trim() || 'Neuer Riesenschein' } })
-  // ordneNeu setzt die leere Huelle in die Liste, damit man sie sofort sieht.
+  // ordneNeu setzt den leeren Riesenschein in die Liste, damit man ihn sofort
+  // sieht. Es setzt die Auswahl NICHT mehr, das geschieht hier und nur hier.
   ordneNeu()
+  aendere({ auswahl: id, scheinAuswahl: null })
   return id
 }
 
@@ -277,9 +316,26 @@ export function ordneNeu(scheine) {
   /** @type {Map<string, import('../kern/typen.js').Schein>} */
   const nachId = new Map(zusammengefuehrt.scheine.map((s) => [s.id, s]))
 
+  /*
+    WER WAR VORHER WER.
+
+    gruppiere() vergibt bei jedem Lauf neue Kennungen. Alles, was am
+    Riesenschein haengt und NICHT im Riesenschein selbst steht, muss deshalb
+    hier mitwandern, und zwar an dieser einen Stelle: hier und nur hier wird
+    aus einer alten Kennung eine neue (Projektregel 8).
+
+    Bisher wanderten Name und Notiz mit, weil sie im Riesenschein stehen. Die
+    Ordnerzuordnung liegt aber daneben, im Browser, und ging deshalb bei jedem
+    Neuordnen verloren. Gemessen am 17.09.2026: vier Ordner gesetzt, einmal
+    "Neuer Riesenschein" gedrueckt, alle vier weg.
+  */
+  /** @type {[string, string][]} */
+  const umzuege = []
+
   const riesenscheine = ergebnis.gruppen.map((gruppe) => {
     const dabei = gruppe.scheinIds.map((id) => nachId.get(id)).filter(Boolean)
     const alt = alteNachId.get(gruppe.id) ?? alteNachSignatur.get(gruppe.signatur)
+    if (alt && alt.id !== gruppe.id) umzuege.push([alt.id, gruppe.id])
     return {
       id: gruppe.id,
       projektId: stand.projekt?.id ?? '',
@@ -321,6 +377,10 @@ export function ordneNeu(scheine) {
     })
   }
 
+  // Die Ordner auf die neuen Kennungen umziehen. Siehe oberflaeche/ordner.js,
+  // wandere(): dort steht, was am 17.09.2026 dabei verloren ging.
+  Ordner.wandere(umzuege, new Set(riesenscheine.map((r) => r.id)))
+
   // Die Zugehoerigkeit auch auf den Scheinen vermerken, damit sie beim Speichern
   // mitgeht und beim naechsten Laden erhalten bleibt.
   for (const riesenschein of riesenscheine) {
@@ -330,13 +390,33 @@ export function ordneNeu(scheine) {
     }
   }
 
-  // Eine offene Huelle ist das, woran gerade gearbeitet wird, also ist sie auch
-  // die Auswahl. Sonst bleibt die bisherige, solange es sie noch gibt.
-  const auswahl = stand.huelle
-    ? stand.huelle.id
-    : stand.auswahl && riesenscheine.some((r) => r.id === stand.auswahl)
-      ? stand.auswahl
-      : (riesenscheine[0]?.id ?? null)
+  /*
+    DIE AUSWAHL WIRD HIER NUR NOCH GEPRUEFT, NICHT MEHR GESETZT.
+
+    Bis zum 17.09.2026 stand hier zweierlei, und beides ist seit den drei
+    Ebenen falsch:
+
+    1. "ist eine Huelle offen, ist sie die Auswahl". Die Huelle bleibt jetzt
+       offen, bis der naechste Riesenschein aufgemacht wird (Karam am
+       17.09.2026: "keine Huelle schliessen, nichts"). Mit der alten Zeile
+       haette JEDES Neuordnen, also jede berichtigte Zahl, die Ansicht zurueck
+       auf den zuletzt angelegten Riesenschein gerissen. Man haette mitten im
+       Bearbeiten den Schein unter den Haenden gewechselt bekommen.
+
+    2. "sonst der erste Riesenschein". Damit gaebe es die Uebersicht gar nicht:
+       auswahl null IST die Uebersicht (Ebene 1), und jedes Neuordnen haette
+       sie sofort wieder verlassen.
+
+    Aufgemacht wird jetzt genau dort, wo jemand darauf drueckt. Hier wird nur
+    noch aufgeraeumt, was ins Leere zeigt: das passiert nach jedem Neuordnen,
+    weil sich die Kennung einer Gruppe mit ihrer Signatur aendert.
+  */
+  const auswahl =
+    stand.auswahl && riesenscheine.some((r) => r.id === stand.auswahl) ? stand.auswahl : null
+  const scheinNochDa =
+    auswahl !== null &&
+    stand.scheinAuswahl !== null &&
+    (riesenscheine.find((r) => r.id === auswahl)?.scheinIds ?? []).includes(stand.scheinAuswahl)
 
   aendere({
     scheine: zusammengefuehrt.scheine,
@@ -344,6 +424,7 @@ export function ordneNeu(scheine) {
     restposten: ergebnis.restposten,
     verdacht: [...zusammengefuehrt.verdacht, ...ergebnis.vorschlaege.map(vorschlagAlsVerdacht)],
     auswahl,
+    scheinAuswahl: scheinNochDa ? stand.scheinAuswahl : null,
   })
 }
 

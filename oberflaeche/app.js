@@ -8,9 +8,11 @@
 
 import { el, fuelle, such, neueKennung, jetzt, verzoegert, zeitText } from './werkzeug.js'
 import { formatiere } from '../kern/geld.js'
-import { rechneProjekt } from '../kern/rechnung.js'
+import { rechneProjekt, barEinsatz } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
 import * as Nadeln from './nadeln.js'
+import * as Ordner from './ordner.js'
+import * as Reihenfolge from './reihenfolge.js'
 import * as Anleitung from './anleitung.js'
 import * as Datenbank from '../daten/datenbank.js'
 import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL, PROGRAMM_FASSUNG } from '../daten/einstellungen.js'
@@ -85,6 +87,12 @@ export async function starte(ziel) {
   // Eine Nadel aendert nur das Panel, nicht den Arbeitsstand. Deshalb ein
   // eigener Zuhoerer und kein Umweg ueber den Zustand.
   Nadeln.hoerZu(zeichnePanel)
+  /*
+    Ein Ordnerwechsel aendert die linke Spalte UND die Uebersicht in der Mitte:
+    dort stehen die Ordnerkacheln mit ihren Summen. Deshalb der normale Weg
+    ueber den Zustand und nicht ein zweiter, eigener Zeichenweg (Projektregel 8).
+  */
+  Ordner.hoerZu(() => Zustand.aendere({}))
   horcheAufAblage()
 
   const gemerkt = localStorage.getItem(SITZUNG_SCHLUESSEL) ?? ''
@@ -137,6 +145,7 @@ export function zeichneFuerProbe(ziel) {
   probeModus = true
   Zustand.hoerZu(zeichneHuelle)
   Nadeln.hoerZu(zeichnePanel)
+  Ordner.hoerZu(() => Zustand.aendere({}))
   zeichneHuelle()
 }
 
@@ -1180,6 +1189,23 @@ function panelSchmal() {
   }
 }
 
+/*
+  DIE LINKE SPALTE, jetzt dreistufig.
+
+  Karam am 17.09.2026: "ganz links sind entweder Riesenscheine, wenn man noch
+  keinen auf hat, oder wenn man einen Riesenschein aufmacht, kommt der in die
+  Mitte, und ganz links werden dann alle Scheine angezeigt, die in diesem
+  Riesenschein sind."
+
+    Ebene 1   alle Riesenscheine, mit Ordnern, Filter und Anordnung
+    Ebene 2   die Scheine des offenen Riesenscheins
+    Ebene 3   dieselbe Liste, der offene Schein ist hervorgehoben
+
+  In allen anderen Reitern traegt das Panel weiter das Angeheftete und das
+  offene Projekt. Die Wege selbst stehen oben im Kopf und NICHT hier, seit
+  Karam am 16.09.2026 sagte: "jetzt hast du irgendwie oben und unten zwei
+  identische Symbole."
+*/
 function zeichnePanel() {
   const panel = such('#seitenpanel')
   if (!panel) return
@@ -1188,21 +1214,21 @@ function zeichnePanel() {
 
   panel.dataset.schmal = String(schmal)
 
-  const angeheftet = Nadeln.alle()
-  const angehefteteWetten = stand.riesenscheine.filter((r) => angeheftet.includes(r.id))
-
-  // Bei den Riesenscheinen traegt das Panel die LISTE, sonst den Schnellzugriff.
-  const beiRiesenscheinen = stand.ansicht === 'positionen' && stand.riesenscheine.length > 0
-  const gewaehlt = stand.auswahl ?? stand.riesenscheine[0]?.id ?? null
+  const beiRiesenscheinen = stand.ansicht === 'positionen'
+  const offener = beiRiesenscheinen
+    ? (stand.riesenscheine.find((r) => r.id === stand.auswahl) ?? null)
+    : null
 
   fuelle(panel, [
     el('.panelkopf', {}, [
       schmal
         ? null
         : el('span.paneltitel', {
-            text: beiRiesenscheinen
-              ? `${stand.riesenscheine.length} Riesenscheine`
-              : 'Schnellzugriff',
+            text: offener
+              ? 'Scheine darin'
+              : beiRiesenscheinen
+                ? 'Riesenscheine'
+                : 'Schnellzugriff',
           }),
       el('button.knopf.knopf-winzig.panelfalten', {
         type: 'button',
@@ -1220,117 +1246,369 @@ function zeichnePanel() {
       }),
     ]),
 
+    offener ? panelScheine(stand, offener, schmal) : null,
+    beiRiesenscheinen && !offener ? panelRiesenscheine(stand, schmal) : null,
+    beiRiesenscheinen ? null : panelSchnellzugriff(stand, schmal),
+  ])
+}
+
+/**
+ * Ebene 1: Ordnerwahl, Anordnung, dann alle Riesenscheine.
+ *
+ * @param {any} stand
+ * @param {boolean} schmal
+ * @returns {HTMLElement}
+ */
+function panelRiesenscheine(stand, schmal) {
+  const ordner = Ordner.alleOrdner(stand.riesenscheine)
+  const ohne = Ordner.anzahlOhneOrdner(stand.riesenscheine)
+  const sichtbar = Reihenfolge.ordne(
+    stand.riesenscheine,
+    { ordnerFilter: stand.ordnerFilter, sortierung: stand.sortierung },
+    Zustand.rechnungVon
+  )
+  const nachGeld = stand.sortierung === 'meisteGeld' || stand.sortierung === 'wenigsteGeld'
+
+  /**
+   * Ein Knopf, der einen Ordner waehlt.
+   *
+   * @param {string|null} wert
+   * @param {string} beschriftung
+   * @param {number} anzahl
+   * @returns {HTMLElement}
+   */
+  const ordnerknopf = (wert, beschriftung, anzahl) =>
+    el(
+      'button.panelknopf.panelknopf-ordner',
+      {
+        type: 'button',
+        daten: { offen: String(stand.ordnerFilter === wert) },
+        title:
+          wert === null
+            ? 'Alle Riesenscheine zeigen'
+            : wert === Ordner.OHNE_ORDNER
+              ? 'Nur die, die in keinem Ordner liegen'
+              : `Nur der Ordner ${beschriftung}`,
+        onclick: () => Zustand.aendere({ ordnerFilter: wert }),
+      },
+      [
+        el('span.panelzeichen', {
+          text: wert === null ? '*' : wert === Ordner.OHNE_ORDNER ? '-' : 'O',
+        }),
+        schmal
+          ? null
+          : el('span.panelwette', {}, [
+              el('span.panelname', { text: beschriftung }),
+              el('span.panelzahl', { text: String(anzahl) }),
+            ]),
+      ]
+    )
+
+  return el('.panelgruppe', {}, [
+    schmal ? null : el('.panelgruppentitel', { text: 'Ordner' }),
+    ordnerknopf(null, 'Alle', stand.riesenscheine.length),
+    ohne > 0 ? ordnerknopf(Ordner.OHNE_ORDNER, 'Ohne Ordner', ohne) : null,
+    ...ordner.map((o) => ordnerknopf(o.name, o.name, o.anzahl)),
+
     /*
-      DIE LISTE DER RIESENSCHEINE, wenn man dort steht.
+      DIE SUMME DES GEWAEHLTEN ORDNERS.
 
-      Karam am 16.09.2026: "vor allem bei Riesenscheinen soll dieser linke Panel
-      dafuer sein, alle Scheine aufzulisten. Und den grossen Schein einfach hier
-      in der Mitte."
+      Karam am 17.09.2026: "die Ordner werden auch miteinander gerechnet."
 
-      Vorher stand die Liste als eigene Spalte IN der Ansicht, und links daneben
-      lag noch das Panel mit den Wegen. Das waren vier Spalten, zwei davon zum
-      Auswaehlen. Jetzt traegt das Panel die Liste, und die Ansicht hat eine
-      Spalte weniger und mehr Platz fuer die Zahlen.
+      Nur wenn wirklich EIN Ordner gewaehlt ist. Bei "Alle" staende hier
+      dieselbe Zahl wie oben in der Kopfleiste, und dieselbe Zahl zweimal auf
+      einem Bildschirm macht nur unsicher, ob es wirklich dieselbe ist.
     */
-    beiRiesenscheinen
-      ? el(
-          'nav.panelgruppe',
-          { 'aria-label': 'Alle Riesenscheine' },
-          stand.riesenscheine.map((r, i) => {
-            const rechnung = Zustand.rechnungVon(r.id)
-            const offen = r.id === gewaehlt
-            return el(
-              'button.panelknopf.panelknopf-wette',
-              {
-                type: 'button',
-                daten: { offen: String(offen) },
-                title: r.name || 'Ohne Namen',
-                onclick: () => Zustand.aendere({ ansicht: 'positionen', auswahl: r.id }),
-              },
-              [
-                el('span.panelzeichen', { text: String(i + 1) }),
-                schmal
-                  ? null
-                  : el('span.panelwette', {}, [
-                      el('span.panelname', { text: r.name || 'Ohne Namen' }),
-                      el('span.panelzahl', {
-                        text: formatiere(rechnung.einsatzGesamt, rechnung.waehrung, 'de'),
-                      }),
-                    ]),
-              ]
-            )
-          })
-        )
+    !schmal && stand.ordnerFilter !== null && stand.ordnerFilter !== Ordner.OHNE_ORDNER
+      ? ordnerbilanz(stand)
       : null,
 
-    /*
-      DER SCHNELLZUGRIFF, ueberall sonst.
-
-      Karam am 16.09.2026: "jetzt hast du irgendwie oben und unten zwei
-      identische Symbole."
-
-      Er hat recht: das Panel fuehrte dieselben sieben Wege noch einmal, die
-      oben schon als Reiter stehen. Zweimal dieselbe Navigation ist keine
-      Hilfe, sondern die Frage, ob die beiden dasselbe tun. Die Wege stehen
-      jetzt nur noch oben im Kopf, so wie Karam es am 16.09. selbst wollte
-      ("einfach das Navigationssystem in den Header").
-
-      Was das Panel dafuer traegt, gibt es oben NICHT: das Angeheftete und das
-      offene Projekt.
-    */
-    beiRiesenscheinen
+    schmal
       ? null
-      : el('.panelgruppe', {}, [
-          schmal ? null : el('.panelgruppentitel', { text: 'Angeheftet' }),
-          angehefteteWetten.length === 0 && !schmal
-            ? el('p.panelleer', {
-                text:
-                  'Noch nichts angeheftet. Klick die Nadel an einem Riesenschein an, ' +
-                  'dann steht er hier und ist von ueberall aus einen Klick entfernt.',
+      : el('label.panelanordnung', {}, [
+          el('span.panelgruppentitel', { text: 'Anordnung' }),
+          el(
+            'select.feldwahl',
+            {
+              onchange: (e) =>
+                Zustand.aendere({
+                  sortierung: /** @type {HTMLSelectElement} */ (e.target).value,
+                }),
+            },
+            Reihenfolge.SORTIERUNGEN.map((s) =>
+              el('option', {
+                value: s.schluessel,
+                text: s.name,
+                selected: s.schluessel === stand.sortierung ? 'selected' : null,
               })
-            : null,
-          ...angehefteteWetten.map((r) =>
-            el(
-              'button.panelknopf.panelknopf-wette',
-              {
-                type: 'button',
-                daten: {
-                  offen: String(stand.ansicht === 'positionen' && stand.auswahl === r.id),
-                },
-                title: r.name || 'Ohne Namen',
-                onclick: () => Zustand.aendere({ ansicht: 'positionen', auswahl: r.id }),
-              },
-              [
-                el('span.panelzeichen', { text: '*' }),
-                schmal ? null : el('span.panelname', { text: r.name || 'Ohne Namen' }),
-              ]
             )
           ),
+
+          /*
+            NACH GELD ORDNEN UEBER MEHRERE WAEHRUNGEN HINWEG IST KEIN VERGLEICH.
+
+            Gemessen am 17.09.2026 im Testkorpus: nach "Meistes Geld zuerst"
+            stand 5.000,00 $ vor 1.600,00 €. Das stimmt hier zufaellig, weil
+            1.600 Euro auch in Dollar weniger sind. Bei 1.600,00 $ und
+            1.500,00 € stuende die falsche Reihe da, und niemand saehe es.
+
+            UMGERECHNET WIRD NICHT. Es gibt in diesem Programm keinen Kurs, und
+            einen zu erfinden waere genau das, was Projektregel 1 verbietet.
+            Gesagt wird es stattdessen, und zwar da, wo man die Reihenfolge
+            einstellt.
+          */
+          nachGeld && gemischteWaehrungen(sichtbar)
+            ? el('span.panelanordnungwarnung', {
+                text:
+                  'Hier liegen mehrere Währungen nebeneinander. ' +
+                  'Geordnet wird nach der bloßen Zahl, nicht umgerechnet.',
+              })
+            : null,
         ]),
 
-    el('.panelgruppe', {}, [
-      schmal ? null : el('.panelgruppentitel', { text: 'Dieses Projekt' }),
-      schmal
-        ? null
-        : el('.panelprojekt', {}, [
-            el('.panelprojektname', { text: stand.projekt?.name || 'Kein Projekt' }),
-            el('.panelprojektzahl', {
-              text: `${stand.riesenscheine.length} Riesenscheine, ${stand.scheine.length} Scheine`,
-            }),
-          ]),
-      el(
-        'button.panelknopf',
+    schmal
+      ? null
+      : el('.panelgruppentitel', {
+          text: sichtbar.length === 1 ? '1 Riesenschein' : `${sichtbar.length} Riesenscheine`,
+        }),
+
+    sichtbar.length === 0 && !schmal
+      ? el('p.panelleer', {
+          text:
+            stand.ordnerFilter === null
+              ? 'Noch kein Riesenschein. Der grosse Knopf in der Mitte macht einen neuen auf.'
+              : 'In diesem Ordner liegt gerade nichts.',
+        })
+      : null,
+
+    ...sichtbar.map((r, i) => {
+      const rechnung = Zustand.rechnungVon(r.id)
+      const liegtIn = Ordner.ordnerVon(r.id)
+      return el(
+        'button.panelknopf.panelknopf-wette',
         {
           type: 'button',
-          title: 'Ein Foto aufnehmen und daraus einen Schein machen',
-          onclick: () => Zustand.aendere({ ansicht: 'aufnahme' }),
+          daten: { offen: 'false' },
+          title: liegtIn
+            ? `${r.name || 'Ohne Namen'}, im Ordner ${liegtIn}`
+            : `${r.name || 'Ohne Namen'} aufmachen`,
+          onclick: () => {
+            Reihenfolge.merkeGeoeffnet(r.id)
+            Zustand.aendere({ auswahl: r.id, scheinAuswahl: null })
+          },
         },
         [
-          el('span.panelzeichen', { text: '+' }),
-          schmal ? null : el('span.panelname', { text: 'Foto hinzufügen' }),
+          el('span.panelzeichen', { text: String(i + 1) }),
+          schmal
+            ? null
+            : el('span.panelwette', {}, [
+                el('span.panelname', { text: r.name || 'Ohne Namen' }),
+                el('span.panelzahl', {
+                  text: formatiere(rechnung.einsatzGesamt, rechnung.waehrung, 'de'),
+                }),
+              ]),
         ]
-      ),
+      )
+    }),
+  ])
+}
+
+/**
+ * Ob in dieser Liste mehr als eine Waehrung vorkommt.
+ *
+ * Unbekannte Waehrungen zaehlen NICHT mit: ein Schein, auf dem kein Zeichen
+ * stand, ist kein Beweis fuer eine zweite Waehrung, nur ein Beweis dafuer,
+ * dass nichts dastand.
+ *
+ * @param {any[]} riesenscheine
+ * @returns {boolean}
+ */
+function gemischteWaehrungen(riesenscheine) {
+  const gesehen = new Set()
+  for (const r of riesenscheine) {
+    const w = Zustand.rechnungVon(r.id).waehrung
+    if (w && w !== 'UNBEKANNT') gesehen.add(w)
+    if (gesehen.size > 1) return true
+  }
+  return false
+}
+
+/**
+ * Die Summe eines Ordners, zusammengezaehlt aus den Rechnungen des Kerns.
+ *
+ * @param {any} stand
+ * @returns {HTMLElement}
+ */
+function ordnerbilanz(stand) {
+  const s = Reihenfolge.ordnersumme(stand.riesenscheine, stand.ordnerFilter, Zustand.rechnungVon)
+
+  /*
+    EIGENE KLASSEN UND NICHT DIE DES PROJEKTBLOCKS.
+
+    Hier standen zuerst .panelprojektname und .panelprojektzahl, geborgt vom
+    Block "Dieses Projekt". Die sind aber fuer die Panelflaeche gemacht, und
+    dieser Kasten hat eine eigene, getoente. Gemessen am 17.09.2026 im hellen
+    Farbschema: 4,25 zu 1, also unter den geforderten 4,5.
+
+    Eine Klasse, die woanders gemessen wurde, ist hier nicht gemessen.
+  */
+  if (s.gemischt) {
+    return el('.panelordnersumme', {}, [
+      el('.panelordnername', { text: stand.ordnerFilter }),
+      el('.panelordneranzahl', {
+        text: `${s.anzahl} Riesenscheine, Währungen gemischt, deshalb keine Summe`,
+      }),
+    ])
+  }
+
+  return el('.panelordnersumme', {}, [
+    el('.panelordnername', { text: stand.ordnerFilter }),
+    el('.panelordneranzahl', { text: `${s.anzahl} Riesenscheine zusammen` }),
+    el('.panelordnerzeile', {}, [
+      el('span', { text: 'gesetzt' }),
+      el('span.panelzahl', { text: formatiere(s.einsatz, s.waehrung, 'de') }),
     ]),
+    el('.panelordnerzeile', {}, [
+      el('span', { text: 'kann zurück' }),
+      el('span.panelzahl', { text: formatiere(s.moeglich, s.waehrung, 'de') }),
+    ]),
+  ])
+}
+
+/**
+ * Ebene 2 und 3: die Scheine des offenen Riesenscheins.
+ *
+ * @param {any} stand
+ * @param {any} riesenschein
+ * @param {boolean} schmal
+ * @returns {HTMLElement}
+ */
+function panelScheine(stand, riesenschein, schmal) {
+  const scheine = Zustand.scheineVon(riesenschein.id)
+
+  return el('.panelgruppe', {}, [
+    /*
+      ZURUECK ZU ALLEN RIESENSCHEINEN.
+
+      Karam am 17.09.2026: "man kann dann auch auf Zurueck druecken." Der Weg
+      zurueck steht GANZ OBEN in der Spalte, dort wo man ihn sucht, und nicht
+      unter sechzig Scheinen.
+    */
+    el(
+      'button.panelknopf.panelzurueck',
+      {
+        type: 'button',
+        title: 'Zurueck zu allen Riesenscheinen',
+        onclick: () => Zustand.aendere({ auswahl: null, scheinAuswahl: null }),
+      },
+      [
+        el('span.panelzeichen', { text: '<' }),
+        schmal ? null : el('span.panelname', { text: 'Alle Riesenscheine' }),
+      ]
+    ),
+
+    schmal ? null : el('.panelgruppentitel', { text: riesenschein.name || 'Ohne Namen' }),
+
+    scheine.length === 0 && !schmal
+      ? el('p.panelleer', {
+          text: 'Noch kein Schein darin. Lade rechts ein Bildschirmfoto hoch, dann steht es hier.',
+        })
+      : null,
+
+    ...scheine.map((s, i) => {
+      const w = s.waehrung.wert ?? 'UNBEKANNT'
+      return el(
+        'button.panelknopf.panelknopf-schein',
+        {
+          type: 'button',
+          daten: { offen: String(stand.scheinAuswahl === s.id), status: s.status },
+          title:
+            stand.scheinAuswahl === s.id
+              ? 'Diesen Schein wieder zuklappen'
+              : `Schein ${i + 1} gross aufmachen und bearbeiten`,
+          onclick: () =>
+            Zustand.aendere({
+              scheinAuswahl: stand.scheinAuswahl === s.id ? null : s.id,
+            }),
+        },
+        [
+          el('span.panelzeichen', { text: String(i + 1) }),
+          schmal
+            ? null
+            : el('span.panelwette', {}, [
+                el('span.panelname', { text: s.buchmacher.wert ?? 'Anbieter offen' }),
+                el('span.panelzahl', { text: formatiere(barEinsatz(s), w, 'de') }),
+              ]),
+        ]
+      )
+    }),
+  ])
+}
+
+/**
+ * Ueberall ausser bei den Riesenscheinen: das Angeheftete und das Projekt.
+ *
+ * Karam am 16.09.2026: "jetzt hast du irgendwie oben und unten zwei identische
+ * Symbole." Die Wege stehen deshalb nur noch oben im Kopf. Was hier steht,
+ * gibt es oben NICHT.
+ *
+ * @param {any} stand
+ * @param {boolean} schmal
+ * @returns {HTMLElement}
+ */
+function panelSchnellzugriff(stand, schmal) {
+  const angeheftet = Nadeln.alle()
+  const angehefteteWetten = stand.riesenscheine.filter((r) => angeheftet.includes(r.id))
+
+  return el('.panelgruppe', {}, [
+    schmal ? null : el('.panelgruppentitel', { text: 'Angeheftet' }),
+    angehefteteWetten.length === 0 && !schmal
+      ? el('p.panelleer', {
+          text:
+            'Noch nichts angeheftet. Klick die Nadel an einem Riesenschein an, ' +
+            'dann steht er hier und ist von überall aus einen Klick entfernt.',
+        })
+      : null,
+    ...angehefteteWetten.map((r) =>
+      el(
+        'button.panelknopf.panelknopf-wette',
+        {
+          type: 'button',
+          daten: { offen: 'false' },
+          title: r.name || 'Ohne Namen',
+          onclick: () => {
+            Reihenfolge.merkeGeoeffnet(r.id)
+            Zustand.aendere({ ansicht: 'positionen', auswahl: r.id, scheinAuswahl: null })
+          },
+        },
+        [
+          el('span.panelzeichen', { text: '*' }),
+          schmal ? null : el('span.panelname', { text: r.name || 'Ohne Namen' }),
+        ]
+      )
+    ),
+
+    schmal ? null : el('.panelgruppentitel', { text: 'Dieses Projekt' }),
+    schmal
+      ? null
+      : el('.panelprojekt', {}, [
+          el('.panelprojektname', { text: stand.projekt?.name || 'Kein Projekt' }),
+          el('.panelprojektzahl', {
+            text: `${stand.riesenscheine.length} Riesenscheine, ${stand.scheine.length} Scheine`,
+          }),
+        ]),
+    el(
+      'button.panelknopf',
+      {
+        type: 'button',
+        title: 'Ein Foto aufnehmen und daraus einen Schein machen',
+        onclick: () => Zustand.aendere({ ansicht: 'aufnahme' }),
+      },
+      [
+        el('span.panelzeichen', { text: '+' }),
+        schmal ? null : el('span.panelname', { text: 'Foto hinzufügen' }),
+      ]
+    ),
   ])
 }
 

@@ -16,113 +16,349 @@ import { statusText } from '../bild/mosaik.js'
 import { barEinsatz, realisierterRueckfluss, offenePotenzialauszahlung } from '../kern/rechnung.js'
 import { rechneProjekt } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
+import * as Ordner from './ordner.js'
+import * as Reihenfolge from './reihenfolge.js'
 import { fotoknoepfe } from './fotoknoepfe.js'
 import { istAngeheftet, heftAn } from './nadeln.js'
+// Dieselben Eingabefelder wie im Reiter Scheine, aus einer Quelle
+// (Projektregel 8). Siehe oberflaeche/scheinfelder.js.
+import {
+  textfeld,
+  zahlfeld,
+  quotenfeld,
+  zeitfeld,
+  statuswahl,
+  schalter,
+} from './scheinfelder.js'
 
 /**
+ * DREI EBENEN, seit dem 17.09.2026.
+ *
+ * Karam: "Nummer 1, hier ist die Uebersicht, da sind alle Riesenscheine
+ * angezeigt und Folder. Wenn man einen Riesenschein aufmacht, kommt der
+ * Riesenschein dann in die Mitte, und ganz links werden dann alle Scheine
+ * angezeigt, die in diesem Riesenschein sind. Kann man sie dann separat
+ * aufmachen, und dann sieht man im grossen Bereich, welche Einsaetze man hat,
+ * da kann man die auch bearbeiten. Man kann dann auch auf Zurueck druecken."
+ *
+ *   Ebene 1   auswahl ist null                    die Uebersicht
+ *   Ebene 2   auswahl gesetzt, scheinAuswahl null ein Riesenschein
+ *   Ebene 3   scheinAuswahl gesetzt               ein einzelner Schein
+ *
+ * Die Ebene steht NICHT eigens im Zustand, sie folgt aus diesen beiden Feldern.
+ * Eine dritte Angabe koennte mit ihnen auseinanderlaufen (Projektregel 8).
+ *
+ * WAS GEPRUEFT WIRD, BEVOR GEZEICHNET WIRD: ob die Auswahl noch auf etwas
+ * zeigt, das es gibt. Nach jedem Neuordnen aendert sich die Kennung einer
+ * Gruppe mit ihrer Signatur, und eine alte Kennung zeigt ins Leere. Vorher
+ * blieb die Mitte dann einfach leer, ohne jede Meldung. Jetzt faellt sie auf
+ * die naechsthoehere Ebene zurueck, und man steht wieder auf festem Boden.
+ *
  * @param {HTMLElement} ziel
  */
 export function zeichne(ziel) {
   const stand = Zustand.hole()
 
-  // Eine offene, noch leere Huelle ist KEIN Leerstand: sie wartet auf Fotos.
-  // Der Leerhinweis darunter wuerde sonst behaupten, es gaebe nichts.
-  if (stand.riesenscheine.length === 0 && !stand.huelle) {
+  const offenerId =
+    stand.auswahl !== null && stand.riesenscheine.some((r) => r.id === stand.auswahl)
+      ? stand.auswahl
+      : null
+
+  const scheineDrin = offenerId ? Zustand.scheineVon(offenerId) : []
+  const scheinId =
+    offenerId && stand.scheinAuswahl && scheineDrin.some((s) => s.id === stand.scheinAuswahl)
+      ? stand.scheinAuswahl
+      : null
+
+  // Ebene 3: ein einzelner Schein, gross und aenderbar.
+  if (offenerId && scheinId) {
+    fuelle(ziel, [einzelschein(offenerId, scheinId, scheineDrin)])
+    return
+  }
+
+  // Ebene 2: ein Riesenschein.
+  if (offenerId) {
     fuelle(ziel, [
-      el('.leerhinweis', {}, [
-        el('p.leer-titel', { text: 'Noch kein Riesenschein da.' }),
-        el('p.leer-text', {
-          text: 'Sobald Scheine gelesen sind, werden gleiche Wetten hier automatisch zusammengefasst.',
-        }),
-      ]),
+      zurueckleiste('Alle Riesenscheine', 'Zurueck zur Uebersicht', () =>
+        Zustand.aendere({ auswahl: null, scheinAuswahl: null })
+      ),
+      einzelheit(offenerId),
     ])
     return
   }
 
+  // Ebene 1: die Uebersicht.
+  fuelle(ziel, [uebersicht(stand)])
+}
+
+/**
+ * Der Weg zurueck, immer ganz oben und immer gleich aussehend.
+ *
+ * Karam am 17.09.2026: "man kann dann auch auf Zurueck druecken."
+ *
+ * @param {string} beschriftung
+ * @param {string} hilfe
+ * @param {() => void} was
+ * @returns {HTMLElement}
+ */
+function zurueckleiste(beschriftung, hilfe, was) {
+  return el('.zurueckleiste', {}, [
+    el('button.knopf.knopf-klein.zurueckknopf', {
+      type: 'button',
+      text: `< ${beschriftung}`,
+      title: hilfe,
+      onclick: was,
+    }),
+  ])
+}
+
+/**
+ * EBENE 1: alle Riesenscheine und alle Ordner auf einen Blick.
+ *
+ * Karam am 17.09.2026: "hier ist die Uebersicht, da sind alle Riesenscheine
+ * angezeigt und Folder." Und: "die Ordner werden auch miteinander gerechnet."
+ *
+ * Gefiltert und angeordnet wird ueber oberflaeche/reihenfolge.js, also mit
+ * genau derselben Rechnung wie die Liste links. Staende die Sortierung an
+ * beiden Stellen, saehe die Spalte links irgendwann anders aus als die Kacheln
+ * hier, und niemand wuesste, welche stimmt (Projektregel 8).
+ *
+ * @param {any} stand
+ * @returns {HTMLElement}
+ */
+function uebersicht(stand) {
   const rechnungen = stand.riesenscheine.map((r) => Zustand.rechnungVon(r.id))
   const gesamt = rechneProjekt(rechnungen)
-  /*
-    DIE AUSWAHL MUSS AUF ETWAS ZEIGEN, DAS ES GIBT.
+  const ordner = Ordner.alleOrdner(stand.riesenscheine)
+  const ohne = Ordner.anzahlOhneOrdner(stand.riesenscheine)
+  const sichtbar = Reihenfolge.ordne(
+    stand.riesenscheine,
+    { ordnerFilter: stand.ordnerFilter, sortierung: stand.sortierung },
+    Zustand.rechnungVon
+  )
 
-    Karam am 16.09.2026: "einmal das immer als Default, wenn man das aufmacht,
-    den aktuellen Riesenschein, den man gerade anhat."
-
-    Vorher stand hier nur ein ?? auf den ersten Eintrag. Das greift aber nur,
-    wenn auswahl LEER ist, nicht wenn sie auf einen Riesenschein zeigt, den es
-    nicht mehr gibt. Genau das passiert nach jedem Neuordnen: wird ein Wert
-    berichtigt, aendert sich die Signatur einer Gruppe, und die alte Kennung
-    zeigt ins Leere. Die Mitte blieb dann einfach leer, ohne jede Meldung.
-
-    Jetzt wird geprueft, ob die Auswahl noch existiert, und sonst auf den
-    ersten Riesenschein zurueckgefallen. Ein leerer Bildschirm ohne Grund ist
-    das Schlimmste, was eine Ansicht tun kann.
-  */
-  const auswahlLebt =
-    stand.auswahl !== null && stand.riesenscheine.some((r) => r.id === stand.auswahl)
-  const gewaehlt = auswahlLebt ? stand.auswahl : (stand.riesenscheine[0]?.id ?? null)
-
-  // Bei genau einem Riesenschein waere der Projektkopf reine Wiederholung:
-  // dieselbe Summe stuende dann dreimal auf dem Bildschirm, oben in der Leiste,
-  // im Projektkopf und im Riesenschein selbst. Dreimal dieselbe Zahl liest sich
-  // nicht dreimal so gut, sie macht nur unsicher, ob es wirklich dieselbe ist.
-  //
-  // Erst ab zwei Riesenscheinen sagt die Gesamtsumme etwas Neues.
-  const mehrereWetten = stand.riesenscheine.length > 1
-
-  fuelle(ziel, [
-    /*
-      DER KNOPF FUER EINEN NEUEN RIESENSCHEIN, ganz oben.
-
-      Karam am 16.09.2026: "die Buttons vor allem um das Erstellen eines neuen
-      Riesenscheines ist mir sehr wichtig. Es wird einfach taeglich mehrere
-      Riesenscheine gespielt."
-
-      Er hat sich bewusst fuer die leere Huelle entschieden: der Knopf macht
-      einen leeren, benannten Riesenschein auf, und ALLES, was danach gelesen
-      wird, landet darin.
-
-      Das schaltet die automatische Zuordnung fuer neue Scheine ab, und deshalb
-      steht darueber ein deutlicher Streifen, solange eine Huelle offen ist.
-      Wer das nicht sieht, wundert sich sonst, warum zwei verschiedene Wetten
-      in einem Riesenschein landen.
-    */
-    huellenleiste(stand),
-    mehrereWetten ? projektkopf(gesamt) : null,
-    // Die Liste links waehlt zwischen Riesenscheinen aus. Bei nur einem gibt es
-    // nichts auszuwaehlen.
-    // DREI SPALTEN, seit dem 16.09.2026.
-    //
-    // Karam: "rechts einfach ein Panel bei den Riesenscheinen, wo alles drauf
-    // ist, und dann hat man einfach den offenen Schein in der Main, und links
-    // das Panel, da sind alle Scheine drinnen."
-    //
-    //   links   alle Riesenscheine zum Umschalten
-    //   Mitte   der offene Riesenschein mit seinen Zahlen
-    //   rechts  die einzelnen Scheine darin, nummeriert, plus Fotoknoepfe
-    //
-    // Die Liste links faellt weg, wenn es nur einen Riesenschein gibt: dann
-    // gaebe es nichts auszuwaehlen. Die Spalte rechts bleibt immer, denn dort
-    // liegt der Weg, ein Foto nachzureichen.
-    /*
-      ZWEI SPALTEN, seit dem 16.09.2026, vorher drei.
-
-      Karam: "vor allem bei Riesenscheinen soll dieser linke Panel dafuer sein,
-      alle Scheine aufzulisten. Und den grossen Schein einfach hier in der
-      Mitte. Und da rechts einfach alle Minischeine."
-
-      Die Auswahlliste stand vorher als eigene Spalte hier drin, und links
-      daneben lag NOCH das Panel des Programms. Das waren vier Spalten, zwei
-      davon nur zum Auswaehlen. Die Liste ist jetzt im Panel (zeichnePanel in
-      app.js), und was hier bleibt, sind die beiden, um die es geht:
-
-        Mitte   der offene Riesenschein mit seinen Zahlen
-        rechts  die einzelnen Scheine darin
-    */
-    el('.positionsspalten', {}, [
-      gewaehlt ? einzelheit(gewaehlt) : null,
-      gewaehlt ? scheinpanel(gewaehlt) : null,
+  return el('.uebersicht', {}, [
+    el('.uebersichtkopf', {}, [
+      el('.uebersichttitel', {}, [
+        el('h2', { text: 'Alle Riesenscheine' }),
+        el('p.uebersichtunter', {
+          text:
+            stand.riesenscheine.length === 0
+              ? 'Noch keiner da.'
+              : `${stand.riesenscheine.length} im Projekt ${stand.projekt?.name || 'ohne Namen'}` +
+                (stand.ordnerFilter === null ? '' : `, ${sichtbar.length} davon werden gezeigt`),
+        }),
+      ]),
+      neuerknopf(stand),
     ]),
+
+    // Die Projektsumme erst ab zwei Riesenscheinen: bei einem staende dieselbe
+    // Zahl zweimal auf dem Bildschirm, und das macht nur unsicher, ob es
+    // wirklich dieselbe ist.
+    stand.riesenscheine.length > 1 ? projektkopf(gesamt) : null,
+
+    /*
+      DIE ORDNER, MIT IHREN SUMMEN.
+
+      Karam am 17.09.2026: "in einem Ordner sind Riesenscheine drinnen, und
+      diese Ordner werden auch miteinander gerechnet."
+
+      Gezaehlt wird hier nichts selbst: ordnersumme in reihenfolge.js zaehlt
+      zusammen, was kern/rechnung.js je Riesenschein schon ausgerechnet hat.
+      Und es wird NIE ueber Waehrungen hinweg summiert: kommen mehrere vor,
+      bleibt die Kachel ohne Summe und sagt warum.
+
+      DIE ZUORDNUNG LIEGT DERZEIT NUR AUF DIESEM GERAET. kombi.riesenscheine
+      hat keine Spalte dafuer, und Karams Datenbank ruehre ich ohne sein Wort
+      nicht an. Das steht auch fuer ihn sichtbar unter den Kacheln, damit er
+      sich nicht darauf verlaesst, dass sein Kollege dieselben Ordner sieht.
+    */
+    ordner.length > 0 || ohne > 0
+      ? el('.ordnerbereich', {}, [
+          el('.teiltitel', { text: 'Ordner' }),
+          el('.ordnerkacheln', {}, [
+            ordnerkachel(stand, null, 'Alle zusammen', stand.riesenscheine.length),
+            ohne > 0 ? ordnerkachel(stand, Ordner.OHNE_ORDNER, 'Ohne Ordner', ohne) : null,
+            ...ordner.map((o) => ordnerkachel(stand, o.name, o.name, o.anzahl)),
+          ]),
+          ordner.length > 0
+            ? el('p.ordnerhinweis', {
+                text:
+                  'Die Ordner liegen bis auf Weiteres nur in diesem Browser. ' +
+                  'Sie wandern nicht zu deinem Kollegen mit, weil die Datenbank ' +
+                  'dafür noch keine Spalte hat. Zahlen und Scheine wandern wie immer mit.',
+              })
+            : null,
+        ])
+      : null,
+
+    sichtbar.length === 0
+      ? el('.leerhinweis', {}, [
+          el('p.leer-titel', {
+            text:
+              stand.riesenscheine.length === 0
+                ? 'Noch kein Riesenschein da.'
+                : 'In diesem Ordner liegt gerade nichts.',
+          }),
+          el('p.leer-text', {
+            text:
+              stand.riesenscheine.length === 0
+                ? 'Mach mit dem Knopf oben einen neuen auf, dann lade die Bildschirmfotos hinein. ' +
+                  'Gleiche Wetten wandern sonst auch von selbst zusammen.'
+                : 'Wähle oben "Alle zusammen", dann siehst du wieder jeden.',
+          }),
+        ])
+      : el(
+          '.riesenkarten',
+          {},
+          sichtbar.map((r) => riesenkarte(r, stand))
+        ),
   ])
+}
+
+/**
+ * Der Knopf, der einen neuen Riesenschein anlegt.
+ *
+ * Karam am 17.09.2026: "ein neuer Riesenschein, wenn ich diesen Knopf druecke,
+ * komme ich auf einen neuen Riesenschein. Das heisst, ich habe jetzt 10, dann
+ * bekomme ich 11. Einen komplett neuen, keine Huelle schliessen, nichts."
+ *
+ * Es wird deshalb NICHTS gefragt und nichts geschlossen. Der Name kommt von
+ * selbst und steht oben im Riesenschein in einem Feld, in das man einfach
+ * hineinschreibt.
+ *
+ * @param {any} stand
+ * @returns {HTMLElement}
+ */
+function neuerknopf(stand) {
+  return el('button.knopf.knopf-haupt.neuerknopf', {
+    type: 'button',
+    text: 'Neuer Riesenschein',
+    title:
+      'Legt sofort einen neuen, leeren Riesenschein an und macht ihn auf. ' +
+      'Alles, was du danach hochlädst, landet darin, bis du den nächsten anlegst.',
+    onclick: () => {
+      const id = Zustand.macheHuelleAuf(`Riesenschein ${stand.riesenscheine.length + 1}`)
+      Reihenfolge.merkeGeoeffnet(id)
+    },
+  })
+}
+
+/**
+ * Eine Ordnerkachel mit ihrer Summe.
+ *
+ * @param {any} stand
+ * @param {string|null} wert
+ * @param {string} beschriftung
+ * @param {number} anzahl
+ * @returns {HTMLElement}
+ */
+function ordnerkachel(stand, wert, beschriftung, anzahl) {
+  const gewaehlt = stand.ordnerFilter === wert
+
+  // "Alle zusammen" und "Ohne Ordner" sind keine Ordner im Sinne der Summe:
+  // die eine Zahl steht schon im Projektkopf, die andere waere eine Summe
+  // ueber lauter Unzusammengehoeriges. Beide zeigen deshalb nur die Anzahl.
+  const summe =
+    wert !== null && wert !== Ordner.OHNE_ORDNER
+      ? Reihenfolge.ordnersumme(stand.riesenscheine, wert, Zustand.rechnungVon)
+      : null
+
+  return el(
+    'button.ordnerkachel',
+    {
+      type: 'button',
+      daten: { gewaehlt: String(gewaehlt) },
+      title: gewaehlt ? 'Wird gerade gezeigt' : `Nur ${beschriftung} zeigen`,
+      onclick: () => Zustand.aendere({ ordnerFilter: wert }),
+    },
+    [
+      el('.ordnerkachelname', { text: beschriftung }),
+      el('.ordnerkachelzahl', {
+        text: anzahl === 1 ? '1 Riesenschein' : `${anzahl} Riesenscheine`,
+      }),
+      summe === null
+        ? null
+        : summe.gemischt
+          ? el('.ordnerkachelwarnung', {
+              text: 'Währungen gemischt, deshalb keine Summe',
+            })
+          : el('.ordnerkachelsumme', {}, [
+              el('span', { text: 'gesetzt' }),
+              el('strong', { text: formatiere(summe.einsatz, summe.waehrung, 'de') }),
+              el('span', { text: 'kann zurück' }),
+              el('strong', { text: formatiere(summe.moeglich, summe.waehrung, 'de') }),
+            ]),
+    ]
+  )
+}
+
+/**
+ * Eine Karte je Riesenschein in der Uebersicht.
+ *
+ * @param {import('../kern/typen.js').Riesenschein} riesenschein
+ * @param {any} stand
+ * @returns {HTMLElement}
+ */
+function riesenkarte(riesenschein, stand) {
+  const rechnung = Zustand.rechnungVon(riesenschein.id)
+  const w = rechnung.waehrung
+  const liegtIn = Ordner.ordnerVon(riesenschein.id)
+  const empfaengt = stand.huelle?.id === riesenschein.id
+  const etwasEntschieden = rechnung.einsatzEntschieden > 0.005
+  const schwere = rechnung.hinweise.some((h) => h.schwere === 'fehler')
+    ? 'fehler'
+    : rechnung.hinweise.some((h) => h.schwere === 'warnung')
+      ? 'warnung'
+      : 'gut'
+
+  return el(
+    'button.riesenkarte',
+    {
+      type: 'button',
+      daten: { schwere },
+      title: `${riesenschein.name || 'Ohne Namen'} aufmachen`,
+      onclick: () => {
+        Reihenfolge.merkeGeoeffnet(riesenschein.id)
+        Zustand.aendere({ auswahl: riesenschein.id, scheinAuswahl: null })
+      },
+    },
+    [
+      el('.riesenkartekopf', {}, [
+        el('.riesenkartename', { text: riesenschein.name || 'Ohne Namen' }),
+        liegtIn ? el('span.ordnermarke', { text: liegtIn }) : null,
+        /*
+          WER NEUE FOTOS AUFNIMMT, MUSS SEHEN, WO SIE LANDEN.
+
+          Solange ein Riesenschein neu aufgemacht ist, wandert alles Gelesene
+          hinein, und die automatische Zuordnung ist dafuer abgeschaltet. Am
+          16.09.2026 hat genau das drei verschiedene Wetten zu einer Position
+          von 17.717,48 EUR verschmolzen. Aufgebrochen wird trotzdem nichts:
+          Karam legt die Scheine selbst dorthin, und gegen seine Entscheidung
+          zu gruppieren waere eine Automatik ohne Pruefstein in die
+          Gegenrichtung (Projektregel 1). Gesagt werden muss es aber, und zwar
+          da, wo man hinsieht (Projektregel 9).
+        */
+        empfaengt ? el('span.empfangsmarke', { text: 'nimmt neue Fotos auf' }) : null,
+      ]),
+      el('.riesenkartezahlen', {}, [
+        zahlenpaar('Gesetzt', formatiere(rechnung.einsatzGesamt, w, 'de'), 'neutral'),
+        zahlenpaar('Kann zurück', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut'),
+        etwasEntschieden
+          ? zahlenpaar(
+              'Ergebnis',
+              formatiere(rechnung.ergebnisRealisiert, w, 'de'),
+              rechnung.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht'
+            )
+          : zahlenpaar('Im Risiko', formatiere(rechnung.imRisiko, w, 'de'), 'offen'),
+      ]),
+      el('.riesenkartefuss', {
+        text:
+          `${rechnung.anzahlScheine} Schein(e) bei ${rechnung.anzahlBuchmacher} Anbieter(n)` +
+          (rechnung.hinweise.length > 0 ? `, ${rechnung.hinweise.length} Anmerkung(en)` : ''),
+      }),
+    ]
+  )
 }
 
 /**
@@ -316,38 +552,41 @@ function einzelheit(riesenscheinId) {
       }),
     ]),
 
-  ])
-}
+    /*
+      DIE SCHEINE, AUS DENEN DER RIESENSCHEIN BESTEHT.
 
-/**
- * Die rechte Spalte: alle Scheine dieses Riesenscheins, nummeriert.
- *
- * WARUM RECHTS UND NICHT UNTEN
- *
- * Ein Riesenschein besteht aus vielen einzelnen Scheinen, oft sechzig. Standen
- * sie unter den Zahlen, musste man scrollen, um ueberhaupt zu sehen, wie viele
- * es sind, und die Zahlen oben waren dann weg. Nebeneinander sieht man beides
- * zugleich: was zusammengerechnet herauskommt, und woraus es sich zusammensetzt.
- *
- * OBEN DIE FOTOKNOEPFE. Karam wollte ausdruecklich, dass sich auch von hier aus
- * ein Bildschirmfoto machen oder eine Datei hochladen laesst. Die Ansicht
- * wechselt dabei NICHT: wer hier ein Foto nachreicht, will hier bleiben.
- *
- * @param {string} riesenscheinId
- * @returns {HTMLElement}
- */
-function scheinpanel(riesenscheinId) {
-  const stand = Zustand.hole()
-  const riesenschein = stand.riesenscheine.find((r) => r.id === riesenscheinId)
-  if (!riesenschein) return el('div')
-  const scheine = Zustand.scheineVon(riesenscheinId)
+      Sie standen bis zum 17.09.2026 in einer eigenen Spalte rechts. Seit es
+      die drei Ebenen gibt, listet die Spalte GANZ LINKS die Scheine, und eine
+      zweite Auswahlliste daneben waere dieselbe Auskunft zweimal.
 
-  return el('.scheinpanel', {}, [
-    el('.spaltentitel', {
-      text: scheine.length === 1 ? '1 Schein' : `${scheine.length} Scheine`,
-      title: 'Die einzelnen Wettscheine, aus denen dieser Riesenschein besteht',
-    }),
-    fotoknoepfe({ kompakt: true, titel: 'Foto hinzufuegen' }),
+      Karam am 17.09.2026: "ganz links werden dann alle Scheine, die in diesem
+      Riesenschein sind, angezeigt."
+
+      Was hier steht, gibt es links NICHT: das Foto, die Zeit, die Notiz, die
+      Pfeile fuer die Reihenfolge und der Knopf "nach Zeit". Links steht die
+      Spur zum Springen, hier steht das Blatt.
+    */
+    el('.scheinbereichkopf', {}, [
+      el('.spaltentitel', {
+        text: scheine.length === 1 ? '1 Schein darin' : `${scheine.length} Scheine darin`,
+        title: 'Die einzelnen Wettscheine, aus denen dieser Riesenschein besteht',
+      }),
+      /*
+        HIER STEHEN KEINE FOTOKNOEPFE MEHR.
+
+        Sie standen hier, solange die Scheinliste eine eigene Spalte rechts war
+        und der Riesenschein eine eigene links: zwei Spalten, zwei Wege zum
+        Foto. Seit dem 17.09.2026 steht beides untereinander in DERSELBEN
+        Spalte, und dann standen dieselben drei Knoepfe zweimal auf einem
+        Bildschirm, keine zwanzig Zentimeter auseinander.
+
+        Zweimal derselbe Knopf ist keine Hilfe, sondern die Frage, ob die
+        beiden dasselbe tun. Sie stehen jetzt nur noch oben rechts am
+        Riesenschein, so wie Karam es am 16.09.2026 wollte: "man hat einen
+        Button rechts oben, da kann man einfach ein Bildschirmfoto, ein Foto
+        hinzufuegen."
+      */
+    ]),
     scheinliste(riesenschein, scheine),
   ])
 }
@@ -529,7 +768,7 @@ function scheinliste(riesenschein, scheine) {
 
         return el('.scheinkaertchen', { daten: { status: schein.status } }, [
           el('.kaertchennummer', { text: String(i + 1) }),
-          el('.kärtcheninhalt', {}, [
+          el('.kaertcheninhalt', {}, [
             el('.kaertchenanbieter', {}, [
               anbieterzeichen(schein.buchmacher.wert),
               el('span', { text: schein.buchmacher.wert ?? 'Anbieter offen' }),
@@ -719,6 +958,8 @@ function riesenkopf(riesenschein, stand) {
       el('.riesenkopf-zahl', {
         text: `${riesenschein.scheinIds.length === 1 ? '1 Schein' : `${riesenschein.scheinIds.length} Scheine`} darin`,
       }),
+
+      ordnerfeld(riesenschein, stand),
     ]),
 
     /*
@@ -749,6 +990,34 @@ function riesenkopf(riesenschein, stand) {
     ]),
 
     el('.riesenkopf-rechts', {}, [
+      /*
+        WOHIN NEUE FOTOS GEHEN, MUSS AM RIESENSCHEIN STEHEN.
+
+        Solange dieser Riesenschein der zuletzt aufgemachte ist, wandert jedes
+        neu gelesene Bild hinein, und die automatische Zuordnung ist dafuer
+        abgeschaltet (zustand.js, fuegeScheineHinzu). Am 16.09.2026 hat genau
+        das drei verschiedene Wetten zu einer Position von 17.717,48 EUR
+        verschmolzen, ohne dass es irgendwo stand.
+
+        Karam am 17.09.2026: "keine Huelle schliessen, nichts." Der frueher
+        hier stehende Streifen mit dem Knopf "Huelle schliessen" ist deshalb
+        weg. Geblieben ist die Auskunft, und ein Weg, sie abzustellen: wer
+        gemischte Wetten hochlaedt, soll die automatische Zuordnung wieder
+        einschalten koennen, ohne erst einen zweiten Riesenschein anzulegen.
+      */
+      stand.huelle?.id === riesenschein.id
+        ? el('.empfangsleiste', {}, [
+            el('span.empfangsmarke', { text: 'nimmt neue Fotos auf' }),
+            el('button.knopf.knopf-winzig', {
+              type: 'button',
+              text: 'nicht mehr',
+              title:
+                'Neue Scheine werden danach wieder automatisch zugeordnet, ' +
+                'also nach der Wette, die auf ihnen steht. Was schon drin ist, bleibt drin.',
+              onclick: () => Zustand.schliesseHuelle(),
+            }),
+          ])
+        : null,
       // Die Nadel legt den Riesenschein ins Panel links. Von dort ist er aus
       // jeder Ansicht einen Klick entfernt.
       el('button.knopf.knopf-klein.riesennadel', {
@@ -765,6 +1034,51 @@ function riesenkopf(riesenschein, stand) {
       // taucht unten in der Liste auf.
       fotoknoepfe({ kompakt: true, titel: 'Foto hinzufuegen' }),
     ]),
+  ])
+}
+
+/**
+ * In welchem Ordner dieser Riesenschein liegt.
+ *
+ * Karam am 17.09.2026: "in einem Ordner sind Riesenscheine drinnen", und "der
+ * geht einfach in den Ordner rein".
+ *
+ * EIN TEXTFELD MIT VORSCHLAEGEN und keine Liste zum Auswaehlen: ein Ordner
+ * entsteht dadurch, dass man einen Namen hineinschreibt, und verschwindet,
+ * sobald nichts mehr darin liegt. Eine Liste haette eine zweite Verwaltung
+ * gebraucht, in der Ordner auch leer bestehen bleiben, und das waere eine
+ * zweite Wahrheit ueber dieselbe Sache (Projektregel 8).
+ *
+ * Wer das Feld leert, nimmt den Riesenschein aus dem Ordner heraus. Der
+ * Riesenschein selbst wird dabei nicht angeruehrt.
+ *
+ * @param {import('../kern/typen.js').Riesenschein} riesenschein
+ * @param {any} stand
+ * @returns {HTMLElement}
+ */
+function ordnerfeld(riesenschein, stand) {
+  const jetzigerOrdner = Ordner.ordnerVon(riesenschein.id)
+  const bekannte = Ordner.alleOrdner(stand.riesenscheine)
+  const listenId = `ordnerliste-${riesenschein.id}`
+
+  return el('label.riesenkopf-ordner', {}, [
+    el('span.riesenkopf-ordnerwort', { text: 'Ordner' }),
+    el('input.riesenkopf-ordnerfeld', {
+      type: 'text',
+      value: jetzigerOrdner,
+      list: listenId,
+      placeholder: 'in keinem Ordner',
+      title:
+        'Schreib einen Namen hinein, dann liegt dieser Riesenschein in dem Ordner. ' +
+        'Gibt es den Namen noch nicht, entsteht der Ordner dabei. Leeren nimmt ihn wieder heraus.',
+      onchange: (e) =>
+        Ordner.legeIn(riesenschein.id, /** @type {HTMLInputElement} */ (e.target).value),
+    }),
+    el(
+      'datalist',
+      { id: listenId },
+      bekannte.map((o) => el('option', { value: o.name }))
+    ),
   ])
 }
 
@@ -858,69 +1172,229 @@ function ausgangsknopf(riesenschein, ausgang) {
 function zahlenpaar(name, wert, art) {
   return el('.kaertchenpaar', { daten: { art } }, [
     el('span.kaertchenwort', { text: name }),
-    el('span.kärtchenzahl', { text: wert }),
+    el('span.kaertchenzahl', { text: wert }),
   ])
 }
 
 /**
- * Der Knopf fuer einen neuen Riesenschein, und der Streifen, der sagt, dass
- * gerade eine Huelle offen ist.
+ * EBENE 3: ein einzelner Schein, gross und aenderbar.
  *
- * @param {any} stand
+ * Karam am 17.09.2026: "kann man sie dann separat aufmachen, und dann sieht
+ * man im grossen Bereich, welche Einsaetze man hat, da kann man die auch
+ * bearbeiten."
+ *
+ * DIE FELDER KOMMEN AUS oberflaeche/scheinfelder.js, also aus derselben Quelle
+ * wie die Tabelle im Reiter Scheine. Eine zweite Abschrift waere eine zweite
+ * Stelle, an der sich das Lesen einer Zahl anders verhaelt, und genau daran
+ * ist am 16.09.2026 aus "5000.00" schon einmal 500000 geworden
+ * (Projektregel 8).
+ *
+ * GERECHNET WIRD HIER NICHTS. Aufwand, moeglicher Gewinn und Rueckfluss kommen
+ * aus kern/rechnung.js.
+ *
+ * @param {string} riesenscheinId
+ * @param {string} scheinId
+ * @param {import('../kern/typen.js').Schein[]} alle
  * @returns {HTMLElement}
  */
-function huellenleiste(stand) {
-  const huelle = stand.huelle
-  const drin = huelle
-    ? (stand.riesenscheine.find((r) => r.id === huelle.id)?.scheinIds.length ?? 0)
-    : 0
+function einzelschein(riesenscheinId, scheinId, alle) {
+  const stand = Zustand.hole()
+  const riesenschein = stand.riesenscheine.find((r) => r.id === riesenscheinId)
+  const schein = alle.find((s) => s.id === scheinId)
+  if (!riesenschein || !schein) return el('div')
 
-  return el('.huellenleiste', { daten: { offen: String(Boolean(huelle)) } }, [
-    huelle
-      ? el('.huellentext', {}, [
-          el('span.huellenmarke', { text: 'OFFEN' }),
-          el('span.hüllenname', { text: huelle.name }),
-          el('span.hüllenhinweis', {
-            text:
-              drin === 0
-                ? 'Alles, was du jetzt aufnimmst, landet hier. Automatisch zugeordnet wird nichts.'
-                : `${drin} Schein(e) darin. Alles Weitere landet ebenfalls hier.`,
-          }),
-        ])
-      : el('span.huellenhinweis', {
-          text:
-            'Riesenscheine entstehen von selbst: gleiche Wetten wandern zusammen. ' +
-            'Fuer eine neue Wette kannst du vorher eine leere Huelle aufmachen.',
-        }),
+  const platz = alle.indexOf(schein)
+  const w = schein.waehrung.wert ?? 'UNBEKANNT'
+  const rueckfluss = realisierterRueckfluss(schein)
+  const potenzial = offenePotenzialauszahlung(schein)
+  const einsatzBar = barEinsatz(schein)
+  const moeglicherGewinn =
+    potenzial.bekannt && potenzial.wert !== null ? potenzial.wert - einsatzBar : null
+  const bild = stand.bilder.get(schein.bildId)
 
-    el('.huellenknoepfe', {}, [
-      huelle
-        ? el('button.knopf.knopf-klein', {
-            type: 'button',
-            text: 'Hülle schließen',
-            title:
-              'Neue Scheine werden danach wieder automatisch zugeordnet. ' +
-              'Was schon drin ist, bleibt als Riesenschein bestehen.',
-            onclick: () => Zustand.schliesseHuelle(),
+  /**
+   * Eine beschriftete Zeile im Formular.
+   *
+   * @param {string} name
+   * @param {HTMLElement} feld
+   * @param {string} [hilfe]
+   * @returns {HTMLElement}
+   */
+  const feldzeile = (name, feld, hilfe) =>
+    el('label.formularzeile', {}, [
+      el('span.formularname', { text: name, title: hilfe ?? '' }),
+      feld,
+      hilfe ? el('span.formularhilfe', { text: hilfe }) : null,
+    ])
+
+  /**
+   * Einen anderen Schein desselben Riesenscheins aufmachen.
+   *
+   * @param {number} schritt
+   * @returns {HTMLElement|null}
+   */
+  const nachbarknopf = (schritt) => {
+    const ziel = alle[platz + schritt]
+    if (!ziel) return null
+    return el('button.knopf.knopf-klein', {
+      type: 'button',
+      text: schritt < 0 ? '< voriger Schein' : 'nächster Schein >',
+      title: `Schein ${platz + schritt + 1} von ${alle.length} aufmachen`,
+      onclick: () => Zustand.aendere({ scheinAuswahl: ziel.id }),
+    })
+  }
+
+  return el('.scheingross', {}, [
+    /*
+      ZWEI WEGE ZURUECK, und beide stehen oben.
+
+      Von einem einzelnen Schein will man entweder zu seinem Riesenschein oder
+      gleich zur Uebersicht. Beides steht da: wer den Weg raten muss, klickt
+      irgendwohin und findet sich woanders wieder.
+    */
+    el('.zurueckleiste', {}, [
+      el('button.knopf.knopf-klein.zurueckknopf', {
+        type: 'button',
+        text: `< ${riesenschein.name || 'Riesenschein'}`,
+        title: 'Zurueck zum ganzen Riesenschein',
+        onclick: () => Zustand.aendere({ scheinAuswahl: null }),
+      }),
+      el('button.knopf.knopf-klein', {
+        type: 'button',
+        text: '<< Alle Riesenscheine',
+        title: 'Zurueck zur Uebersicht',
+        onclick: () => Zustand.aendere({ auswahl: null, scheinAuswahl: null }),
+      }),
+      el('span.zurueckstand', { text: `Schein ${platz + 1} von ${alle.length}` }),
+    ]),
+
+    el('.scheingrosskopf', { daten: { status: schein.status } }, [
+      anbieterzeichen(schein.buchmacher.wert),
+      el('.scheingrossname', {}, [
+        el('strong', { text: schein.buchmacher.wert ?? 'Anbieter offen' }),
+        el('span', { text: schein.scheinNr.wert ? `Nr. ${schein.scheinNr.wert}` : 'ohne Nummer' }),
+      ]),
+      el('span.scheingrossstatus', { text: statusText(schein.status) }),
+    ]),
+
+    /*
+      DIE DREI ZAHLEN, DIE KARAM AM SCHEIN SEHEN WILL.
+
+      Karam am 16.09.2026: "bei der kleinen Anzeige von jedem einzelnen Schein
+      bei den Riesenscheinen immer Einsatz, moeglicher Gewinn und
+      Multiplikator." Dasselbe gilt gross.
+
+      Steht keine Quote auf dem Schein, bleibt die Stelle leer statt null zu
+      zeigen. Eine Null waere eine Aussage, und zwar eine falsche
+      (Projektregel 1).
+    */
+    el('.kachelreihe.kachelreihe-wichtig', {}, [
+      kachel('Einsatz', formatiere(einsatzBar, w, 'de'), 'neutral',
+        schein.gratiswette
+          ? 'Gratiswette: kein eigenes Geld im Spiel'
+          : schein.eachWay
+            ? 'Each Way: der Einsatz wird doppelt abgebucht'
+            : 'Tatsächlicher Geldaufwand'),
+      kachel('Möglicher Gewinn',
+        moeglicherGewinn === null ? '-' : formatiere(moeglicherGewinn, w, 'de'),
+        moeglicherGewinn === null ? 'neutral' : 'gut',
+        'Ohne den Einsatz'),
+      kachel('Multiplikator', formatiereQuote(schein.quoteDezimal.wert, 'dezimal', 'de'), 'neutral',
+        'Die Quote, wie sie auf dem Schein steht'),
+    ]),
+
+    el('.formularblock', {}, [
+      el('.teiltitel', { text: 'Was auf dem Schein steht' }),
+      el('.formulargitter', {}, [
+        feldzeile('Anbieter', textfeld(schein, 'buchmacher', 'Anbieter', '.formularwert')),
+        feldzeile('Konto', textfeld(schein, 'konto', 'Konto', '.formularwert')),
+        feldzeile('Schein-Nummer', textfeld(schein, 'scheinNr', 'Nummer', '.formularwert')),
+        feldzeile('Gesetzt am', zeitfeld(schein, '.formularwert'), 'Leer lassen, wenn nichts draufsteht'),
+        feldzeile('Ausgang', statuswahl(schein, '.formularwert')),
+        feldzeile('Einsatz', zahlfeld(schein, 'einsatz', w, '.formularwert')),
+        feldzeile('Quote', quotenfeld(schein, '.formularwert')),
+        feldzeile('Auszahlung', zahlfeld(schein, 'auszahlung', w, '.formularwert'),
+          'Einsatz mal Quote, so wie der Anbieter sie anzeigt'),
+        feldzeile('Tatsächlich ausgezahlt', zahlfeld(schein, 'ausgezahlt', w, '.formularwert'),
+          'Erst eintragen, wenn abgerechnet wurde'),
+      ]),
+      el('.formularschalter', {}, [
+        schalter(schein, 'gratiswette', 'Gratiswette (kein eigenes Geld)'),
+        schalter(schein, 'eachWay', 'Each Way (doppelter Einsatz)'),
+        schalter(schein, 'ausgeschlossen', 'Ganz aus der Rechnung nehmen'),
+      ]),
+      rueckfluss.bekannt && rueckfluss.wert !== null
+        ? el('p.formularzurueck', {
+            text: `Zurückgekommen: ${formatiere(rueckfluss.wert, w, 'de')}`,
           })
         : null,
-      el('button.knopf.knopf-haupt.huellenknopf', {
-        type: 'button',
-        text: 'Neuen Riesenschein',
-        title:
-          'Macht einen leeren, benannten Riesenschein auf. Alles, was du danach ' +
-          'aufnimmst, landet darin, bis du ihn schließt.',
-        onclick: () => {
-          const vorschlag = `Wette ${stand.riesenscheine.length + 1} vom ${new Date().toLocaleDateString('de-DE')}`
-          const name = prompt('Wie soll der neue Riesenschein heißen?', vorschlag)
-          if (name === null) return
-          Zustand.macheHuelleAuf(name)
-          Zustand.melde(
-            'info',
-            `"${name.trim() || 'Neuer Riesenschein'}" ist offen. Alles, was du jetzt aufnimmst, landet darin.`
-          )
-        },
+    ]),
+
+    // Die Beine der Kombination. Nur Anzeige: was der Schein sagt, sagt er.
+    schein.auswahlen.length > 0
+      ? el('.formularblock', {}, [
+          el('.teiltitel', {
+            text: schein.auswahlen.length === 1 ? '1 Auswahl' : `${schein.auswahlen.length} Auswahlen`,
+          }),
+          el(
+            'ul.beinliste',
+            {},
+            schein.auswahlen.map((a) =>
+              el('li', {}, [
+                el('strong', { text: a.tipp.wert ?? 'Tipp nicht gelesen' }),
+                a.ereignis.wert ? el('span', { text: a.ereignis.wert }) : null,
+                a.markt.wert ? el('span', { text: a.markt.wert }) : null,
+                a.quoteDezimal.wert !== null
+                  ? el('span.beinquote', {
+                      text: formatiereQuote(a.quoteDezimal.wert, 'dezimal', 'de'),
+                    })
+                  : null,
+              ])
+            )
+          ),
+        ])
+      : null,
+
+    // Anmerkungen bleiben IMMER sichtbar, nie im Aufklapper. Eine Warnung, die
+    // man erst aufklappen muss, ist keine Warnung.
+    schein.hinweise.length > 0
+      ? el('.formularblock', {}, [
+          el('.teiltitel', { text: 'Anmerkungen zu diesem Schein' }),
+          el(
+            'ul.blockliste',
+            {},
+            schein.hinweise.map((h) => el('li', { daten: { schwere: h.schwere }, text: h.text }))
+          ),
+        ])
+      : null,
+
+    el('.formularblock', {}, [
+      el('.teiltitel', { text: 'Notiz zu diesem Schein' }),
+      el('textarea.notizfeld', {
+        rows: '3',
+        placeholder: 'Warum dieser Schein, was ist aufgefallen',
+        text: schein.notiz ?? '',
+        onchange: (e) =>
+          Zustand.setzeScheinNotiz(schein.id, /** @type {HTMLTextAreaElement} */ (e.target).value),
       }),
     ]),
+
+    /*
+      DAS FOTO IST IMMER DABEI.
+
+      Karam am 16.09.2026: "wenn man die separat aufmacht, moechte ich, dass da
+      immer ein Foto dabei ist, das Foto immer angezeigt wird."
+
+      Gezeigt wird genau der Ausschnitt, aus dem gelesen wurde. Nach einem
+      Neuladen sind die Bilder unter Umstaenden nicht mehr da, sie liegen auf
+      dem Geraet. Dann bleibt ein leerer Rahmen stehen statt zu verschwinden:
+      er sagt, dass hier ein Bild hingehoert.
+    */
+    el('.formularblock', {}, [
+      el('.teiltitel', { text: 'Der Ausschnitt, aus dem gelesen wurde' }),
+      el('.scheingrossfoto', {}, [ausschnittbild(bild, schein.ausschnitt)]),
+    ]),
+
+    el('.scheingrossfuss', {}, [nachbarknopf(-1), nachbarknopf(1)]),
   ])
 }

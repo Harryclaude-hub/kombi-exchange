@@ -101,7 +101,9 @@
           scheine,
           riesenscheine,
           restposten: ergebnis.restposten ?? [],
-          auswahl: riesenscheine[0]?.id ?? null,
+          // auswahl bleibt null: das ist seit dem 17.09.2026 die Uebersicht
+          // (Ebene 1). Stuende hier der erste Riesenschein, zeigte die Probe
+          // die Uebersicht nie, und genau die will man ansehen.
           ansicht: 'start',
           projekt: {
             id: 'probe',

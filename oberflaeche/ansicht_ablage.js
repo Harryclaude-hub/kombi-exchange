@@ -421,7 +421,19 @@ function projektzeile(p, stand) {
     { daten: { offen: String(offen), gepinnt: String(p.angepinnt === true) }, draggable: 'true' },
     [
       kaestchen,
-      el('.projektkopf', {}, [name, p.ordner ? el('.projektordner', { text: p.ordner }) : null]),
+      /*
+        HIESS BIS ZUM 17.09.2026 .projektkopf, genau wie der Block mit den
+        Projektsummen ueber den Riesenscheinen. Zwei verschiedene Sachen mit
+        demselben Namen, und in bauteile.css stand die Regel von hier WEITER
+        UNTEN: sie hat den anderen Block von einem Raster in eine Zeile
+        verwandelt.
+
+        Gemessen am 17.09.2026 bei 375 Pixeln Breite: die drei Projektzahlen
+        standen als 38 Pixel breite Saeulen nebeneinander, ein Buchstabe je
+        Zeile. Breit fiel es nicht auf, weil eine Zeile dort aussieht wie ein
+        Raster.
+      */
+      el('.projektzeilenkopf', {}, [name, p.ordner ? el('.projektordner', { text: p.ordner }) : null]),
       el('.projektdatum', {
         text: `geaendert ${zeitText(p.geaendertAm)}`,
         title: `angelegt ${zeitText(p.angelegtAm)}`,
