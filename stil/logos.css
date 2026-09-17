@@ -357,3 +357,17 @@
 [data-anbieter="888sport"] { --anbieterfarbe: #1a7a3c; }
 [data-anbieter="parimatch"] { --anbieterfarbe: #856c00; }  /* nachgedunkelt von #ffd100, weiss traegt 5.07:1 */
 [data-anbieter="marathonbet"] { --anbieterfarbe: #003a70; }
+
+/* ---- ERZEUGT von werkzeug/logos_eintragen.mjs. Nicht von Hand aendern. ---- */
+/*
+  Eine Zeile je Datei, die wirklich in stil/logos/ liegt.
+
+  color: transparent macht das Kuerzel unsichtbar, WEIL das Bild darueber
+  liegt. Deshalb darf hier nie ein Anbieter stehen, dessen Datei fehlt:
+  sonst waere das Kaestchen leer. Dieses Werkzeug kann das nicht falsch
+  machen, denn es liest den Ordner, statt einer Liste zu glauben.
+*/
+
+/* Noch keine Logodatei vorhanden. Alle Anbieter tragen ihr farbiges Kuerzel. */
+
+/* ---- Ende des erzeugten Blocks ---- */

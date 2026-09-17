@@ -485,6 +485,36 @@ for (const ordner of UMLAUT_ORDNER) {
   }
 }
 
+// --- Bilder, auf die eine Stilvorlage zeigt ---
+//
+// Am 17.09.2026 gefunden: dieses Skript prueft tote Importe in JavaScript und
+// tote Verweise in index.html, aber NICHT die url() in einer CSS-Datei. Eine
+// vergessene Logodatei faellt damit nirgends auf, und das ist der
+// gefaehrlichste Fall von allen: die Regel dazu setzt color auf transparent,
+// weil das Bild die Schrift verdecken soll. Fehlt das Bild, bleibt ein LEERES
+// Kaestchen stehen. Genau der leere Fleck, den Karam nicht wollte.
+
+for (const datei of dateien) {
+  const pfad = datei.split(path.sep).join('/')
+  if (!pfad.endsWith('.css')) continue
+  // Kommentare heraus, BEVOR gesucht wird. In stil/logos.css steht ein
+  // Beispiel im Kommentarkopf, und ohne diesen Schritt beanstandet die Regel
+  // die Anleitung, die sie erklaert. Beim ersten Lauf genau so passiert.
+  const inhalt = fs.readFileSync(path.join(wurzel, datei), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const ordner = path.dirname(path.join(wurzel, datei))
+  for (const treffer of inhalt.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g)) {
+    const ziel = treffer[1]
+    if (/^(data:|https?:|\/\/)/.test(ziel)) continue
+    if (!fs.existsSync(path.resolve(ordner, ziel))) {
+      beanstandungen.push({
+        art: 'totes-bild',
+        datei: pfad,
+        text: `url("${ziel}") zeigt ins Leere. Ohne die Datei bleibt an dieser Stelle ein leeres Feld.`,
+      })
+    }
+  }
+}
+
 // --- Probehaken gehoeren in die Probe ---
 //
 // daten/plattenspeicher.js hat einen Weg, den Ordnergriff von Hand zu setzen.

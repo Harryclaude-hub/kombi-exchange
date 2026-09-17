@@ -936,7 +936,7 @@ function ordnerkachel(stand, wert, beschriftung, anzahl) {
     },
     [
       el('.ordnerkachelname', {}, [
-        stufenzeichen('ordner-riesenschein', o.name),
+        stufenzeichen('ordner-riesenschein', beschriftung),
         beschriftung,
       ]),
       el('.ordnerkachelzahl', {
