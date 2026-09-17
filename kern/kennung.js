@@ -308,19 +308,19 @@ export function vergleicheScheine(a, b) {
       if (!Number.isFinite(tage)) {
         // Unlesbares Datum darf nicht wie ein passendes Datum wirken.
         punkte *= 0.9
-        gruende.push('Der Zeitpunkt liess sich nicht vergleichen.')
+        gruende.push('Der Zeitpunkt ließ sich nicht vergleichen.')
       } else if (tage <= 2) {
         punkte *= 0.97
         gruende.push(`Die Scheine liegen ${Math.round(tage)} Tag(e) auseinander.`)
       } else if (tage <= 7) {
         punkte *= 0.55
         gruende.push(
-          `Die Scheine liegen ${Math.round(tage)} Tage auseinander. Das spricht eher fuer zwei verschiedene Wetten.`
+          `Die Scheine liegen ${Math.round(tage)} Tage auseinander. Das spricht eher für zwei verschiedene Wetten.`
         )
       } else {
         punkte *= 0.2
         gruende.push(
-          `Die Scheine liegen ${Math.round(tage)} Tage auseinander. Dieselbe Wette wird nicht ueber ` +
+          `Die Scheine liegen ${Math.round(tage)} Tage auseinander. Dieselbe Wette wird nicht über ` +
             'Wochen verteilt gesetzt, das ist mit hoher Wahrscheinlichkeit eine andere Begegnung.'
         )
       }

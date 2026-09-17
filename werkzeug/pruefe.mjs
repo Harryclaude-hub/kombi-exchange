@@ -294,6 +294,193 @@ try {
   })
 }
 
+/*
+  ANGEZEIGTER TEXT TRAEGT ECHTE UMLAUTE.
+
+  Karam am 16.09.2026: "Erklaerung mit E-Umlaut, nicht mit AE."
+
+  Am 16.09. bin ich das mit Suchen und Ersetzen angegangen und habe dabei
+  dreimal Code beschaedigt: Bezeichner umbenannt, Ausdruecke in Vorlagen
+  zerschnitten. Am 17.09. habe ich es im Browser nachgemessen und WIEDER
+  Fundstellen gefunden, die beide Durchgaenge uebersehen hatten: "Erklaerung"
+  stand noch auf der Startseite, "Kann zurueckkommen" in der Kopfzeile,
+  "Bitte pruefen" in einem Dutzend Hinweisen aus dem Kern.
+
+  Zweimal uebersehen heisst: von Hand geht es nicht. Deshalb steht es jetzt
+  hier, und zwar als PRUEFUNG und nicht als Ersetzung: gemeldet wird, geaendert
+  wird von Hand. Eine Maschine, die in Zeichenketten schreibt, hat in diesem
+  Projekt schon genug angerichtet.
+
+  GEPRUEFT WIRD NUR, WAS IN EINER ZEICHENKETTE STEHT. Kommentare, Bezeichner
+  und die Ausdruecke in ${...} bleiben unberuehrt: dort ist "pruefe" ein
+  Funktionsname und kein angezeigter Text.
+*/
+
+/** Woerter, die im Deutschen einen Umlaut tragen, hier ohne geschrieben. */
+const UMLAUTWOERTER = [
+  'Zurueck', 'zurueck', 'Uebersicht', 'uebersicht', 'Erklaerung', 'erklaerung',
+  'Waehrung', 'waehrung', 'Waehrungen', 'waehrungen', 'pruefen', 'Pruefen',
+  'pruefe', 'geprueft', 'Pruefung', 'pruefung', 'zaehlt', 'zaehlen', 'Zaehler',
+  'moeglich', 'Moegliche', 'moegliche', 'hoechst', 'Hoechst', 'groesser',
+  'Groesse', 'groesste', 'laesst', 'waehle', 'waehlen', 'gewaehlt', 'Auswaehlen',
+  'hinzufuegen', 'ausloesen', 'Ausloesen', 'loeschen', 'Loeschen', 'geloescht',
+  'aendern', 'Aendern', 'geaendert', 'naechste', 'naechsten', 'Naechste',
+  'koennen', 'koennte', 'muessen', 'traegt', 'traegst', 'spaeter', 'frueher',
+  'ungefaehr', 'zusaetzlich', 'aehnlich', 'Anhaenge', 'Vorschlaege',
+  'aussagekraeftig', 'Betraege', 'Eintraege', 'zusammengezaehlt', 'Rueckfluss',
+  'rueckfluss', 'geoeffnet', 'schliessen', 'Schliessen', 'oeffnen', 'Oeffnen',
+  'fuer', 'Fuer', 'ueber', 'Ueber', 'Erklaer', 'erklaer', 'Huelle', 'huelle',
+  'Kaertchen', 'Saeule', 'staerker', 'Stueck', 'stueck', 'zurueckkommen',
+  'zurueckgeflossen', 'noetig', 'Noetig',
+]
+
+/**
+ * Alle Zeichenketten einer JavaScript-Datei, mit ihrer Zeilennummer.
+ *
+ * Von Hand durchgegangen und nicht mit einem Ausdruck: ein Ausdruck, der
+ * Kommentare, drei Arten von Anfuehrungszeichen und ${...} in Vorlagen
+ * auseinanderhaelt, waere selbst die naechste Fehlerquelle. Diese Schleife ist
+ * laenger und dafuer lesbar.
+ *
+ * @param {string} text
+ * @returns {{zeile: number, wert: string, art: string}[]}
+ */
+function zeichenketten(text) {
+  const heraus = []
+  let i = 0
+  let zeile = 1
+  const laenge = text.length
+
+  while (i < laenge) {
+    const z = text[i]
+
+    if (z === '\n') { zeile += 1; i += 1; continue }
+
+    // Zeilenkommentar
+    if (z === '/' && text[i + 1] === '/') {
+      while (i < laenge && text[i] !== '\n') i += 1
+      continue
+    }
+
+    // Blockkommentar
+    if (z === '/' && text[i + 1] === '*') {
+      i += 2
+      while (i < laenge && !(text[i] === '*' && text[i + 1] === '/')) {
+        if (text[i] === '\n') zeile += 1
+        i += 1
+      }
+      i += 2
+      continue
+    }
+
+    if (z === "'" || z === '"') {
+      const beginn = zeile
+      const ende = z
+      let wert = ''
+      i += 1
+      while (i < laenge && text[i] !== ende) {
+        if (text[i] === '\\') { wert += text[i + 1] ?? ''; i += 2; continue }
+        if (text[i] === '\n') break
+        wert += text[i]
+        i += 1
+      }
+      i += 1
+      heraus.push({ zeile: beginn, wert, art: 'einfach' })
+      continue
+    }
+
+    if (z === '`') {
+      const beginn = zeile
+      let wert = ''
+      i += 1
+      let tiefe = 0
+      while (i < laenge) {
+        if (tiefe === 0 && text[i] === '`') { i += 1; break }
+        if (text[i] === '\\') { wert += text[i + 1] ?? ''; i += 2; continue }
+        // Was in ${...} steht, ist CODE und kein angezeigter Text.
+        if (tiefe === 0 && text[i] === '$' && text[i + 1] === '{') {
+          tiefe = 1
+          i += 2
+          while (i < laenge && tiefe > 0) {
+            if (text[i] === '{') tiefe += 1
+            else if (text[i] === '}') tiefe -= 1
+            else if (text[i] === '\n') zeile += 1
+            i += 1
+          }
+          wert += ' '
+          continue
+        }
+        if (text[i] === '\n') zeile += 1
+        wert += text[i]
+        i += 1
+      }
+      heraus.push({ zeile: beginn, wert, art: 'vorlage' })
+      continue
+    }
+
+    i += 1
+  }
+
+  return heraus
+}
+
+/**
+ * Ob eine Zeichenkette ueberhaupt angezeigter Text sein kann.
+ *
+ * Kein Weg, kein Auswahlausdruck, kein Bezeichner. "Erklaerung" allein ist
+ * Text, ".ordnerkachel" und "kombi_scheine_lesen" sind es nicht.
+ *
+ * @param {string} wert
+ * @returns {boolean}
+ */
+function istAnzeigetext(wert) {
+  if (wert.length < 3) return false
+  if (wert.startsWith('.') || wert.startsWith('#')) return false
+  if (wert.includes('/') || wert.includes('\\')) return false
+  // Ein einzelnes Wort ohne Leerzeichen ist nur dann Text, wenn es mit einem
+  // Grossbuchstaben anfaengt. Bezeichner in diesem Projekt fangen klein an.
+  if (!wert.includes(' ')) return /^[A-ZÄÖÜ]/.test(wert)
+  return true
+}
+
+const UMLAUT_ORDNER = ['oberflaeche', 'kern', 'bild', 'lesen', 'ausgabe', 'daten']
+
+/*
+  ZWEI DATEIEN SIND AUSGENOMMEN, UND DAS IST WICHTIG.
+
+  kern/etiketten.js und kern/buchmacher.js enthalten MUSTER, an denen gelesener
+  Text erkannt wird, keine Anzeige. Dort steht "moegliche auszahlung" absichtlich
+  NEBEN "mögliche auszahlung": beide Schreibweisen kommen auf echten Scheinen
+  vor, und der Parser muss beide finden. Wer hier Umlaute setzt, macht ihn auf
+  einem Teil der Scheine blind, ohne dass ein Test es merkt.
+*/
+const UMLAUT_AUSGENOMMEN = new Set(['kern/etiketten.js', 'kern/buchmacher.js'])
+
+for (const ordner of UMLAUT_ORDNER) {
+  const weg = path.join(wurzel, ordner)
+  if (!fs.existsSync(weg)) continue
+  for (const datei of fs.readdirSync(weg)) {
+    if (!datei.endsWith('.js')) continue
+    if (UMLAUT_AUSGENOMMEN.has(`${ordner}/${datei}`)) continue
+    const voll = path.join(weg, datei)
+    const text = fs.readFileSync(voll, 'utf8')
+    for (const k of zeichenketten(text)) {
+      if (!istAnzeigetext(k.wert)) continue
+      for (const wort of UMLAUTWOERTER) {
+        // Ganzes Wort, damit "fuer" nicht in "fuenf" trifft.
+        const treffer = new RegExp(`(^|[^A-Za-zÄÖÜäöüß])${wort}([^A-Za-zÄÖÜäöüß]|$)`)
+        if (!treffer.test(k.wert)) continue
+        beanstandungen.push({
+          art: 'umlaut',
+          datei: `${ordner}/${datei}:${k.zeile}`,
+          text: `Angezeigter Text schreibt "${wort}" statt mit Umlaut: "${k.wert.slice(0, 70)}"`,
+        })
+        break
+      }
+    }
+  }
+}
+
 // --- Bericht ---
 
 console.log(`${geprueft} Dateien geprueft.`)

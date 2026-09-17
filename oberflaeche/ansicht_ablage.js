@@ -608,7 +608,7 @@ function kombiblock(titel, scheine, datum) {
       : null,
     el('.kombisumme', {}, [
       summe('Einsatz', gemischt ? '-' : formatiere(einsatz, eine)),
-      summe('moeglicher Gewinn', gemischt ? '-' : formatiere(moeglich, eine)),
+      summe('möglicher Gewinn', gemischt ? '-' : formatiere(moeglich, eine)),
       summe('Multiplikator', multiplikator === null ? '-' : formatiereQuote(multiplikator)),
       summe('zurueck', gemischt ? '-' : formatiere(zurueck, eine)),
     ]),
@@ -667,7 +667,7 @@ function oeffne(p) {
 
 /** @param {import('../kern/typen.js').Projekt} p */
 function benenneUm(p) {
-  const neu = window.prompt('Neuer Name fuer dieses Projekt:', p.name)
+  const neu = window.prompt('Neuer Name für dieses Projekt:', p.name)
   if (neu === null) return
   const sauber = neu.trim()
   if (sauber === '' || sauber === p.name) return

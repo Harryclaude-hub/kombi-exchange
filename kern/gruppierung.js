@@ -212,7 +212,7 @@ export function verschmelze(alt, neu) {
     schwere: 'info',
     text:
       `Dieser Schein wurde aus zwei Aufnahmen zusammengefuehrt (${alt.id} und ${neu.id}). ` +
-      'Er zaehlt nur einmal.',
+      'Er zählt nur einmal.',
   })
 
   return {
@@ -342,7 +342,7 @@ export function gruppiere(scheine, einstellungen = {}) {
     if (schein.auswahlen.length === 0) {
       restposten.push({
         scheinId: schein.id,
-        grund: 'Keine Auswahl erkannt. Ohne Auswahl laesst sich nicht sagen, zu welcher Wette der Schein gehoert.',
+        grund: 'Keine Auswahl erkannt. Ohne Auswahl lässt sich nicht sagen, zu welcher Wette der Schein gehört.',
       })
       continue
     }
@@ -352,7 +352,7 @@ export function gruppiere(scheine, einstellungen = {}) {
         scheinId: schein.id,
         grund:
           `Derselbe Schein wurde schon einmal erfasst. ${fund ? fund.grund : ''} ` +
-          'Er ist aus den Summen herausgenommen, damit der Einsatz nicht doppelt zaehlt.',
+          'Er ist aus den Summen herausgenommen, damit der Einsatz nicht doppelt zählt.',
       })
       continue
     }

@@ -99,7 +99,7 @@ export async function starte(ziel) {
 
   const gemerkt = localStorage.getItem(SITZUNG_SCHLUESSEL) ?? ''
   if (gemerkt) {
-    zeichneWarten('Zugang wird geprueft')
+    zeichneWarten('Zugang wird geprüft')
     const pruefung = await Datenbank.pruefeSitzung(gemerkt)
     if (pruefung.gueltig) {
       Zustand.aendere({ angemeldet: true, token: gemerkt, datenbankErreichbar: true })
@@ -206,7 +206,7 @@ function zeichneTor() {
       return
     }
     knopf.setAttribute('disabled', 'disabled')
-    meldung.textContent = 'Wird geprueft ...'
+    meldung.textContent = 'Wird geprüft ...'
     meldung.dataset.art = 'info'
 
     const ergebnis = await Datenbank.loeseCodeEin(code)
@@ -867,12 +867,12 @@ async function loescheProjekte(ids) {
     if (aenderung.projekt) await ladeProjektinhalt(aenderung.projekt.id)
     Zustand.melde(
       'erfolg',
-      weg.length === 1 ? 'Projekt geloescht.' : `${weg.length} Projekte geloescht.`
+      weg.length === 1 ? 'Projekt gelöscht.' : `${weg.length} Projekte gelöscht.`
     )
   }
 
   if (gescheitert.length > 0) {
-    Zustand.melde('fehler', `Nicht geloescht: ${gescheitert.join(' | ')}`)
+    Zustand.melde('fehler', `Nicht gelöscht: ${gescheitert.join(' | ')}`)
   }
 }
 
@@ -898,7 +898,7 @@ async function speichereProjektAngaben(projekt) {
   if (!zeile) {
     // Null Zeilen zurueck heisst: es wurde nichts geschrieben. Das sieht sonst
     // genauso aus wie Erfolg, und beim naechsten Laden steht der alte Wert da.
-    Zustand.melde('warnung', 'Nicht gespeichert: die Datenbank hat nichts zurueckgemeldet.')
+    Zustand.melde('warnung', 'Nicht gespeichert: die Datenbank hat nichts zurückgemeldet.')
     return
   }
 
@@ -927,7 +927,7 @@ async function legeProjektAn(name) {
 
   const antwort = await Datenbank.speichereProjekt(stand.token, projekt)
   if (antwort.art === 'fehler') {
-    Zustand.melde('warnung', `Das Projekt liess sich nicht anlegen: ${antwort.meldung}`)
+    Zustand.melde('warnung', `Das Projekt ließ sich nicht anlegen: ${antwort.meldung}`)
     return
   }
 
@@ -966,7 +966,7 @@ async function leereAktuellesProjekt() {
   Zustand.arbeite(false)
 
   if (antwort.art === 'fehler') {
-    Zustand.melde('fehler', `Das Projekt liess sich nicht leeren: ${antwort.meldung}`)
+    Zustand.melde('fehler', `Das Projekt ließ sich nicht leeren: ${antwort.meldung}`)
     return
   }
 
@@ -1539,7 +1539,7 @@ function panelScheine(stand, riesenschein, schmal) {
       'button.panelknopf.panelzurueck',
       {
         type: 'button',
-        title: 'Zurueck zu allen Riesenscheinen',
+        title: 'Zurück zu allen Riesenscheinen',
         onclick: () => Zustand.aendere({ auswahl: null, scheinAuswahl: null }),
       },
       [
@@ -1706,7 +1706,7 @@ async function ladeAlles() {
     }
     const angelegt = await Datenbank.speichereProjekt(stand.token, projekt)
     if (angelegt.art === 'fehler') {
-      Zustand.melde('warnung', `Das Projekt liess sich nicht anlegen: ${angelegt.meldung}`)
+      Zustand.melde('warnung', `Das Projekt ließ sich nicht anlegen: ${angelegt.meldung}`)
     }
     // Was die Datenbank zurueckmeldet, ist massgeblich, nicht was hier gedacht wird.
     const zeileAngelegt = Array.isArray(angelegt.daten) ? angelegt.daten[0] : angelegt.daten
@@ -1737,7 +1737,7 @@ async function ladeAlles() {
   await ladeBilderVomGeraet(projekt.id)
   Zustand.melde(
     'erfolg',
-    `${scheine.daten.length} Schein(e) geladen. Willkommen zurueck.`
+    `${scheine.daten.length} Schein(e) geladen. Willkommen zurück.`
   )
   zeichneHuelle()
 

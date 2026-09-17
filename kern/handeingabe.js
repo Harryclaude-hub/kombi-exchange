@@ -75,7 +75,7 @@ export function leseGeldEingabe(text, gebiet = 'de') {
       wert: null,
       mehrdeutig: fund.mehrdeutig,
       ausPlausibilitaet: false,
-      grund: fund.grund || 'Das laesst sich nicht als Betrag lesen.',
+      grund: fund.grund || 'Das lässt sich nicht als Betrag lesen.',
     }
   }
 

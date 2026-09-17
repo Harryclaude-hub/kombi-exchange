@@ -116,7 +116,7 @@ function grossezahlen(gesamt) {
         ` bei ${gesamt.buchmacher.length === 1 ? '1 Anbieter' : `${gesamt.buchmacher.length} Anbietern`}`
     ),
     startkachel(
-      'Kann zurueckkommen',
+      'Kann zurückkommen',
       formatiere(gesamt.auszahlungMoeglich, w, 'de'),
       'gut',
       'Wenn alles Offene gewinnt, einschließlich Einsatz'
@@ -206,7 +206,7 @@ function wettenkachel(riesenschein, rechnung, stand) {
     'button.startwette',
     {
       type: 'button',
-      title: `Riesenschein "${riesenschein.name || 'Ohne Namen'}" oeffnen`,
+      title: `Riesenschein "${riesenschein.name || 'Ohne Namen'}" öffnen`,
       onclick: () => {
         Zustand.aendere({ ansicht: 'positionen', auswahl: riesenschein.id })
       },
@@ -291,9 +291,9 @@ function naechsteSchritte(stand) {
         'aufnahme'
       ),
       startweg(
-        'Scheine pruefen',
+        'Scheine prüfen',
         hatScheine
-          ? `${stand.scheine.length} gelesene Scheine durchsehen und wo noetig von Hand berichtigen.`
+          ? `${stand.scheine.length} gelesene Scheine durchsehen und wo nötig von Hand berichtigen.`
           : 'Hier stehen die gelesenen Scheine, sobald es welche gibt.',
         'scheine'
       ),
@@ -312,7 +312,7 @@ function naechsteSchritte(stand) {
         'Deine Projekte und Ordner. Hier liegt, was du früher gemacht hast, über Monate und Jahre.',
         'ablage'
       ),
-      startweg('Erklaerung', 'Jede Seite dieses Programms, Schritt für Schritt erklärt.', 'hilfe'),
+      startweg('Erklärung', 'Jede Seite dieses Programms, Schritt für Schritt erklärt.', 'hilfe'),
     ]),
   ])
 }

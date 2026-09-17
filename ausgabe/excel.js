@@ -62,7 +62,7 @@ export function ladeExcel() {
     }
     schild.onerror = () => {
       excelLaedt = null
-      ablehnen(new Error(`Die Excel-Bibliothek liess sich nicht laden: ${quelle}`))
+      ablehnen(new Error(`Die Excel-Bibliothek ließ sich nicht laden: ${quelle}`))
     }
     document.head.appendChild(schild)
   })
@@ -123,7 +123,7 @@ export async function baueMappe(posten, einstellungen) {
   // activeTab zaehlt die POSITION in der Mappe, nicht die Blattnummer. Die
   // beiden sind hier zufaellig gleich, aber sobald ein Blatt dazukommt oder
   // wegfaellt, laufen sie auseinander und es waere das falsche Blatt offen.
-  const stelle = mappe.worksheets.findIndex((b) => b.name === 'Uebersicht')
+  const stelle = mappe.worksheets.findIndex((b) => b.name === 'Übersicht')
   if (stelle >= 0) mappe.views = [{ activeTab: stelle }]
 
   const puffer = await mappe.xlsx.writeBuffer()
@@ -156,13 +156,13 @@ function baueScheineBlatt(mappe, eintraege, gebiet) {
     { header: 'Status', key: 'status', width: 16 },
     { header: 'Einsatz laut Schein', key: 'einsatz', width: 18 },
     { header: 'Aufwand in bar', key: 'aufwand', width: 16 },
-    { header: 'Waehrung', key: 'waehrung', width: 10 },
+    { header: 'Währung', key: 'waehrung', width: 10 },
     { header: 'Quote dezimal', key: 'quote', width: 14 },
     { header: 'Quote amerikanisch', key: 'quoteUS', width: 18 },
     { header: 'Auszahlung gelesen', key: 'auszahlungGelesen', width: 18 },
     { header: 'Auszahlung gerechnet', key: 'auszahlungGerechnet', width: 20 },
     { header: 'Abweichung', key: 'abweichung', width: 14 },
-    { header: 'Tatsaechlich zurueck', key: 'zurueck', width: 18 },
+    { header: 'Tatsächlich zurück', key: 'zurueck', width: 18 },
     { header: 'Ergebnis', key: 'ergebnis', width: 14 },
     { header: 'Gratiswette', key: 'gratis', width: 12 },
     { header: 'Each Way', key: 'eachway', width: 10 },
@@ -280,7 +280,7 @@ function baueScheineBlatt(mappe, eintraege, gebiet) {
   }
   blatt.getCell(`A${summenZeile + 1}`).value =
     gebiet === 'de'
-      ? 'Achtung: die Summe ist nur aussagekraeftig, wenn alle Zeilen dieselbe Waehrung haben.'
+      ? 'Achtung: die Summe ist nur aussagekräftig, wenn alle Zeilen dieselbe Währung haben.'
       : 'Note: the total is only meaningful if every row uses the same currency.'
 
   return { letzteZeile }
@@ -308,14 +308,14 @@ function baueRiesenscheinBlatt(mappe, posten, letzteScheinZeile, gebiet) {
     { header: 'Davon offen', key: 'offen', width: 14 },
     { header: 'Davon entschieden', key: 'entschieden', width: 18 },
     { header: 'Effektive Quote', key: 'quote', width: 14 },
-    { header: 'Moegliche Auszahlung', key: 'auszahlung', width: 20 },
-    { header: 'Moeglicher Gewinn', key: 'gewinn', width: 18 },
-    { header: 'Bisher zurueck', key: 'zurueck', width: 16 },
+    { header: 'Mögliche Auszahlung', key: 'auszahlung', width: 20 },
+    { header: 'Möglicher Gewinn', key: 'gewinn', width: 18 },
+    { header: 'Bisher zurück', key: 'zurueck', width: 16 },
     { header: 'Ergebnis bisher', key: 'ergebnis', width: 16 },
     { header: 'Noch im Risiko', key: 'risiko', width: 14 },
     { header: 'Bestenfalls', key: 'bestenfalls', width: 14 },
     { header: 'Schlimmstenfalls', key: 'schlimmstenfalls', width: 16 },
-    { header: 'Waehrung', key: 'waehrung', width: 10 },
+    { header: 'Währung', key: 'waehrung', width: 10 },
     { header: 'Anbieterliste', key: 'liste', width: 46 },
   ]
   kopfzeile(blatt)
@@ -438,7 +438,7 @@ function baueAnbieterBlatt(mappe, posten, gebiet) {
     { header: 'Scheine', key: 'anzahl', width: 9 },
     { header: 'Einsatz', key: 'einsatz', width: 16 },
     { header: 'Anteil', key: 'anteil', width: 10 },
-    { header: 'Moegliche Auszahlung', key: 'auszahlung', width: 20 },
+    { header: 'Mögliche Auszahlung', key: 'auszahlung', width: 20 },
     { header: 'Schnittquote', key: 'quote', width: 14 },
   ]
   kopfzeile(blatt)
@@ -574,7 +574,7 @@ function baueHinweisBlatt(mappe, posten, einstellungen) {
  * @param {'de'|'en'} gebiet
  */
 function baueUebersichtBlatt(mappe, posten, einstellungen, letzteScheinZeile, gebiet) {
-  const blatt = mappe.addWorksheet('Uebersicht')
+  const blatt = mappe.addWorksheet('Übersicht')
   blatt.columns = [
     { key: 'a', width: 30 },
     { key: 'b', width: 24 },
@@ -623,11 +623,11 @@ function baueUebersichtBlatt(mappe, posten, einstellungen, letzteScheinZeile, ge
 
   zeilennummer++
   const geldZeilen = [
-    ['Gesamteinsatz', 'einsatzGesamt', 'Summe aller Einsaetze, Gratiswetten zaehlen nicht mit'],
+    ['Gesamteinsatz', 'einsatzGesamt', 'Summe aller Einsaetze, Gratiswetten zählen nicht mit'],
     ['Davon noch offen', 'einsatzOffen', 'Einsatz der Scheine, die noch nicht entschieden sind'],
-    ['Moegliche Auszahlung', 'auszahlungMoeglich', 'Was zurueckkaeme, wenn alles Offene gewinnt'],
-    ['Moeglicher Gewinn', 'gewinnMoeglich', 'Moegliche Auszahlung minus Gesamteinsatz'],
-    ['Bisher zurueck', 'auszahlungRealisiert', 'Aus bereits entschiedenen Scheinen'],
+    ['Mögliche Auszahlung', 'auszahlungMoeglich', 'Was zurueckkaeme, wenn alles Offene gewinnt'],
+    ['Möglicher Gewinn', 'gewinnMoeglich', 'Mögliche Auszahlung minus Gesamteinsatz'],
+    ['Bisher zurück', 'auszahlungRealisiert', 'Aus bereits entschiedenen Scheinen'],
     ['Ergebnis bisher', 'ergebnisRealisiert', 'Nur entschiedene Scheine, auf beiden Seiten der Rechnung'],
     ['Noch im Risiko', 'imRisiko', 'Der Einsatz, der noch verloren gehen kann'],
     ['Bestenfalls', 'bestenfalls', 'Endergebnis, wenn ab jetzt alles gewinnt'],
@@ -653,8 +653,8 @@ function baueUebersichtBlatt(mappe, posten, einstellungen, letzteScheinZeile, ge
     zeilennummer++
     const warnung = blatt.getCell(`A${zeilennummer}`)
     warnung.value =
-      'ACHTUNG: In dieser Mappe kommen mehrere Waehrungen vor. Die Summen oben addieren ' +
-      'verschiedene Waehrungen und sind deshalb NICHT aussagekraeftig.'
+      'ACHTUNG: In dieser Mappe kommen mehrere Währungen vor. Die Summen oben addieren ' +
+      'verschiedene Währungen und sind deshalb NICHT aussagekräftig.'
     warnung.font = { bold: true, color: { argb: 'FFB00020' } }
   }
 

@@ -546,7 +546,7 @@ export function zerlege(quelle, einstellungen = {}) {
 
   if (verworfen.length > 0) {
     hinweise.push(
-      `${verworfen.length} Stueck(e) waren flacher als ${mindestHoehe} Bildpunkte ` +
+      `${verworfen.length} Stück(e) waren flacher als ${mindestHoehe} Bildpunkte ` +
         `(${verworfen.join(', ')}) und wurden nicht als Karte genommen. ` +
         'Wenn dort ein Schein stand, fehlt er jetzt.'
     )
@@ -554,7 +554,7 @@ export function zerlege(quelle, einstellungen = {}) {
 
   let verfahren = fund.verfahren
   if (karten.length === 0) {
-    hinweise.push('Es liess sich keine Karte abgrenzen. Das ganze Bild wird als eine Karte behandelt.')
+    hinweise.push('Es ließ sich keine Karte abgrenzen. Das ganze Bild wird als eine Karte behandelt.')
     karten.push({ ...bereich })
     verfahren = 'ungeteilt'
   }
@@ -565,7 +565,7 @@ export function zerlege(quelle, einstellungen = {}) {
   if (!fund.unterscheidbar) {
     hinweise.push(
       'Karten- und Seitenhintergrund sind fast gleich hell. Die Trennung ist deshalb unsicher, ' +
-        'bitte die Schnittkanten pruefen.'
+        'bitte die Schnittkanten prüfen.'
     )
   }
 

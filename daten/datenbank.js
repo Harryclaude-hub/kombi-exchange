@@ -144,7 +144,7 @@ export async function loeseCodeEin(code) {
       gelungen: false,
       token: '',
       laeuftAb: '',
-      meldung: 'Die Datenbank hat keinen Zugang zurueckgegeben.',
+      meldung: 'Die Datenbank hat keinen Zugang zurückgegeben.',
     }
   }
 

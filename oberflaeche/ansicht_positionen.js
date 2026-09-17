@@ -79,7 +79,7 @@ export function zeichne(ziel) {
   // Ebene 2: ein Riesenschein.
   if (offenerId) {
     fuelle(ziel, [
-      zurueckleiste('Alle Riesenscheine', 'Zurueck zur Uebersicht', () =>
+      zurueckleiste('Alle Riesenscheine', 'Zurück zur Übersicht', () =>
         Zustand.aendere({ auswahl: null, scheinAuswahl: null })
       ),
       einzelheit(offenerId),
@@ -268,7 +268,7 @@ function imOrdner(stand, ordner, gezeigt) {
   const summe = leer ? null : Reihenfolge.ordnersumme(stand.riesenscheine, ordner, Zustand.rechnungVon)
 
   return el('.uebersicht', {}, [
-    zurueckleiste('Alle Ordner', 'Zurueck zur Uebersicht', () =>
+    zurueckleiste('Alle Ordner', 'Zurück zur Übersicht', () =>
       Zustand.aendere({ ordnerFilter: null })
     ),
 
@@ -646,7 +646,7 @@ function projektkopf(gesamt) {
     }),
     kachel('Projekt: gesamt gesetzt', formatiere(gesamt.einsatzGesamt, w, 'de'), 'neutral',
       `${gesamt.anzahlScheine} Scheine bei ${gesamt.buchmacher.length} Anbietern`),
-    kachel('Projekt: kann zurueckkommen', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut',
+    kachel('Projekt: kann zurückkommen', formatiere(gesamt.auszahlungMoeglich, w, 'de'), 'gut',
       'Wenn alles Offene gewinnt, einschließlich Einsatz'),
     // Solange nichts entschieden ist, waere eine Null hier nur Ablenkung.
     etwasEntschieden
@@ -733,7 +733,7 @@ function einzelheit(riesenscheinId) {
         `${rechnung.anzahlScheine} Schein(e) bei ${rechnung.anzahlBuchmacher} Anbieter(n)`),
       kachel('Durchschnittsquote', formatiereQuote(rechnung.quoteEffektiv, 'dezimal', 'de'), 'neutral',
         'Einsatzgewichtet, nicht der einfache Mittelwert'),
-      kachel('Hoechstmoeglicher Gewinn', formatiere(rechnung.gewinnMoeglich, w, 'de'), 'gut',
+      kachel('Höchstmöglicher Gewinn', formatiere(rechnung.gewinnMoeglich, w, 'de'), 'gut',
         'Ohne den Einsatz. Mit Einsatz waeren es ' + formatiere(rechnung.auszahlungMoeglich, w, 'de')),
     ]),
 
@@ -743,7 +743,7 @@ function einzelheit(riesenscheinId) {
     el('details.mehr', {}, [
       el('summary', { text: 'Alle Zahlen und die Aufteilung' }),
       el('.kachelreihe', {}, [
-        kachel('Moegliche Auszahlung', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut',
+        kachel('Mögliche Auszahlung', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut',
           'Wenn alles Offene gewinnt, einschließlich Einsatz'),
         kachel('Verteilung', `${rechnung.anzahlScheine} / ${rechnung.anzahlBuchmacher}`, 'neutral',
           'Scheine / Anbieter'),
@@ -1069,7 +1069,7 @@ function scheinliste(riesenschein, scheine) {
             ]),
             el('.kaertchenstatus', { text: statusText(schein.status) }),
             rueckfluss.bekannt && rueckfluss.wert !== null
-              ? el('.kaertchenrueckfluss', { text: `zurueck ${formatiere(rueckfluss.wert, w, 'de')}` })
+              ? el('.kaertchenrueckfluss', { text: `zurück ${formatiere(rueckfluss.wert, w, 'de')}` })
               : null,
 
             /*
@@ -1265,7 +1265,7 @@ function riesenkopf(riesenschein, stand) {
       // Derselbe Weg wie im Reiter Aufnahme, aus fotoknoepfe.js. Ein Foto
       // hier wird genauso gelesen wie eines dort, und der gelesene Schein
       // taucht unten in der Liste auf.
-      fotoknoepfe({ kompakt: true, titel: 'Foto hinzufuegen' }),
+      fotoknoepfe({ kompakt: true, titel: 'Foto hinzufügen' }),
     ]),
   ])
 }
@@ -1369,9 +1369,9 @@ function ausgangsknopf(riesenschein, ausgang) {
   }, 0)
 
   const folge = {
-    gewonnen: `${formatiere(alsWaerenAlleOffen, w, 'de')} kommen zurueck`,
-    verloren: `${formatiere(rechnung.einsatzGesamt, w, 'de')} sind verloren, es kommt nichts zurueck`,
-    offen: 'zaehlt wieder als noch nicht entschieden',
+    gewonnen: `${formatiere(alsWaerenAlleOffen, w, 'de')} kommen zurück`,
+    verloren: `${formatiere(rechnung.einsatzGesamt, w, 'de')} sind verloren, es kommt nichts zurück`,
+    offen: 'zählt wieder als noch nicht entschieden',
   }[ausgang]
 
   return el('button.knopf.knopf-klein.ausgangsknopf', {
@@ -1385,7 +1385,7 @@ function ausgangsknopf(riesenschein, ausgang) {
     onclick: () => {
       const frage =
         `"${riesenschein.name || 'Ohne Namen'}" auf ${beschriftung} setzen?\n\n` +
-        `Das gilt fuer alle ${scheine.length} Scheine darin.\n` +
+        `Das gilt für alle ${scheine.length} Scheine darin.\n` +
         `Danach: ${folge}.`
       if (!confirm(frage)) return
       const anzahl = Zustand.setzeAusgangFuerRiesenschein(riesenschein.id, ausgang)
@@ -1492,13 +1492,13 @@ function einzelschein(riesenscheinId, scheinId, alle) {
       el('button.knopf.knopf-klein.zurueckknopf', {
         type: 'button',
         text: `< ${riesenschein.name || 'Riesenschein'}`,
-        title: 'Zurueck zum ganzen Riesenschein',
+        title: 'Zurück zum ganzen Riesenschein',
         onclick: () => Zustand.aendere({ scheinAuswahl: null }),
       }),
       el('button.knopf.knopf-klein', {
         type: 'button',
         text: '<< Alle Riesenscheine',
-        title: 'Zurueck zur Uebersicht',
+        title: 'Zurück zur Übersicht',
         onclick: () => Zustand.aendere({ auswahl: null, scheinAuswahl: null }),
       }),
       el('span.zurueckstand', { text: `Schein ${platz + 1} von ${alle.length}` }),

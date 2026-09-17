@@ -300,7 +300,7 @@ async function erzeugeBlatt(riesenscheinId, ziel) {
     Zustand.arbeite(false)
     Zustand.melde(
       'fehler',
-      `Das Bild liess sich nicht bauen: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+      `Das Bild ließ sich nicht bauen: ${fehler instanceof Error ? fehler.message : String(fehler)}`
     )
   }
 }
@@ -326,7 +326,7 @@ async function ladeBlattHerunter(riesenscheinId) {
   } catch (fehler) {
     Zustand.melde(
       'fehler',
-      `Das Bild liess sich nicht speichern: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+      `Das Bild ließ sich nicht speichern: ${fehler instanceof Error ? fehler.message : String(fehler)}`
     )
   } finally {
     Zustand.arbeite(false)
@@ -395,7 +395,7 @@ async function ladeExcelHerunter(riesenscheinIds) {
   } catch (fehler) {
     Zustand.melde(
       'fehler',
-      `Die Excel-Mappe liess sich nicht bauen: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+      `Die Excel-Mappe ließ sich nicht bauen: ${fehler instanceof Error ? fehler.message : String(fehler)}`
     )
   } finally {
     Zustand.arbeite(false)
@@ -408,8 +408,8 @@ function ladeCsvHerunter() {
 
   const kopf = [
     'Nr', 'Riesenschein', 'Anbieter', 'Konto', 'Schein-Nr', 'Gesetzt am', 'Art', 'Status',
-    'Einsatz', 'Aufwand', 'Waehrung', 'Quote dezimal', 'Quote amerikanisch',
-    'Moegliche Auszahlung', 'Tatsaechlich zurueck', 'Gratiswette', 'Each Way',
+    'Einsatz', 'Aufwand', 'Währung', 'Quote dezimal', 'Quote amerikanisch',
+    'Mögliche Auszahlung', 'Tatsächlich zurück', 'Gratiswette', 'Each Way',
     'Lesesicherheit', 'Hinweise',
   ]
 

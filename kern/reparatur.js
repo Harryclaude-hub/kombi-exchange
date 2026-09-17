@@ -244,7 +244,7 @@ export function repariereBetraege(eingabe) {
       loesungen: eindeutig.size,
       begruendung:
         `Es gibt ${eindeutig.size} Moeglichkeiten, die Zahlen passend zu machen. ` +
-        'Weil nicht eindeutig ist welche stimmt, wird nichts geaendert. Bitte selbst nachsehen.',
+        'Weil nicht eindeutig ist welche stimmt, wird nichts geändert. Bitte selbst nachsehen.',
     }
   }
 

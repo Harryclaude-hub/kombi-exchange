@@ -112,7 +112,7 @@ export async function nimmBildschirmAuf() {
       }
       video.onerror = () => {
         clearTimeout(uhr)
-        schiefgegangen(new Error('Der Bildschirm liess sich nicht anzeigen.'))
+        schiefgegangen(new Error('Der Bildschirm ließ sich nicht anzeigen.'))
       }
     })
 
@@ -216,7 +216,7 @@ export async function ausBlob(blob) {
   try {
     await new Promise((fertig, schiefgegangen) => {
       const uhr = setTimeout(
-        () => schiefgegangen(new Error('Das Bild liess sich nicht laden (Zeit abgelaufen).')),
+        () => schiefgegangen(new Error('Das Bild ließ sich nicht laden (Zeit abgelaufen).')),
         10000
       )
       bild.onload = () => {
@@ -225,7 +225,7 @@ export async function ausBlob(blob) {
       }
       bild.onerror = () => {
         clearTimeout(uhr)
-        schiefgegangen(new Error('Das Bild liess sich nicht laden.'))
+        schiefgegangen(new Error('Das Bild ließ sich nicht laden.'))
       }
       bild.src = adresse
     })
@@ -436,7 +436,7 @@ export async function alsDatei(leinwand, praefix = 'bildschirm') {
   const blob = await new Promise((fertig, schiefgegangen) => {
     leinwand.toBlob((b) => {
       if (b) fertig(b)
-      else schiefgegangen(new Error('Das Bild liess sich nicht ablegen.'))
+      else schiefgegangen(new Error('Das Bild ließ sich nicht ablegen.'))
       // PNG, nicht JPEG. JPEG-Artefakte lassen die Vorverarbeitung das Bild
       // faelschlich fuer ein Foto halten, und dann wird Bildschirmschrift hart
       // schwellwertbinarisiert. Aus 8 wird B, aus 0 wird O.

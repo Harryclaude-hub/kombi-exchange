@@ -29,7 +29,7 @@ function oeffne() {
 
   verbindung = new Promise((erfuellen, ablehnen) => {
     if (!('indexedDB' in globalThis)) {
-      ablehnen(new Error('Dieser Browser kennt keine lokale Datenbank. Bilder koennen nicht gemerkt werden.'))
+      ablehnen(new Error('Dieser Browser kennt keine lokale Datenbank. Bilder können nicht gemerkt werden.'))
       return
     }
     const anfrage = indexedDB.open(DATENBANKNAME, FASSUNG)
@@ -48,10 +48,10 @@ function oeffne() {
     anfrage.onsuccess = () => erfuellen(anfrage.result)
     anfrage.onerror = () => {
       verbindung = null
-      ablehnen(anfrage.error ?? new Error('Die lokale Datenbank liess sich nicht oeffnen.'))
+      ablehnen(anfrage.error ?? new Error('Die lokale Datenbank ließ sich nicht öffnen.'))
     }
     anfrage.onblocked = () => {
-      ablehnen(new Error('Die lokale Datenbank ist von einem anderen Fenster belegt. Bitte andere Fenster schliessen.'))
+      ablehnen(new Error('Die lokale Datenbank ist von einem anderen Fenster belegt. Bitte andere Fenster schließen.'))
     }
   })
 

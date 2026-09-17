@@ -81,14 +81,14 @@ export function erwarteterRueckfluss(status, einsatz, dezimal, einsatzWirdZuruec
 
   switch (status) {
     case 'verloren':
-      return { wert: 0, bekannt: true, grund: 'Verloren, nichts zurueck.' }
+      return { wert: 0, bekannt: true, grund: 'Verloren, nichts zurück.' }
 
     case 'push':
     case 'storniert':
       // Bei einer Gratiswette gibt es nichts zurueck, der Einsatz war nie Bargeld.
       return einsatzWirdZurueckgezahlt
-        ? { wert: einsatz, bekannt: true, grund: 'Einsatz zurueck.' }
-        : { wert: 0, bekannt: true, grund: 'Gratiswette annulliert, nichts zurueck.' }
+        ? { wert: einsatz, bekannt: true, grund: 'Einsatz zurück.' }
+        : { wert: 0, bekannt: true, grund: 'Gratiswette annulliert, nichts zurück.' }
 
     case 'gewonnen': {
       if (dezimal === null || !Number.isFinite(dezimal)) {
@@ -107,12 +107,12 @@ export function erwarteterRueckfluss(status, einsatz, dezimal, einsatzWirdZuruec
       return {
         wert: einsatz / 2 + (einsatz / 2) * dezimal,
         bekannt: true,
-        grund: 'Halber Einsatz zurueck, halber Einsatz gewonnen.',
+        grund: 'Halber Einsatz zurück, halber Einsatz gewonnen.',
       }
     }
 
     case 'halb_verloren':
-      return { wert: einsatz / 2, bekannt: true, grund: 'Halber Einsatz zurueck.' }
+      return { wert: einsatz / 2, bekannt: true, grund: 'Halber Einsatz zurück.' }
 
     case 'cashout':
       return {

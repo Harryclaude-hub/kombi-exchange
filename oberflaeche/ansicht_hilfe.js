@@ -259,7 +259,7 @@ function schaubild(kaesten) {
 const BEREICHE = [
   {
     schluessel: 'start',
-    reiter: 'Uebersicht',
+    reiter: 'Übersicht',
     wofuer: 'Die Startseite: wo du stehst, in einem Blick.',
     bild: [
       { x: 8, y: 8, b: 304, h: 22, name: 'PROJEKT  NFL Saison 2026/27  Sep bis Feb', betont: true },
@@ -278,7 +278,7 @@ const BEREICHE = [
     achtung:
       'Steht neben den Zahlen der rote Kasten "Währungen gemischt", sind Euro, Dollar und Krypto ' +
       'in derselben Summe gelandet. Dann sind die Zahlen daneben keine Summen, und du darfst dich ' +
-      'nicht auf sie verlassen. Das Programm rechnet Waehrungen NIE um.',
+      'nicht auf sie verlassen. Das Programm rechnet Währungen NIE um.',
   },
   {
     schluessel: 'aufnahme',
@@ -346,7 +346,7 @@ const BEREICHE = [
     ],
     achtung:
       'Stehen mehrere Währungen in einer Gruppe, gibt es keine Gesamtsumme. Euro, Dollar und ' +
-      'Krypto werden nie zusammengezaehlt und nie umgerechnet.',
+      'Krypto werden nie zusammengezählt und nie umgerechnet.',
   },
   {
     schluessel: 'ausgabe',
@@ -366,7 +366,7 @@ const BEREICHE = [
       'Die Vorschau darunter zeigt, was in der Datei stehen wird, bevor du sie herunterlädst.',
     ],
     achtung:
-      'Die Summenzeile ist nur bei einer einzigen Waehrung aussagekraeftig. Steht eine Warnung ' +
+      'Die Summenzeile ist nur bei einer einzigen Währung aussagekräftig. Steht eine Warnung ' +
       'darunter, sind Euro und Dollar in derselben Spalte gelandet.',
   },
   {
@@ -429,7 +429,7 @@ function begriffe() {
     ['Auszahlung', 'Was herauskäme, EINSCHLIEßLICH deines Einsatzes.'],
     ['Gewinn', 'Die Auszahlung ohne den Einsatz. Achtung: manche Anbieter nennen die Auszahlung "Gewinn".'],
     ['Quote, Multiplikator', 'Womit der Einsatz malgenommen wird. Steht auf dem Schein sowohl Einsatz als auch Auszahlung, rechnet das Programm die genaue Quote zurück, statt der angezeigten zu glauben. Die angezeigte ist bei vier von fünf Anbietern gerundet.'],
-    ['Zurueck', 'Was wirklich geflossen ist. Bei einem verlorenen Schein null, auch wenn eine mögliche Auszahlung dasteht.'],
+    ['Zurück', 'Was wirklich geflossen ist. Bei einem verlorenen Schein null, auch wenn eine mögliche Auszahlung dasteht.'],
     ['Im Risiko', 'Der Einsatz der Scheine, die noch offen sind.'],
     ['Resttopf', 'Scheine, die nicht mitgezählt werden, mit Grund. Sie werden nie weggeworfen, damit du sie siehst.'],
     ['Lesesicherheit', 'Wie sicher sich die Texterkennung bei einem Feld war. Die Farbe hinter dem Feld.'],
@@ -447,7 +447,7 @@ function begriffe() {
 /** Was tun, wenn etwas nicht stimmt. */
 function wennEtwasNichtStimmt() {
   const faelle = [
-    ['Ueber einem Bild steht die falsche Zahl Scheine', 'Rahmen um die Wettliste ziehen und noch einmal lesen lassen. Oder die Kartengrenzen mit der Maus verschieben.'],
+    ['Über einem Bild steht die falsche Zahl Scheine', 'Rahmen um die Wettliste ziehen und noch einmal lesen lassen. Oder die Kartengrenzen mit der Maus verschieben.'],
     ['Ein Schein hat keinen Einsatz', 'Das Programm sagt es als Fehler. Einsatz im Reiter Scheine von Hand eintragen, dann zählt er wieder mit.'],
     ['Ein Schein meldet "zwei Karten in einer"', 'Auf dem Ausschnitt liegen zwei Wetten nebeneinander. Das Foto noch einmal enger zuschneiden, sodass nur eine Wette drauf ist.'],
     ['Eine Summe sieht zu gross oder zu klein aus', 'Nachsehen, ob unter der Summe eine Warnung steht. Gemischte Währungen und Scheine mit Fehler zählen nicht mit, und das steht dort.'],

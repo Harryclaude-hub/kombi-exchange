@@ -138,7 +138,7 @@ export function baueMosaik(posten, rechnung, einstellungen) {
   const mitBeschriftung = einstellungen.mitBeschriftung !== false
 
   if (posten.length === 0) {
-    throw new Error('Ohne Scheine laesst sich kein Riesenschein bauen.')
+    throw new Error('Ohne Scheine lässt sich kein Riesenschein bauen.')
   }
 
   const rand = 28
@@ -222,7 +222,7 @@ export function baueMosaik(posten, rechnung, einstellungen) {
     }
     if (spaltenBreite < 160) {
       hinweise.push(
-        'Der Riesenschein ist zu gross fuer eine einzige Bilddatei. Bitte in mehrere ' +
+        'Der Riesenschein ist zu gross für eine einzige Bilddatei. Bitte in mehrere ' +
           'Riesenscheine aufteilen oder ohne Beschriftung ausgeben.'
       )
       break
@@ -365,7 +365,7 @@ function zeichneKopf(k, breite, hoehe, rechnung, einstellungen, farben, gebiet) 
       farbe: farben.betonung,
     },
     {
-      name: 'Moegliche Auszahlung',
+      name: 'Mögliche Auszahlung',
       wert: formatiere(rechnung.auszahlungMoeglich, w, gebiet),
       farbe: farben.gut,
     },

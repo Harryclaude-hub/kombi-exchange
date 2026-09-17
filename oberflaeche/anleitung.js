@@ -45,7 +45,7 @@ const SCHLUESSEL = 'kombi-anleitung-gesehen'
 const SCHRITTE = [
   {
     wo: '',
-    titel: 'Wofuer dieses Programm da ist',
+    titel: 'Wofür dieses Programm da ist',
     text:
       'Du setzt dieselbe Wette bei vielen Anbietern gleichzeitig, zusammen über zwanzigtausend ' +
       'Euro. Danach weiß niemand mehr auf einen Blick, wie viel insgesamt draußen ist und was ' +
@@ -61,7 +61,7 @@ const SCHRITTE = [
   },
   {
     wo: 'start',
-    titel: 'Die Uebersicht: deine Startseite',
+    titel: 'Die Übersicht: deine Startseite',
     text:
       'Hier landest du beim Aufmachen. Ganz oben steht, in welchem Projekt du bist und über ' +
       'welchen Zeitraum es läuft. Darunter die drei Zahlen, wegen derer du herschaust.',
@@ -123,7 +123,7 @@ const SCHRITTE = [
     ],
     achtung:
       'Das Programm fasst mit Absicht NICHT zusammen, wenn es sich nicht sicher ist. Gibbs auf ' +
-      'ueber 84.5 und Gibbs auf ueber 82.5 sind zwei verschiedene Wetten mit verschiedenem Risiko. ' +
+      'über 84.5 und Gibbs auf über 82.5 sind zwei verschiedene Wetten mit verschiedenem Risiko. ' +
       'Nicht zusammenfassen ist sicher, falsch zusammenfassen wäre es nicht.',
   },
   {
@@ -161,7 +161,7 @@ const SCHRITTE = [
   },
   {
     wo: 'ausgabe',
-    titel: 'Ausgabe: die Zahlen fuer die Buchhaltung',
+    titel: 'Ausgabe: die Zahlen für die Buchhaltung',
     text:
       'Das Programm ist kein Archiv für die Steuer. Die Excel-Mappe ist es. Lade sie regelmäßig ' +
       'herunter, am besten nach jedem abgeschlossenen Spieltag.',
@@ -324,13 +324,13 @@ export function zeige() {
  */
 function reiterName(schluessel) {
   const namen = {
-    start: 'Uebersicht',
+    start: 'Übersicht',
     positionen: 'Riesenscheine',
     scheine: 'Scheine',
     aufnahme: 'Aufnahme',
     ausgabe: 'Ausgabe',
     ablage: 'Ablage',
-    hilfe: 'Erklaerung',
+    hilfe: 'Erklärung',
   }
   return namen[schluessel] ?? schluessel
 }

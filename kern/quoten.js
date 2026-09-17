@@ -335,7 +335,7 @@ export function versoehne(eingabe) {
             feld: 'auszahlung',
             text:
               'Der angezeigte Betrag ist kleiner als der Einsatz. Das passt nur zu einem reinen ' +
-              'Gewinn ohne Einsatz oder zu einer Gratiswette. Bitte pruefen.',
+              'Gewinn ohne Einsatz oder zu einer Gratiswette. Bitte prüfen.',
           })
         }
       }
@@ -361,7 +361,7 @@ export function versoehne(eingabe) {
           text:
             'Der angezeigte Betrag entspricht dem reinen Gewinn ohne Einsatz. Das deutet auf eine ' +
             'Gratiswette hin oder darauf, dass der Buchmacher den Gewinn statt der Auszahlung zeigt. ' +
-            'Bitte pruefen.',
+            'Bitte prüfen.',
         })
       } else {
         // Gegen die angezeigte Dezimalquote pruefen.
@@ -456,9 +456,9 @@ export function versoehne(eingabe) {
           schwere: 'warnung',
           feld: 'ausgezahlt',
           text:
-            `Beim Status "${status}" waeren ${runde(erwartet.wert, 2)} zurueckgeflossen, ` +
+            `Beim Status "${status}" wären ${runde(erwartet.wert, 2)} zurückgeflossen, ` +
             `im Bild stehen aber ${runde(betrag, 2)}. Entweder ist der Status falsch gelesen ` +
-            'oder der Betrag. Bitte pruefen.',
+            'oder der Betrag. Bitte prüfen.',
         })
       }
     }

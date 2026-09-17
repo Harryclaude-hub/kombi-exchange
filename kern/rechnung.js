@@ -165,7 +165,7 @@ export function rechne(scheine) {
       text:
         `${nichtRechenbare.length} Schein(e) sind nicht in die Summe genommen worden, weil ihre ` +
         `Zahlen nicht belastbar sind (${gruende.join(', ')}). Sie stehen weiter in der Liste und ` +
-        'koennen von Hand berichtigt werden.',
+        'können von Hand berichtigt werden.',
     })
   }
 
@@ -185,9 +185,9 @@ export function rechne(scheine) {
       schwere: 'fehler',
       feld: 'waehrung',
       text:
-        `Dieser Riesenschein enthaelt ${waehrungen.size} verschiedene Waehrungen ` +
-        `(${[...waehrungen].join(', ')}). Die Summen darunter sind deshalb nicht aussagekraeftig. ` +
-        'Bitte die Scheine nach Waehrung trennen.',
+        `Dieser Riesenschein enthaelt ${waehrungen.size} verschiedene Währungen ` +
+        `(${[...waehrungen].join(', ')}). Die Summen darunter sind deshalb nicht aussagekräftig. ` +
+        'Bitte die Scheine nach Währung trennen.',
     })
   }
 
@@ -225,7 +225,7 @@ export function rechne(scheine) {
       schwere: 'warnung',
       feld: 'ausgezahlt',
       text:
-        `Bei ${entschiedenUnklar.length} entschiedenen Schein(en) ist der Rueckfluss nicht bekannt, ` +
+        `Bei ${entschiedenUnklar.length} entschiedenen Schein(en) ist der Rückfluss nicht bekannt, ` +
         'meist wegen einer vorzeitigen Auszahlung. Diese Scheine sind aus dem Ergebnis ' +
         'herausgenommen, damit es nicht falsch wird. Bitte den ausgezahlten Betrag eintragen.',
     })
@@ -340,7 +340,7 @@ export function rechne(scheine) {
           `In diesem Riesenschein stehen ${gewonnene.length} gewonnene und ` +
           `${verlorene.length} verlorene Schein(e) nebeneinander. Dieselbe Wette geht bei allen ` +
           'Buchmachern gleich aus, also sind das zwei verschiedene Wetten. Die Summen darunter ' +
-          'sind dann nicht aussagekraeftig. Bitte nachsehen und die Scheine trennen. ' +
+          'sind dann nicht aussagekräftig. Bitte nachsehen und die Scheine trennen. ' +
           'Das Programm aendert hier von sich aus nichts.',
       })
     }
@@ -496,19 +496,19 @@ export function rechne(scheine) {
     hinweise,
     zuCent(einsatzEntschiedenBekannt) + zuCent(einsatzUnklar) === zuCent(einsatzEntschieden),
     'einsatz_entschieden_summe',
-    'Die entschiedenen Einsaetze mit und ohne bekannten Rueckfluss ergeben nicht die Summe.'
+    'Die entschiedenen Einsaetze mit und ohne bekannten Rückfluss ergeben nicht die Summe.'
   )
   pruefe(
     hinweise,
     Math.abs(zuCent(gewinnMoeglich) - zuCent(bestenfalls)) <= 1,
     'bestenfalls_summe',
-    `Moeglicher Gewinn ${gewinnMoeglich} und bester Fall ${bestenfalls} muessen gleich sein.`
+    `Möglicher Gewinn ${gewinnMoeglich} und bester Fall ${bestenfalls} müssen gleich sein.`
   )
   pruefe(
     hinweise,
     zuCent(schlimmstenfalls) <= zuCent(bestenfalls),
     'band_verdreht',
-    'Der schlechteste Fall liegt ueber dem besten Fall.'
+    'Der schlechteste Fall liegt über dem besten Fall.'
   )
   if (quoteOffen !== null && offeneQuotenPosten.length === offene.length && offene.length > 0) {
     pruefe(

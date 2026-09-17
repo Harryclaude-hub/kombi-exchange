@@ -99,7 +99,7 @@ function kopfleiste(gesamt, mitFehler, mitWarnung) {
       mitFehler > 0
         ? el('span.zahlchip.chip-fehler', { text: `${mitFehler} mit Fehler` })
         : el('span.zahlchip.chip-gut', { text: 'keine Fehler' }),
-      mitWarnung > 0 ? el('span.zahlchip.chip-warnung', { text: `${mitWarnung} zu pruefen` }) : null,
+      mitWarnung > 0 ? el('span.zahlchip.chip-warnung', { text: `${mitWarnung} zu prüfen` }) : null,
     ]),
     el('input.suchfeld', {
       type: 'search',
@@ -156,7 +156,7 @@ function resttopf(stand) {
   const nachId = new Map(stand.scheine.map((s) => [s.id, s]))
   return el('.hinweisblock.block-rest', {}, [
     el('.blocktitel', {
-      text: `Resttopf: ${stand.restposten.length} Schein(e) zaehlen nicht mit`,
+      text: `Resttopf: ${stand.restposten.length} Schein(e) zählen nicht mit`,
     }),
     el(
       'ul.blockliste',
@@ -390,9 +390,9 @@ function aufklappung(schein, stand) {
             title: 'Nur diesen Schein. Das Bild und die übrigen Scheine bleiben.',
             onclick: () => {
               const name = schein.scheinNr.wert ? `Nr. ${schein.scheinNr.wert}` : 'diesen Schein'
-              if (!window.confirm(`Wirklich ${name} loeschen? Das Bild bleibt erhalten.`)) return
+              if (!window.confirm(`Wirklich ${name} löschen? Das Bild bleibt erhalten.`)) return
               Zustand.entferneSchein(schein.id)
-              Zustand.melde('info', 'Schein geloescht. Das Bild ist noch da.')
+              Zustand.melde('info', 'Schein gelöscht. Das Bild ist noch da.')
             },
           }),
           el('span.feldhilfe', {

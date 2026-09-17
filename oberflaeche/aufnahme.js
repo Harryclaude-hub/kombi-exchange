@@ -101,7 +101,7 @@ export async function nimmAuf(dateien) {
   const stand = Zustand.hole()
   const projektId = stand.projekt?.id ?? ''
   if (!projektId) {
-    Zustand.melde('fehler', 'Es ist kein Projekt geoeffnet.')
+    Zustand.melde('fehler', 'Es ist kein Projekt geöffnet.')
     return { aufgenommen: 0, uebersprungen: 0 }
   }
 
@@ -200,7 +200,7 @@ export async function nimmAuf(dateien) {
     } catch (fehler) {
       Zustand.melde(
         'fehler',
-        `"${datei.name}" liess sich nicht vorbereiten: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+        `"${datei.name}" ließ sich nicht vorbereiten: ${fehler instanceof Error ? fehler.message : String(fehler)}`
       )
     }
   }
@@ -290,7 +290,7 @@ function leseKartenGleichzeitig(eintrag, derLeser) {
       } catch (fehler) {
         Zustand.melde(
           'warnung',
-          `Eine Karte aus "${eintrag.bild.dateiname}" liess sich nicht lesen: ` +
+          `Eine Karte aus "${eintrag.bild.dateiname}" ließ sich nicht lesen: ` +
             `${fehler instanceof Error ? fehler.message : String(fehler)}`
         )
         return null
@@ -310,7 +310,7 @@ export async function leseBilder(bildIds, einstellungen = {}) {
   const stand = Zustand.hole()
   const projektId = stand.projekt?.id ?? ''
   if (!projektId) {
-    Zustand.melde('fehler', 'Es ist kein Projekt geoeffnet.')
+    Zustand.melde('fehler', 'Es ist kein Projekt geöffnet.')
     return { gelesen: 0, fehler: 0 }
   }
 
@@ -322,7 +322,7 @@ export async function leseBilder(bildIds, einstellungen = {}) {
     Zustand.arbeite(false)
     Zustand.melde(
       'fehler',
-      `Die Texterkennung liess sich nicht starten: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+      `Die Texterkennung ließ sich nicht starten: ${fehler instanceof Error ? fehler.message : String(fehler)}`
     )
     return { gelesen: 0, fehler: bildIds.length }
   }
@@ -423,7 +423,7 @@ export async function leseBilder(bildIds, einstellungen = {}) {
       if (!profil) {
         Zustand.melde(
           'warnung',
-          `Bei "${eintrag.bild.dateiname}" liess sich der Anbieter nicht erkennen. ` +
+          `Bei "${eintrag.bild.dateiname}" ließ sich der Anbieter nicht erkennen. ` +
             'Bitte oben am Bild von Hand eintragen und noch einmal lesen lassen. ' +
             'Der Anbieter bestimmt Währung und Quotenformat, bei BetOnline zum Beispiel ' +
             'amerikanische Quoten.'
@@ -528,7 +528,7 @@ export async function leseBilder(bildIds, einstellungen = {}) {
       Zustand.melde('erfolg', `${neueScheine.length} Schein(e) gelesen.`)
     }
   } else if (fehlerzahl === 0) {
-    Zustand.melde('warnung', 'Es liess sich kein einziger Schein lesen.')
+    Zustand.melde('warnung', 'Es ließ sich kein einziger Schein lesen.')
   }
 
   return { gelesen: neueScheine.length, fehler: fehlerzahl }
@@ -560,7 +560,7 @@ export async function entferneBildGanz(bildId) {
     // naechsten Laden wieder auf und niemand weiss, warum.
     Zustand.melde(
       'warnung',
-      `Das Bild ist aus der Liste entfernt, konnte aber nicht vom Geraet geloescht werden: ${
+      `Das Bild ist aus der Liste entfernt, konnte aber nicht vom Geraet gelöscht werden: ${
         fehler instanceof Error ? fehler.message : String(fehler)
       }. Nach einem Neuladen kann es wieder auftauchen.`
     )
@@ -640,7 +640,7 @@ export function setzeBereich(bildId, bereich) {
     karten = karten.sort((a, b) => a.x - b.x || a.y - b.y)
   } catch (fehler) {
     hinweise.push(
-      `Der Bereich liess sich nicht zerlegen: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+      `Der Bereich ließ sich nicht zerlegen: ${fehler instanceof Error ? fehler.message : String(fehler)}`
     )
   }
 

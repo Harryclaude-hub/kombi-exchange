@@ -105,7 +105,7 @@ export async function sorgeFuerAktuelleDateien() {
       meldung:
         `Dieses Fenster laeuft mit Fassung ${ergebnis.hier}, aktuell ist ` +
         `${ergebnis.dort}. Neu laden hat nicht geholfen. Bitte den Zwischenspeicher ` +
-        'des Browsers fuer diese Seite leeren.',
+        'des Browsers für diese Seite leeren.',
     }
   }
 

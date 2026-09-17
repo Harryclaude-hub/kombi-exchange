@@ -1138,7 +1138,7 @@ export function leseSchein(rohzeilen, umgebung) {
               feld: 'quoteDezimal',
               text:
                 `Die Quote ${k.roh} stand ohne Beschriftung in einer Tabellenspalte und ` +
-                `liess sich auf der Zeile nicht gegenrechnen. Bitte nachsehen.`,
+                `ließ sich auf der Zeile nicht gegenrechnen. Bitte nachsehen.`,
             })
           }
         }
@@ -1327,8 +1327,8 @@ export function leseSchein(rohzeilen, umgebung) {
       schwere: 'warnung',
       feld: 'einsatz',
       text:
-        'Das sieht nach einer Gratis- oder Bonuswette aus. Der Einsatz zaehlt dann nicht als ' +
-        'eigenes Geld und wird bei einem Gewinn nicht mit ausgezahlt. Bitte pruefen.',
+        'Das sieht nach einer Gratis- oder Bonuswette aus. Der Einsatz zählt dann nicht als ' +
+        'eigenes Geld und wird bei einem Gewinn nicht mit ausgezahlt. Bitte prüfen.',
     })
   }
   if (eachWay) {
@@ -1363,7 +1363,7 @@ export function leseSchein(rohzeilen, umgebung) {
           code: 'gewinn_zu_auszahlung',
           schwere: 'info',
           feld: 'auszahlung',
-          text: 'Der Buchmacher zeigt den reinen Gewinn. Der Einsatz wurde fuer die Auszahlung dazugerechnet.',
+          text: 'Der Buchmacher zeigt den reinen Gewinn. Der Einsatz wurde für die Auszahlung dazugerechnet.',
         })
       } else if (gefunden.auszahlungBedeutung === 'unklar' && alsGewinn < alsAuszahlung) {
         auszahlungWert = auszahlungWert + einsatzWert
@@ -1414,7 +1414,7 @@ export function leseSchein(rohzeilen, umgebung) {
       schwere: 'warnung',
       feld: 'auszahlung',
       text:
-        'Auf dem Schein steht ein Quotenboost. Die Auszahlung liegt deshalb ueber dem, ' +
+        'Auf dem Schein steht ein Quotenboost. Die Auszahlung liegt deshalb über dem, ' +
         'was die angezeigte Quote hergibt. Die Zahlen werden NICHT berichtigt, weil die ' +
         'Rechnung Einsatz mal Quote gleich Auszahlung bei einem Boost nicht gilt.',
     })
@@ -1522,14 +1522,14 @@ export function leseSchein(rohzeilen, umgebung) {
       code: 'waehrung_fehlt',
       schwere: 'warnung',
       feld: 'waehrung',
-      text: 'Keine Waehrung erkannt. Betraege verschiedener Waehrungen werden nie zusammengezaehlt.',
+      text: 'Keine Währung erkannt. Beträge verschiedener Währungen werden nie zusammengezählt.',
     })
   }
   if (gefunden.einsatz?.mehrdeutig || gefunden.auszahlung?.mehrdeutig) {
     hinweise.push({
       code: 'trennzeichen_mehrdeutig',
       schwere: 'warnung',
-      text: 'Bei einem Betrag war unklar, ob der Punkt Tausender oder Nachkommastellen trennt. Bitte pruefen.',
+      text: 'Bei einem Betrag war unklar, ob der Punkt Tausender oder Nachkommastellen trennt. Bitte prüfen.',
     })
   }
   if (gefunden.quote?.mehrdeutig) {
@@ -1537,7 +1537,7 @@ export function leseSchein(rohzeilen, umgebung) {
       code: 'quotenformat_mehrdeutig',
       schwere: 'warnung',
       feld: 'quoteDezimal',
-      text: 'Das Quotenformat war nicht eindeutig. Bitte pruefen, ob amerikanisch oder dezimal gemeint ist.',
+      text: 'Das Quotenformat war nicht eindeutig. Bitte prüfen, ob amerikanisch oder dezimal gemeint ist.',
     })
   }
   if (nummer.wert === null) {
