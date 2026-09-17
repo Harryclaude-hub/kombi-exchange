@@ -18,6 +18,14 @@ import { rechneProjekt } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
 import * as Ordner from './ordner.js'
 import * as Reihenfolge from './reihenfolge.js'
+// Die Fenster, in denen gefragt wird. KEIN window.prompt und kein
+// window.confirm mehr. Karam am 17.09.2026: "diese Pop-Ups vom Browser
+// oben, das mag ich gar nicht." Siehe oberflaeche/dialog.js.
+import * as Dialog from './dialog.js'
+// Projekt, Ordner, Riesenschein, Scheine: der Aufbau steht an EINER Stelle
+// und wird von hier, von der Ausgabe und von der Ablage gezeigt
+// (Projektregel 8). Siehe oberflaeche/aufbau.js.
+import { aufbaukette, aufbaublock } from './aufbau.js'
 import { fotoknoepfe } from './fotoknoepfe.js'
 import { istAngeheftet, heftAn } from './nadeln.js'
 // Dieselben Eingabefelder wie im Reiter Scheine, aus einer Quelle
@@ -78,9 +86,27 @@ export function zeichne(ziel) {
 
   // Ebene 2: ein Riesenschein.
   if (offenerId) {
+    const offener = stand.riesenscheine.find((r) => r.id === offenerId)
     fuelle(ziel, [
-      zurueckleiste('Alle Riesenscheine', 'Zurück zur Übersicht', () =>
-        Zustand.aendere({ auswahl: null, scheinAuswahl: null })
+      zurueckleiste(
+        'Alle Riesenscheine',
+        'Zurück zur Übersicht',
+        () => Zustand.aendere({ auswahl: null, scheinAuswahl: null }),
+        /*
+          DER NAECHSTE RIESENSCHEIN, OHNE ERST ZURUECKZUGEHEN.
+
+          Karam spielt taeglich mehrere. Wer gerade einen fertig hat, will den
+          naechsten anfangen und nicht erst eine Ebene hoch. Das Fenster, das
+          dabei aufgeht, sagt ihm ausserdem, wo der eben bearbeitete geblieben
+          ist, und genau darum hat er am 17.09.2026 gebeten.
+        */
+        el('button.knopf.knopf-klein', {
+          type: 'button',
+          text: '+ Neuer Riesenschein',
+          title: 'Legt einen neuen an. Dieser hier bleibt gespeichert.',
+          onclick: () =>
+            frageNachNeuemRiesenschein(stand, offener ? Ordner.ordnerVon(offener) : ''),
+        })
       ),
       einzelheit(offenerId),
     ])
@@ -101,7 +127,7 @@ export function zeichne(ziel) {
  * @param {() => void} was
  * @returns {HTMLElement}
  */
-function zurueckleiste(beschriftung, hilfe, was) {
+function zurueckleiste(beschriftung, hilfe, was, dazu = null) {
   return el('.zurueckleiste', {}, [
     el('button.knopf.knopf-klein.zurueckknopf', {
       type: 'button',
@@ -109,6 +135,7 @@ function zurueckleiste(beschriftung, hilfe, was) {
       title: hilfe,
       onclick: was,
     }),
+    dazu,
   ])
 }
 
@@ -179,8 +206,42 @@ function uebersicht(stand) {
                     }`),
         }),
       ]),
-      neuerknopf(stand),
+      /*
+        DER WEG ZUM FOTO STEHT AUF JEDER EBENE RECHTS OBEN.
+
+        Karam am 16.09.2026: "Man hat einen Button rechts oben, da kann man
+        einfach ein Bildschirmfoto, ein Foto hinzufuegen."
+
+        Bei einer Gegenpruefung am 17.09.2026 gemessen: den Knopf gab es NUR im
+        offenen Riesenschein. Wer auf der Uebersicht stand, hatte weder oben
+        rechts noch links einen Weg zum Foto und musste erst einen Riesenschein
+        aufmachen oder oben den Reiter wechseln. Der Panelknopf faellt in dieser
+        Ansicht naemlich weg, weil dort die Riesenscheine stehen.
+
+        Ein aufgenommenes Foto landet im zuletzt aufgemachten Riesenschein, und
+        genau das sagt die Marke "nimmt neue Fotos auf" an seiner Karte.
+      */
+      el('.uebersichtwege', {}, [
+        fotoknoepfe({ kompakt: true, titel: 'Foto hinzufügen' }),
+        neuerknopf(stand),
+      ]),
     ]),
+
+    /*
+      DER AUFBAU STEHT DA, WO MAN IHN BRAUCHT.
+
+      Karam am 17.09.2026: "Bitte stell sicher, dass dieses System auch wirklich
+      im Projekt steht. Ein Projekt ist ein komplett separater Bereich, zum
+      Beispiel fuer eine Saison. Die Ordner sind einfach nur zum Ordnen der
+      Riesenscheine. Und jeder Riesenschein sind hunderte Scheine. Ich habe
+      einfach Angst, dass das nicht funktioniert."
+
+      Die Kette ist eine Zeile hoch und steht immer da. Der Aufklapper darunter
+      erklaert jede Stufe, und zwar nur, wenn man ihn aufmacht: wer das Programm
+      taeglich benutzt, soll nicht jeden Tag ueber vier Absaetze steigen.
+    */
+    aufbaukette(),
+    aufbaublock(),
 
     ordnerhinweis(stand),
 
@@ -282,7 +343,10 @@ function imOrdner(stand, ordner, gezeigt) {
               : `${gezeigt.length} Riesenscheine darin`,
         }),
       ]),
-      neuerknopf(stand),
+      el('.uebersichtwege', {}, [
+        fotoknoepfe({ kompakt: true, titel: 'Foto hinzufügen' }),
+        neuerknopf(stand),
+      ]),
     ]),
 
     // Die Summe des Ordners, gross und nicht als Kleingedrucktes an der Kachel.
@@ -406,14 +470,103 @@ function neuerknopf(stand) {
     type: 'button',
     text: inOrdner ? `Neuer Riesenschein in "${inOrdner}"` : 'Neuer Riesenschein',
     title:
-      'Legt sofort einen neuen, leeren Riesenschein an und macht ihn auf. ' +
+      'Legt einen neuen, leeren Riesenschein an und macht ihn auf. ' +
       'Alles, was du danach hochlädst, landet darin, bis du den nächsten anlegst.' +
       (inOrdner ? ` Er liegt dann im Ordner "${inOrdner}".` : ''),
-    onclick: () => {
-      const id = Zustand.macheHuelleAuf(`Riesenschein ${stand.riesenscheine.length + 1}`, inOrdner)
-      Reihenfolge.merkeGeoeffnet(id)
-    },
+    onclick: () => frageNachNeuemRiesenschein(stand, inOrdner),
   })
+}
+
+/**
+ * Das Fenster, das beim Anlegen eines neuen Riesenscheins aufgeht.
+ *
+ * Karam am 17.09.2026: "Ich moechte immer, wenn man einen neuen Riesenschein
+ * hat, dass ein Pop-Up kommt, und ganz uebersichtlich anzeigt, was du ihnen
+ * sagen willst: okay, das ist der neue Schein, das ist der Schein, an dem du
+ * gerade gearbeitet hast, bevor man den neuen startet, der ist dort
+ * gespeichert, in diesem Ordner. Willst du diesen Riesenschein in einem Ordner
+ * speichern, oder willst du ihn einfach lose lassen?"
+ *
+ * Genau diese vier Auskuenfte stehen darin, und keine fuenfte:
+ *   wo der bisherige geblieben ist, mit Namen, Ordner und Einsatz,
+ *   dass der neue leer ist,
+ *   dass ab jetzt alles Hochgeladene in den neuen laeuft,
+ *   und die Frage nach dem Ordner, mit dem Hinweis, dass leer erlaubt ist.
+ *
+ * WARUM DAS KEIN WIDERSPRUCH ZU "KEINE HUELLE SCHLIESSEN" IST
+ *
+ * Karam am 17.09.2026 morgens: "Einen komplett neuen, keine Huelle schliessen,
+ * nichts." Weg ist die ZEREMONIE: der Streifen, der dauerhaft dastand, und der
+ * Knopf, mit dem man erst etwas beenden musste. Was hier aufgeht, ist keine
+ * Pflicht, sondern eine Auskunft mit einer Frage, und die Eingabetaste
+ * beantwortet sie.
+ *
+ * @param {any} stand
+ * @param {string} inOrdner  Der Ordner, in dem man gerade steht.
+ */
+async function frageNachNeuemRiesenschein(stand, inOrdner) {
+  const bisher = stand.auswahl
+    ? stand.riesenscheine.find((r) => r.id === stand.auswahl)
+    : stand.huelle
+      ? stand.riesenscheine.find((r) => r.id === stand.huelle.id)
+      : null
+
+  /** @type {string[]} */
+  const punkte = []
+
+  if (bisher) {
+    const wo = Ordner.ordnerVon(bisher)
+    const rechnung = Zustand.rechnungVon(bisher.id)
+    punkte.push(
+      `"${bisher.name || 'Ohne Namen'}" bleibt gespeichert: ` +
+        `${bisher.scheinIds.length} Schein(e), ` +
+        `${formatiere(rechnung.einsatzGesamt, rechnung.waehrung, 'de')} Einsatz.`
+    )
+    punkte.push(
+      wo
+        ? `Du findest ihn im Ordner "${wo}", im Projekt "${stand.projekt?.name || 'ohne Namen'}".`
+        : `Du findest ihn in der Übersicht des Projekts "${stand.projekt?.name || 'ohne Namen'}". Er liegt in keinem Ordner.`
+    )
+  }
+
+  punkte.push('Der neue ist komplett leer. Es wird nichts übernommen.')
+  punkte.push('Alles, was du ab jetzt hochlädst, landet im neuen, bis du den nächsten anlegst.')
+
+  const antwort = await Dialog.frage({
+    titel: 'Neuen Riesenschein anlegen',
+    text:
+      'Ein Riesenschein ist EINE Wette, die du bei vielen Anbietern gesetzt hast. ' +
+      'Die einzelnen Scheine kommen gleich hinein.',
+    punkte,
+    felder: [
+      {
+        name: 'name',
+        beschriftung: 'Name des neuen Riesenscheins',
+        wert: `Riesenschein ${stand.riesenscheine.length + 1}`,
+        hilfe: 'Kannst du später jederzeit ändern.',
+      },
+      {
+        name: 'ordner',
+        beschriftung: 'In welchen Ordner?',
+        wert: inOrdner,
+        platzhalter: 'leer lassen: in keinen Ordner',
+        hilfe:
+          'Ordner sind nur zum Ordnen da. Leer lassen ist völlig in Ordnung, dann ' +
+          'liegt er lose in der Übersicht.',
+        vorschlaege: Ordner.alleOrdner(stand.riesenscheine).map((o) => o.name),
+      },
+    ],
+    ja: 'Anlegen und aufmachen',
+    nein: 'Doch nicht',
+  })
+
+  if (antwort === null) return
+
+  const id = Zustand.macheHuelleAuf(
+    antwort.name || `Riesenschein ${stand.riesenscheine.length + 1}`,
+    antwort.ordner
+  )
+  Reihenfolge.merkeGeoeffnet(id)
 }
 
 /**
@@ -583,15 +736,29 @@ function frageNachOrdner(riesenschein, jetzigerOrdner) {
     .map((o) => o.name)
     .filter((n) => n !== jetzigerOrdner)
 
-  const name = window.prompt(
-    `In welchen Ordner soll "${riesenschein.name || 'Ohne Namen'}"?\n\n` +
-      'Ein Ordner ist nur eine Beschriftung. Er besteht, solange ein Riesenschein ' +
-      'darin liegt. Leer lassen nimmt ihn aus seinem Ordner heraus.' +
-      (bekannte.length > 0 ? `\n\nSchon da: ${bekannte.join(', ')}` : ''),
-    jetzigerOrdner
-  )
-  if (name === null) return
-  Zustand.setzeOrdner(riesenschein.id, name)
+  Dialog.frage({
+    titel: jetzigerOrdner ? 'Ordner ändern' : 'In einen Ordner legen',
+    text: `Wohin soll "${riesenschein.name || 'Ohne Namen'}"?`,
+    punkte: [
+      'Ein Ordner ist nur eine Beschriftung. Er ordnet Riesenscheine, mehr nicht.',
+      'Er entsteht, sobald der erste Riesenschein darin liegt, und verschwindet, wenn der letzte heraus ist.',
+      'Leer lassen heißt: in keinen Ordner. Das ist völlig in Ordnung.',
+      bekannte.length > 0 ? `Schon da: ${bekannte.join(', ')}` : 'Bisher gibt es keinen Ordner.',
+    ],
+    felder: [
+      {
+        name: 'ordner',
+        beschriftung: 'Ordnername',
+        wert: jetzigerOrdner,
+        platzhalter: 'leer lassen: lose in der Übersicht',
+        vorschlaege: bekannte,
+      },
+    ],
+    ja: 'Übernehmen',
+  }).then((antwort) => {
+    if (antwort === null) return
+    Zustand.setzeOrdner(riesenschein.id, antwort.ordner)
+  })
 }
 
 /**
@@ -1382,12 +1549,18 @@ function ausgangsknopf(riesenschein, ausgang) {
     title: alleSo
       ? `Alle ${scheine.length} Scheine stehen bereits auf "${beschriftung}".`
       : `Setzt alle ${scheine.length} Scheine auf "${beschriftung}": ${folge}.`,
-    onclick: () => {
-      const frage =
-        `"${riesenschein.name || 'Ohne Namen'}" auf ${beschriftung} setzen?\n\n` +
-        `Das gilt für alle ${scheine.length} Scheine darin.\n` +
-        `Danach: ${folge}.`
-      if (!confirm(frage)) return
+    onclick: async () => {
+      const ja = await Dialog.bestaetige({
+        titel: `"${riesenschein.name || 'Ohne Namen'}" auf ${beschriftung} setzen?`,
+        punkte: [
+          `Das gilt für alle ${scheine.length} Schein(e) darin, nicht nur für einen.`,
+          `Danach: ${folge}.`,
+          'Zurücknehmen kannst du das jederzeit mit "Wieder offen".',
+        ],
+        ja: `Alle auf ${beschriftung}`,
+        gefahr: ausgang === 'verloren',
+      })
+      if (!ja) return
       const anzahl = Zustand.setzeAusgangFuerRiesenschein(riesenschein.id, ausgang)
       Zustand.melde('erfolg', `${anzahl} Schein(e) auf ${beschriftung} gesetzt.`)
     },
@@ -1502,6 +1675,9 @@ function einzelschein(riesenscheinId, scheinId, alle) {
         onclick: () => Zustand.aendere({ auswahl: null, scheinAuswahl: null }),
       }),
       el('span.zurueckstand', { text: `Schein ${platz + 1} von ${alle.length}` }),
+      // Auch hier der Weg zum Foto: wer einen Schein von Hand berichtigt,
+      // merkt oft genau dort, dass eine Aufnahme fehlt.
+      fotoknoepfe({ kompakt: true, titel: 'Foto hinzufügen' }),
     ]),
 
     el('.scheingrosskopf', { daten: { status: schein.status } }, [
@@ -1628,7 +1804,7 @@ function einzelschein(riesenscheinId, scheinId, alle) {
     */
     el('.formularblock', {}, [
       el('.teiltitel', { text: 'Der Ausschnitt, aus dem gelesen wurde' }),
-      el('.scheingrossfoto', {}, [ausschnittbild(bild, schein.ausschnitt)]),
+      el('.scheingrossbild', {}, [ausschnittbild(bild, schein.ausschnitt)]),
     ]),
 
     el('.scheingrossfuss', {}, [nachbarknopf(-1), nachbarknopf(1)]),

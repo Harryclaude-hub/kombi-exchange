@@ -13,6 +13,7 @@
 
 import { el, fuelle, neueKennung } from './werkzeug.js'
 import * as Zustand from './zustand.js'
+import * as Dialog from './dialog.js'
 import {
   nimmAuf,
   leseBilder,
@@ -274,7 +275,21 @@ function bildkarte(eintrag) {
               : `"${eintrag.bild.dateiname}" wirklich entfernen? ${
                   daran === 1 ? 'Ein daraus gelesener Schein geht mit.' : `${daran} daraus gelesene Scheine gehen mit.`
                 }`
-          if (!window.confirm(frage)) return
+          const ja = await Dialog.bestaetige({
+            titel: `"${eintrag.bild.dateiname}" wirklich entfernen?`,
+            punkte:
+              daran === 0
+                ? ['Aus diesem Bild wurde noch kein Schein gelesen. Es geht nichts verloren.']
+                : [
+                    daran === 1
+                      ? 'Ein daraus gelesener Schein geht mit und fällt aus allen Summen.'
+                      : `${daran} daraus gelesene Scheine gehen mit und fallen aus allen Summen.`,
+                    'Rückgängig machen geht nicht. Du müsstest das Bild neu hochladen.',
+                  ],
+            ja: 'Bild entfernen',
+            gefahr: daran > 0,
+          })
+          if (!ja) return
           const weg = await entferneBildGanz(eintrag.bild.id)
           Zustand.melde(
             'info',
@@ -656,8 +671,17 @@ function leseleiste(bilder) {
     el('button.knopf', {
       type: 'button',
       text: 'Alle Bilder verwerfen',
-      onclick: () => {
-        if (!confirm('Alle hochgeladenen Bilder aus der Ansicht nehmen? Gelesene Scheine bleiben erhalten.')) return
+      onclick: async () => {
+        const ja = await Dialog.bestaetige({
+          titel: 'Alle Bilder aus der Ansicht nehmen?',
+          punkte: [
+            'Die gelesenen Scheine BLEIBEN. Es verschwinden nur die Bilder aus dieser Liste.',
+            'Zu den Scheinen wird dann kein Foto mehr angezeigt.',
+            'Willst du die Scheine loswerden, geht das im Reiter Scheine, einzeln.',
+          ],
+          ja: 'Bilder aus der Ansicht nehmen',
+        })
+        if (!ja) return
         Zustand.aendere({ bilder: new Map() })
       },
     }),

@@ -30,10 +30,20 @@
  * keine Farben und keine Groessen, das steht in stil/.
  */
 
-import { el, fuelle, zeitText, anbieterzeichen } from './werkzeug.js'
+import { el, fuelle, zeitText, anbieterzeichen, ausschnittbild } from './werkzeug.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { barEinsatz, realisierterRueckfluss, offenePotenzialauszahlung } from '../kern/rechnung.js'
+// Der Stand eines Scheins steht in der Datenbank als Schluessel, also
+// "halb_gewonnen" oder "cashout". Auf dem Bildschirm gehoert der Satz hin,
+// den ein Mensch liest. Die Uebersetzung gibt es genau einmal, in mosaik.js
+// (Projektregel 8).
+import { statusText } from '../bild/mosaik.js'
 import * as Zustand from './zustand.js'
+// Eigene Fenster statt window.prompt und window.confirm, siehe
+// oberflaeche/dialog.js. Karam am 17.09.2026: "diese Pop-Ups vom Browser
+// oben, das mag ich gar nicht."
+import * as Dialog from './dialog.js'
+import { aufbaukette } from './aufbau.js'
 
 /**
  * Die Kennung des Pseudo-Ordners "Angepinnt".
@@ -77,17 +87,27 @@ function loescheProjekte(projekte) {
 
   const namen = projekte.map((p) => p.name || 'ohne Namen')
   const liste = namen.length <= 6 ? namen.join(', ') : `${namen.slice(0, 6).join(', ')} und ${namen.length - 6} weitere`
-  const frage =
-    projekte.length === 1
-      ? `"${namen[0]}" wirklich löschen?\n\nAlle Scheine, Riesenscheine und Bilder dieses Projekts gehen mit. Das lässt sich nicht rückgängig machen.`
-      : `${projekte.length} Projekte wirklich löschen?\n\n${liste}\n\nAlle Scheine, Riesenscheine und Bilder dieser Projekte gehen mit. Das lässt sich nicht rückgängig machen.`
 
-  if (!window.confirm(frage)) return
-
-  for (const p of projekte) gewaehlteProjekte.delete(p.id)
-  window.dispatchEvent(
-    new CustomEvent('kombi-projekte-loeschen', { detail: { ids: projekte.map((p) => p.id) } })
-  )
+  Dialog.bestaetige({
+    titel:
+      projekte.length === 1
+        ? `"${namen[0]}" wirklich löschen?`
+        : `${projekte.length} Projekte wirklich löschen?`,
+    text: projekte.length === 1 ? '' : liste,
+    punkte: [
+      'Alle Scheine, alle Riesenscheine und alle Bilder darin gehen mit.',
+      'Das lässt sich nicht rückgängig machen.',
+      'Willst du nur aufräumen, nimm stattdessen "In Ordner legen".',
+    ],
+    ja: projekte.length === 1 ? 'Endgültig löschen' : `${projekte.length} endgültig löschen`,
+    gefahr: true,
+  }).then((ja) => {
+    if (!ja) return
+    for (const p of projekte) gewaehlteProjekte.delete(p.id)
+    window.dispatchEvent(
+      new CustomEvent('kombi-projekte-loeschen', { detail: { ids: projekte.map((p) => p.id) } })
+    )
+  })
 }
 
 
@@ -457,14 +477,32 @@ function projektzeile(p, stand) {
   })
   ordnern.addEventListener('click', (e) => {
     e.stopPropagation()
-    const name = window.prompt(
-      `In welchen Ordner soll "${p.name}"?\n\n` +
-        'Ein Ordner ist nur eine Beschriftung. Er besteht, solange ein Projekt darin liegt. ' +
-        'Leer lassen nimmt das Projekt aus seinem Ordner heraus.',
-      p.ordner ?? ''
-    )
-    if (name === null) return
-    verschiebe(p.id, name.trim())
+    const bekannte = [
+      ...new Set((Zustand.hole().projekte ?? []).map((x) => x.ordner ?? '').filter(Boolean)),
+    ].sort((a, b) => a.localeCompare(b, 'de'))
+    Dialog.frage({
+      titel: p.ordner ? 'Ordner ändern' : 'Projekt in einen Ordner legen',
+      text: `Wohin soll das Projekt "${p.name}"?`,
+      punkte: [
+        'Hier geht es um Ordner für PROJEKTE, nicht für Riesenscheine.',
+        'Ein Ordner ist nur eine Beschriftung. Er besteht, solange ein Projekt darin liegt.',
+        'Leer lassen heißt: in keinen Ordner.',
+        bekannte.length > 0 ? `Schon da: ${bekannte.join(', ')}` : 'Bisher gibt es keinen Ordner.',
+      ],
+      felder: [
+        {
+          name: 'ordner',
+          beschriftung: 'Ordnername',
+          wert: p.ordner ?? '',
+          platzhalter: 'leer lassen: ohne Ordner',
+          vorschlaege: bekannte,
+        },
+      ],
+      ja: 'Übernehmen',
+    }).then((antwort) => {
+      if (antwort === null) return
+      verschiebe(p.id, antwort.ordner)
+    })
   })
 
   const umbenennen = el('button.projektknopf', { type: 'button', text: 'Umbenennen' })
@@ -608,15 +646,20 @@ function kombiblock(titel, scheine, datum) {
       : null,
     el('.kombisumme', {}, [
       summe('Einsatz', gemischt ? '-' : formatiere(einsatz, eine)),
-      summe('möglicher Gewinn', gemischt ? '-' : formatiere(moeglich, eine)),
+      summe('Möglicher Gewinn', gemischt ? '-' : formatiere(moeglich, eine)),
       summe('Multiplikator', multiplikator === null ? '-' : formatiereQuote(multiplikator)),
-      summe('zurueck', gemischt ? '-' : formatiere(zurueck, eine)),
+      summe('Zurückgekommen', gemischt ? '-' : formatiere(zurueck, eine)),
     ]),
     el(
       '.scheinliste',
       {},
       scheine.map((s) =>
         el('.scheinzeile', {}, [
+          // Auch hier das Bild, klein. Karam am 17.09.2026: "dass man immer die
+          // Bilder daneben hat."
+          el('.scheinminibild', {}, [
+            ausschnittbild(Zustand.hole().bilder.get(s.bildId), s.ausschnitt),
+          ]),
           el('.scheinanbieter', {}, [
             anbieterzeichen(s.buchmacher?.wert),
             el('span', { text: s.buchmacher?.wert ?? 'Anbieter unbekannt' }),
@@ -625,7 +668,7 @@ function kombiblock(titel, scheine, datum) {
           el('.scheinzahl', {
             text: s.quoteDezimal?.wert === null ? '-' : formatiereQuote(s.quoteDezimal.wert),
           }),
-          el('.scheinstand', { text: s.status }),
+          el('.scheinstand', { text: statusText(s.status) }),
         ])
       )
     ),
@@ -667,11 +710,20 @@ function oeffne(p) {
 
 /** @param {import('../kern/typen.js').Projekt} p */
 function benenneUm(p) {
-  const neu = window.prompt('Neuer Name für dieses Projekt:', p.name)
-  if (neu === null) return
-  const sauber = neu.trim()
-  if (sauber === '' || sauber === p.name) return
-  speichere({ ...p, name: sauber })
+  Dialog.frage({
+    titel: 'Projekt umbenennen',
+    punkte: [
+      'Nur der Name ändert sich. Scheine, Riesenscheine und Bilder bleiben, wie sie sind.',
+      'Der Name steht danach überall: oben in der Kopfzeile und an jedem Riesenschein.',
+    ],
+    felder: [{ name: 'name', beschriftung: 'Neuer Name', wert: p.name }],
+    ja: 'Umbenennen',
+  }).then((antwort) => {
+    if (antwort === null) return
+    const sauber = antwort.name.trim()
+    if (sauber === '' || sauber === p.name) return
+    speichere({ ...p, name: sauber })
+  })
 }
 
 /**
@@ -706,14 +758,19 @@ function setzePin(p, an) {
  * @param {number} anzahl
  */
 async function loescheOrdner(name, anzahl) {
-  const frage =
-    anzahl === 0
-      ? `Den Ordner "${name}" aufloesen?`
-      : `Den Ordner "${name}" aufloesen?\n\n` +
-        `${anzahl === 1 ? 'Das Projekt darin wandert' : `Die ${anzahl} Projekte darin wandern`} nach ` +
-        '"Ohne Ordner". Es wird nichts gelöscht.\n\n' +
-        'Sollen die Projekte selbst weg, wähle sie rechts an und nimm "Ausgewählte löschen".'
-  if (!window.confirm(frage)) return
+  const ja = await Dialog.bestaetige({
+    titel: `Den Ordner "${name}" auflösen?`,
+    punkte:
+      anzahl === 0
+        ? ['In diesem Ordner liegt nichts. Es verschwindet nur die Beschriftung.']
+        : [
+            `${anzahl === 1 ? 'Das Projekt darin wandert' : `Die ${anzahl} Projekte darin wandern`} nach "Ohne Ordner".`,
+            'ES WIRD NICHTS GELÖSCHT. Kein Schein, kein Bild, kein Projekt.',
+            'Sollen die Projekte selbst weg, wähle sie rechts an und nimm "Ausgewählte löschen".',
+          ],
+    ja: 'Ordner auflösen',
+  })
+  if (!ja) return
 
   const betroffen = (Zustand.hole().projekte ?? []).filter((p) => (p.ordner ?? '') === name)
   for (const p of betroffen) speichere({ ...p, ordner: '' })
@@ -767,7 +824,23 @@ function erklaerzeile() {
         'allen Fotos, Scheinen und Riesenscheinen. Es darf eine Woche umfassen oder eine ganze ' +
         'Saison. Ein ORDNER ist nur eine Schublade für Projekte: er entsteht, sobald du ein ' +
         'Projekt hineinziehst, und verschwindet von selbst, wenn du das letzte herausnimmst. Du ' +
-        'musst ihn nicht anlegen und nicht aufraeumen.',
+        'musst ihn nicht anlegen und nicht aufräumen.',
+    }),
+
+    /*
+      ACHTUNG, ZWEI VERSCHIEDENE ORDNER.
+
+      Hier ordnen Ordner PROJEKTE. Bei den Riesenscheinen ordnen Ordner
+      RIESENSCHEINE. Dasselbe Wort, zwei Ebenen, und genau davor hatte Karam am
+      17.09.2026 Angst: "Ich habe einfach Angst, dass das nicht funktioniert."
+      Deshalb steht die ganze Kette hier daneben, und der Satz darunter sagt,
+      welche Stufe gerade gemeint ist.
+    */
+    aufbaukette(),
+    el('p.erklaerzeile-text', {
+      text:
+        'Auf DIESER Seite ordnen die Ordner Projekte. Die Ordner für Riesenscheine ' +
+        'sind etwas anderes und liegen im Reiter Riesenscheine, innerhalb eines Projekts.',
     }),
 
     /*

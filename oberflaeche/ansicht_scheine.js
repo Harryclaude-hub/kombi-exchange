@@ -14,6 +14,7 @@ import { el, fuelle, ausschnittbild } from './werkzeug.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { barEinsatz } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
+import * as Dialog from './dialog.js'
 
 /*
   DIE EINGABEFELDER STEHEN SEIT DEM 17.09.2026 IN oberflaeche/scheinfelder.js.
@@ -388,9 +389,18 @@ function aufklappung(schein, stand) {
             type: 'button',
             text: 'Diesen Schein löschen',
             title: 'Nur diesen Schein. Das Bild und die übrigen Scheine bleiben.',
-            onclick: () => {
+            onclick: async () => {
               const name = schein.scheinNr.wert ? `Nr. ${schein.scheinNr.wert}` : 'diesen Schein'
-              if (!window.confirm(`Wirklich ${name} löschen? Das Bild bleibt erhalten.`)) return
+              const ja = await Dialog.bestaetige({
+                titel: `${name} wirklich löschen?`,
+                punkte: [
+                  'Nur dieser eine Schein verschwindet aus der Rechnung.',
+                  'Das Bild bleibt erhalten, du kannst ihn daraus neu lesen lassen.',
+                ],
+                ja: 'Schein löschen',
+                gefahr: true,
+              })
+              if (!ja) return
               Zustand.entferneSchein(schein.id)
               Zustand.melde('info', 'Schein gelöscht. Das Bild ist noch da.')
             },

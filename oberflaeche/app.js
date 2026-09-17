@@ -6,13 +6,17 @@
  * Gerechnet wird hier nichts.
  */
 
-import { el, fuelle, such, neueKennung, jetzt, verzoegert, zeitText } from './werkzeug.js'
+import { el, fuelle, such, neueKennung, jetzt, verzoegert, zeitText, ausschnittbild } from './werkzeug.js'
 import { formatiere } from '../kern/geld.js'
 import { rechneProjekt, barEinsatz } from '../kern/rechnung.js'
 import * as Zustand from './zustand.js'
 import * as Nadeln from './nadeln.js'
 import * as Ordner from './ordner.js'
 import * as Reihenfolge from './reihenfolge.js'
+// Eigene Fenster statt window.prompt, window.confirm und window.alert.
+// Karam am 17.09.2026: "diese Pop-Ups vom Browser oben, das mag ich gar
+// nicht." Siehe oberflaeche/dialog.js.
+import * as Dialog from './dialog.js'
 import * as Anleitung from './anleitung.js'
 import * as Datenbank from '../daten/datenbank.js'
 import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL, PROGRAMM_FASSUNG } from '../daten/einstellungen.js'
@@ -478,8 +482,17 @@ function zeichneKopf() {
       el('button.knopf.knopf-klein', {
         type: 'button',
         text: 'Abmelden',
-        onclick: () => {
-          if (!confirm('Abmelden? Der Code wird beim nächsten Mal wieder gebraucht.')) return
+        onclick: async () => {
+          const ja = await Dialog.bestaetige({
+            titel: 'Abmelden?',
+            punkte: [
+              'Es geht nichts verloren. Alles liegt in der Datenbank.',
+              'Beim nächsten Mal brauchst du den Zugangscode wieder.',
+              'Andere Fenster bleiben angemeldet.',
+            ],
+            ja: 'Abmelden',
+          })
+          if (!ja) return
           localStorage.removeItem(SITZUNG_SCHLUESSEL)
           Zustand.aendere({ angemeldet: false, token: '' })
         },
@@ -647,15 +660,18 @@ function zeigeCodewechsel() {
             hinweis.textContent = 'Bitte den bisherigen Code eingeben.'
             return
           }
-          if (
-            !confirm(
-              `Code wirklich wechseln?\n\nNeuer Code:\n${neu}\n\n` +
-                'Bitte vorher sichern. Danach ist er nicht mehr abrufbar, und ' +
-                'alle anderen Fenster werden abgemeldet.'
-            )
-          ) {
-            return
-          }
+          const ja = await Dialog.bestaetige({
+            titel: 'Code wirklich wechseln?',
+            text: `Neuer Code: ${neu}`,
+            punkte: [
+              'Schreib ihn dir VORHER auf. Danach ist er nicht mehr abrufbar.',
+              'Alle anderen Fenster werden abgemeldet, auch die deines Kollegen.',
+              'Dieses Fenster bleibt offen.',
+            ],
+            ja: 'Code wechseln',
+            gefahr: true,
+          })
+          if (!ja) return
 
           hinweis.textContent = 'Wird gewechselt ...'
           const ergebnis = await Datenbank.wechsleCode(stand.token, alt, neu)
@@ -755,15 +771,27 @@ function projektwahl(stand) {
           gebaut, und das soll man lesen, bevor man eines anlegt.
         */
         const stand = Zustand.hole()
-        const name = prompt(
-          'Wie soll das neue Projekt heißen?\n\n' +
-            'Ein Projekt ist ein eigener Arbeitsplatz. Es teilt NICHTS mit den anderen: ' +
-            'keine Scheine, keine Riesenscheine, keine Bilder, keine Summen. ' +
-            'Ordner liegen INNERHALB eines Projekts, sie verbinden also nie zwei Projekte.',
-          `Projekt ${stand.projekte.length + 1}`
-        )
-        if (!name) return
-        await legeProjektAn(name.trim())
+        const antwort = await Dialog.frage({
+          titel: 'Neues Projekt anlegen',
+          text: 'Ein Projekt ist ein eigener Arbeitsplatz, wie ein zweiter Schreibtisch.',
+          punkte: [
+            'Nimm eines je Saison oder je Sportart. Zum Beispiel "NFL 2026/27".',
+            'Es teilt NICHTS mit den anderen: keine Scheine, keine Riesenscheine, keine Bilder, keine Summen.',
+            'Ordner liegen INNERHALB eines Projekts. Sie verbinden nie zwei Projekte.',
+            'Das offene Projekt bleibt, wo es ist. Du kannst oben jederzeit zurückwechseln.',
+          ],
+          felder: [
+            {
+              name: 'name',
+              beschriftung: 'Name des Projekts',
+              wert: `Projekt ${stand.projekte.length + 1}`,
+              hilfe: 'Kannst du später in der Ablage umbenennen.',
+            },
+          ],
+          ja: 'Projekt anlegen',
+        })
+        if (antwort === null || !antwort.name) return
+        await legeProjektAn(antwort.name)
       },
     }),
     el('button.knopf.knopf-winzig.projektleeren', {
@@ -952,14 +980,17 @@ async function leereAktuellesProjekt() {
   const stand = Zustand.hole()
   if (!stand.projekt) return
   const anzahl = stand.scheine.length
-  if (
-    !confirm(
-      `Alle ${anzahl} Schein(e) und alle Bilder aus "${stand.projekt.name}" entfernen?\n\n` +
-        'Das Projekt selbst bleibt bestehen. Rueckgaengig machen geht nicht.'
-    )
-  ) {
-    return
-  }
+  const ja = await Dialog.bestaetige({
+    titel: `Alles aus "${stand.projekt.name}" entfernen?`,
+    punkte: [
+      `${anzahl} Schein(e), alle Riesenscheine und alle Bilder dieses Projekts gehen weg.`,
+      'Das Projekt selbst bleibt bestehen, nur leer.',
+      'Rückgängig machen geht nicht.',
+    ],
+    ja: 'Projekt leeren',
+    gefahr: true,
+  })
+  if (!ja) return
 
   Zustand.arbeite(true, 'Projekt wird geleert', 0.5)
   const antwort = await Datenbank.leereProjekt(stand.token, stand.projekt.id)
@@ -1574,6 +1605,26 @@ function panelScheine(stand, riesenschein, schmal) {
         },
         [
           el('span.panelzeichen', { text: String(i + 1) }),
+          /*
+            DAS BILD IST AUCH HIER DABEI, wenn auch nur als Daumennagel.
+
+            Karam am 17.09.2026: "Kannst du immer bei jeder Angabe von den
+            einzelnen Scheinen so machen, dass immer ein Bild dabei ist, wenn
+            ein Bild hochgeladen ist. Das ist mir sehr wichtig, dass man immer
+            die Bilder daneben hat. Wenn es mehrere Scheine gleichzeitig sind,
+            dann ist einfach ein kleines Bild, und wenn man die Scheine dann
+            aufmacht, dass die Bilder dann sichtbarer sind."
+
+            Genau so: hier klein, in der Liste in der Mitte groesser, und am
+            aufgemachten Schein gross. Ist das Bild nach einem Neuladen nicht
+            mehr da, bleibt der leere Rahmen stehen: er sagt, dass hier ein
+            Bild hingehoert.
+          */
+          schmal
+            ? null
+            : el('span.panelbild', {}, [
+                ausschnittbild(stand.bilder.get(s.bildId), s.ausschnitt),
+              ]),
           schmal
             ? null
             : el('span.panelwette', {}, [

@@ -1744,7 +1744,9 @@ li[data-schwere="info"] .hinweisart {
 .dialog {
   max-width: 32rem;
   width: calc(100vw - 2rem);
-  padding: var(--abstand-gross, 1.25rem);
+  /* --abstand-gross gibt es in marken.css nicht, es griff immer der Ersatzwert.
+     Am 17.09.2026 auf das Merkmal umgestellt, das es wirklich gibt. */
+  padding: var(--luft-5);
   border: 1px solid var(--linie-hell);
   border-radius: var(--rundung, 10px);
   background: var(--flaeche-hoch);
@@ -2316,9 +2318,14 @@ li[data-schwere="info"] .hinweisart {
   flex-direction: column;
 }
 
+/*
+  FUENF SPALTEN SEIT DEM 17.09.2026, vorher vier: ganz vorne steht jetzt das
+  Bild. Karam: "dass man immer die Bilder daneben hat."
+*/
 .scheinzeile {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
   gap: var(--luft-3);
   padding: var(--luft-1) 0;
   font-size: var(--text-klein);
@@ -4667,12 +4674,6 @@ li[data-schwere="info"] .hinweisart {
   font-size: var(--text-normal);
 }
 
-.scheingrossfoto {
-  margin-top: var(--luft-2);
-  max-width: 100%;
-  overflow: auto;
-}
-
 .scheingrossfuss {
   display: flex;
   justify-content: space-between;
@@ -4999,4 +5000,337 @@ li[data-schwere="info"] .hinweisart {
 .ordnerachtung a {
   color: var(--schrift);
   font-weight: 700;
+}
+
+/* ======================================================== Eigene Fenster
+   Karam am 17.09.2026: "Diese Pop-Ups vom Browser oben, das mag ich gar
+   nicht. Die sollen custom sein, viel schoener, in die Mitte kommen, und du
+   hast einfach die wichtigsten Stichpunkte da zum Anschreiben."
+   ===================================================================== */
+
+.dialogfenster {
+  /*
+    IN DIE MITTE, nicht oben an den Rand.
+
+    <dialog> mit showModal() setzt sich von sich aus in die Mitte des
+    Sichtfelds. Hier steht nur, dass es auf einem schmalen Bildschirm nicht
+    aus dem Bild laeuft: hoechstens so hoch wie die Seite, und dann scrollt
+    der Inhalt darin, nicht die Seite dahinter.
+  */
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border: 2px solid var(--linie-hell);
+  box-shadow: var(--schatten);
+}
+
+.dialogfenster::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dialoginhalt {
+  display: grid;
+  gap: var(--luft-3);
+}
+
+.dialogtitel {
+  margin: 0;
+  font-size: var(--text-gross);
+  line-height: 1.3;
+  color: var(--schrift);
+}
+
+.dialogtext {
+  margin: 0;
+  max-width: 60ch;
+  line-height: 1.6;
+  color: var(--schrift-leise);
+}
+
+/*
+  DIE STICHPUNKTE. Sie sind der Grund, warum die Browserfenster weg sind: dort
+  waere das ein Absatz Fliesstext gewesen, und einen Absatz liest niemand,
+  bevor er auf "OK" drueckt.
+*/
+.dialogpunkte {
+  margin: 0;
+  padding: var(--luft-3) var(--luft-4);
+  list-style: none;
+  display: grid;
+  gap: var(--luft-2);
+  background: var(--grund-tief);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+}
+
+.dialogpunkte li {
+  position: relative;
+  padding-left: 1.1em;
+  font-size: var(--text-klein);
+  line-height: 1.6;
+  color: var(--schrift);
+}
+
+.dialogpunkte li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  font-weight: 800;
+  color: var(--betonung);
+}
+
+.dialogfeld {
+  display: grid;
+  gap: var(--luft-1);
+}
+
+.dialogfeldname {
+  font-size: var(--text-winzig);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--schrift-still);
+}
+
+.dialogeingabe {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--luft-2) var(--luft-3);
+  background: var(--grund-tief);
+  color: var(--schrift);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  font: inherit;
+  font-size: var(--text-normal);
+}
+
+.dialogeingabe:focus {
+  outline: 2px solid var(--betonung);
+  outline-offset: 1px;
+}
+
+.dialogfeldhilfe {
+  font-size: var(--text-winzig);
+  line-height: 1.5;
+  color: var(--schrift-leise);
+}
+
+.dialogfuss {
+  margin: 0;
+  font-size: var(--text-winzig);
+  line-height: 1.5;
+  color: var(--schrift-still);
+}
+
+/*
+  Der Hauptknopf steht RECHTS und der Abbruch links davon: so herum liegt der
+  Daumen auf dem Telefon auf dem Weg, den man meistens geht.
+*/
+.dialogfenster .dialogknoepfe {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+  margin-top: var(--luft-1);
+}
+
+@media (max-width: 480px) {
+  .dialogfenster .dialogknoepfe {
+    flex-direction: column-reverse;
+  }
+
+  .dialogfenster .dialogknoepfe .knopf {
+    width: 100%;
+  }
+}
+
+/* ===================================================== Bilder an den Scheinen
+   Karam am 17.09.2026: "Kannst du immer bei jeder Angabe von den einzelnen
+   Scheinen so machen, dass immer ein Bild dabei ist, wenn ein Bild
+   hochgeladen ist. Wenn es mehrere Scheine gleichzeitig sind, dann ist
+   einfach ein kleines Bild, und wenn man die Scheine dann aufmacht, dass die
+   Bilder dann sichtbarer sind."
+
+   Drei Groessen, eine je Ebene:
+     Spur links       ein Daumennagel, damit man die Karte wiedererkennt
+     Liste in der Mitte  ein Streifen, auf dem die Zahlen lesbar sind
+     Aufgemachter Schein gross, zum Nachlesen
+   ========================================================================= */
+
+/* --- klein: die Spalte ganz links --- */
+.panelbild {
+  display: block;
+  width: 100%;
+  max-height: 34px;
+  overflow: hidden;
+  border: 1px solid var(--linie);
+  border-radius: 3px;
+  background: var(--grund-tief);
+}
+
+.panelbild .ausschnitt {
+  width: 100%;
+  height: auto;
+  max-height: 34px;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+  border: none;
+  border-radius: 0;
+}
+
+/* --- klein: die Scheinzeile in der Ablage --- */
+.scheinminibild {
+  width: 56px;
+  height: 28px;
+  overflow: hidden;
+  border: 1px solid var(--linie);
+  border-radius: 3px;
+  background: var(--grund-tief);
+}
+
+.scheinminibild .ausschnitt {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+  border: none;
+  border-radius: 0;
+}
+
+/*
+  --- gross: der aufgemachte Schein ---
+
+  Hier steht bewusst KEINE Hoehenbegrenzung. Wer einen einzelnen Schein
+  aufmacht, will genau das Bild lesen, aus dem die Zahlen kommen; ein auf
+  120 Pixel gestutzter Streifen waere dafuer wertlos.
+*/
+.scheingrossbild {
+  margin-top: var(--luft-2);
+  padding: var(--luft-2);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  background: var(--grund-tief);
+  min-height: 60px;
+}
+
+.scheingrossbild .ausschnitt {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ================================================== Der Aufbau in vier Stufen
+   Karam am 17.09.2026: "Bitte stell sicher, dass dieses System auch wirklich
+   im Projekt steht. Ich habe einfach Angst, dass das nicht funktioniert."
+   ========================================================================= */
+
+.aufbaukette {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+  padding: var(--luft-3);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+}
+
+.aufbaustufe {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 9rem;
+  min-width: 0;
+  padding: var(--luft-2) var(--luft-3);
+  background: var(--grund-tief);
+  border-left: 3px solid var(--betonung);
+  border-radius: var(--rundung);
+}
+
+.aufbauname {
+  font-size: var(--text-klein);
+  font-weight: 700;
+  color: var(--schrift);
+}
+
+.aufbaukurz {
+  font-size: var(--text-winzig);
+  line-height: 1.4;
+  color: var(--schrift-leise);
+}
+
+.aufbaupfeil {
+  align-self: center;
+  font-family: var(--schriftart-zahl);
+  font-weight: 800;
+  color: var(--schrift-still);
+}
+
+.aufbaublock {
+  padding: var(--luft-2) var(--luft-3);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+}
+
+.aufbaublock > summary {
+  cursor: pointer;
+  font-size: var(--text-klein);
+  font-weight: 700;
+  color: var(--schrift);
+}
+
+.aufbauliste {
+  margin: var(--luft-3) 0 var(--luft-1);
+  padding-left: var(--luft-5);
+  display: grid;
+  gap: var(--luft-3);
+}
+
+.aufbauliste li {
+  max-width: 88ch;
+}
+
+.aufbaulistename {
+  display: block;
+  color: var(--schrift);
+  font-size: var(--text-normal);
+}
+
+.aufbaulisttext {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-klein);
+  line-height: 1.6;
+  color: var(--schrift-leise);
+}
+
+/* Auf dem Telefon untereinander: vier Stufen nebeneinander waeren vier Spalten
+   zu je siebzig Pixeln. */
+@media (max-width: 640px) {
+  .aufbaukette {
+    flex-direction: column;
+  }
+
+  .aufbaupfeil {
+    display: none;
+  }
+}
+
+/*
+  Die Wege rechts oben in der Uebersicht: Foto aufnehmen und neuer
+  Riesenschein. Sie stehen nebeneinander und brechen zusammen um, damit auf dem
+  Telefon nicht der eine oben und der andere unten landet.
+*/
+.uebersichtwege {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+}
+
+/* In der Zurueckleiste sitzt rechts der Weg nach vorne. */
+.zurueckleiste .fotoknoepfe,
+.zurueckleiste > .knopf:not(.zurueckknopf) {
+  margin-left: auto;
 }

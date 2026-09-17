@@ -25,6 +25,7 @@ import * as Zustand from './zustand.js'
 // nach Geld sortiert hat, findet den Riesenschein hier an derselben Stelle
 // wieder (Projektregel 8).
 import * as Reihenfolge from './reihenfolge.js'
+import { aufbaukette } from './aufbau.js'
 
 /** Der zuletzt gebaute Riesenschein, damit er nicht bei jedem Neuzeichnen neu entsteht. */
 let vorschau = { id: '', leinwand: /** @type {HTMLCanvasElement|null} */ (null), hinweise: /** @type {string[]} */ ([]) }
@@ -459,10 +460,16 @@ function erklaerzeile() {
     el('p.erklaerzeile-text', {
       text:
         'Hier holst du deine Zahlen aus dem Programm heraus, auf drei Wegen. ' +
-        'Das Bild ist zum Weitergeben: alle Scheine eines Riesenscheins nebeneinander. ' +
+        'Das Bild ist zum Weitergeben: alle Scheine EINES Riesenscheins nebeneinander. ' +
         'Die Excel-Mappe ist zum Nachrechnen und Aufheben. ' +
         'Die CSV-Datei ist dasselbe für andere Programme. ' +
         'Nichts davon verlässt dieses Gerät, bevor du es selbst verschickst.',
     }),
+    el('p.erklaerzeile-text', {
+      text:
+        'Ausgegeben wird immer aus dem OFFENEN Projekt. Ein anderes Projekt hat seine ' +
+        'eigenen Zahlen, und die kommen hier nie mit hinein.',
+    }),
+    aufbaukette(),
   ])
 }
