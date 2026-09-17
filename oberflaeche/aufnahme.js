@@ -27,6 +27,9 @@ import {
   schluesselFuerName,
 } from '../kern/buchmacher.js'
 import { pruefsumme, legeBildAb, loescheBild } from '../daten/ablage.js'
+// Der Ordner auf der Platte, in den jedes Foto sofort mitgeschrieben wird.
+// Siehe daten/plattenspeicher.js.
+import * as Platte from '../daten/plattenspeicher.js'
 import { neueKennung, jetzt, atmen } from './werkzeug.js'
 import * as Zustand from './zustand.js'
 
@@ -177,6 +180,31 @@ export async function nimmAuf(dateien) {
         hoehe: element.naturalHeight,
         inhalt: datei,
       })
+
+      /*
+        SOFORT AUCH AUF DIE PLATTE, wenn ein Ordner gewaehlt ist.
+
+        Karam am 17.09.2026: "Du musst wirklich sicherstellen, dass der
+        Speicherplatz immer optimal gespeichert wird. Dass der Nutzer immer
+        seine Fotos irgendwo hat."
+
+        HIER UND NICHT SPAETER: ein Foto, das erst beim naechsten Sichern
+        hinausgeht, ist bis dahin genau einmal vorhanden. Bei sechzig Scheinen
+        am Spieltag ist die Luecke zwischen Aufnehmen und Sichern die
+        gefaehrlichste Stelle.
+
+        OHNE await AUF DAS ERGEBNIS ZU WARTEN waere falsch herum gedacht: das
+        Schreiben dauert Millisekunden, und wenn es NICHT klappt, will man das
+        wissen, bevor sechzig weitere Fotos hinterherkommen. Faellt es aus,
+        haelt es das Lesen trotzdem nicht auf, denn sichere() wirft nie.
+      */
+      const gesichert = await Platte.sichere({ id, dateiname: datei.name, inhalt: datei })
+      if (!gesichert.geschrieben && gesichert.grund && gesichert.grund !== 'kein Ordner gewählt') {
+        Zustand.melde(
+          'warnung',
+          `"${datei.name}" liegt im Browser, konnte aber nicht in deinen Ordner geschrieben werden: ${gesichert.grund}`
+        )
+      }
 
       bilder.set(id, {
         bild: {

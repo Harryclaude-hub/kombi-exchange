@@ -28,8 +28,9 @@ import * as Dialog from './dialog.js'
 import { aufbaukette, aufbaublock } from './aufbau.js'
 // Was geteilt wird und was nicht, an einer Stelle formuliert.
 // Siehe oberflaeche/geteilt.js.
-import { geteiltblock, speicherblock } from './geteilt.js'
-import { bildmass, platz, sorgeFuerDauer } from '../daten/ablage.js'
+import { geteiltblock, speicherblock, ordnerblock } from './geteilt.js'
+import { bildmass, platz, sorgeFuerDauer, holeBilderZuProjekt } from '../daten/ablage.js'
+import * as Platte from '../daten/plattenspeicher.js'
 
 /**
  * Wie viele Bilder dieses Projekt hat und wie gross sie sind, gemessen.
@@ -528,6 +529,98 @@ function imOrdner(stand, ordner, gezeigt) {
   ])
 }
 
+/*
+  DER ORDNER AUF DER PLATTE.
+
+  Karam am 17.09.2026: "Du musst wirklich sicherstellen, dass der Speicherplatz
+  immer optimal gespeichert wird. Dass der Nutzer immer seine Fotos irgendwo
+  hat. Also am besten noch auf dem Desktop, den er gerade nutzt."
+
+  Der Zustand steht hier und nicht im Arbeitsstand: er gehoert zum GERAET, nicht
+  zum Projekt, und er aendert sich nur, wenn jemand einen Ordner aussucht.
+*/
+
+/** @type {{moeglich: boolean, gewaehlt: boolean, name: string, erlaubt: boolean}|null} */
+let ordnerstand = null
+
+/** @type {{offen: number, laeuft: boolean, fertig: number, gesamt: number}} */
+let sicherungsstand = { offen: 0, laeuft: false, fertig: 0, gesamt: 0 }
+
+/**
+ * Sieht nach, ob ein Ordner gewaehlt ist und wie viele Bilder noch fehlen.
+ *
+ * @param {any} stand
+ */
+async function pruefeOrdner(stand) {
+  ordnerstand = await Platte.stand()
+
+  if (ordnerstand.gewaehlt && ordnerstand.erlaubt && stand.projekt) {
+    // Wie viele Bilder es ueberhaupt gibt. Welche davon schon im Ordner liegen,
+    // weiss nur der Ordner selbst; hier wird nur gezaehlt, was da ist, und der
+    // Knopf schreibt dann alles. Zweimal dieselbe Datei zu schreiben schadet
+    // nicht, sie wird ueberschrieben.
+    const mass = await bildmass(stand.projekt.id)
+    sicherungsstand = { ...sicherungsstand, offen: mass.anzahl }
+  }
+
+  Zustand.aendere({})
+}
+
+/**
+ * Laesst einen Ordner aussuchen. Muss aus einem Klick heraus laufen.
+ */
+async function waehleOrdner() {
+  const ergebnis = await Platte.waehleOrdner()
+  if (!ergebnis.gelungen) {
+    if (ergebnis.meldung) Zustand.melde('warnung', ergebnis.meldung)
+    return
+  }
+  Zustand.melde('erfolg', `Der Ordner "${ergebnis.name}" ist gesetzt. Neue Fotos gehen ab jetzt mit dorthin.`)
+  ordnerstand = null
+  await pruefeOrdner(Zustand.hole())
+}
+
+/**
+ * Schreibt alle Bilder dieses Projekts in den Ordner.
+ *
+ * Das sind die, die vor dem Auswaehlen hochgeladen wurden. Bei zehntausend
+ * Bildern dauert das, deshalb meldet es den Fortschritt und laesst sich an der
+ * Anzeige ablesen.
+ */
+async function sichereAlles() {
+  const stand = Zustand.hole()
+  if (!stand.projekt) return
+
+  const bilder = await holeBilderZuProjekt(stand.projekt.id)
+  if (bilder.length === 0) {
+    Zustand.melde('info', 'In diesem Projekt liegt kein Bild, das sich sichern liesse.')
+    return
+  }
+
+  sicherungsstand = { offen: bilder.length, laeuft: true, fertig: 0, gesamt: bilder.length }
+  Zustand.aendere({})
+
+  const ergebnis = await Platte.sichereAlle(bilder, (fertig, gesamt) => {
+    // Nicht bei jedem einzelnen neu zeichnen: bei zehntausend Bildern waeren
+    // das zehntausend Neuzeichnungen und der Browser stuende still.
+    if (fertig % 25 !== 0 && fertig !== gesamt) return
+    sicherungsstand = { ...sicherungsstand, fertig, gesamt }
+    Zustand.aendere({})
+  })
+
+  sicherungsstand = { offen: 0, laeuft: false, fertig: 0, gesamt: 0 }
+
+  if (ergebnis.fehler.length > 0) {
+    Zustand.melde(
+      'warnung',
+      `${ergebnis.geschrieben} Bild(er) gesichert, aber es gab Fehler: ${ergebnis.fehler.join('; ')}`
+    )
+  } else {
+    Zustand.melde('erfolg', `${ergebnis.geschrieben} Bild(er) liegen jetzt in deinem Ordner.`)
+  }
+  Zustand.aendere({})
+}
+
 /**
  * Der Block, der sagt, was der Kollege sieht und was nicht.
  *
@@ -562,6 +655,13 @@ function ordnerhinweis(stand) {
     */
     new URL('../werkzeug/datenbank_erweitern.html', import.meta.url).href
   )
+
+  if (ordnerstand === null) {
+    // Einmal nachsehen, ob schon ein Ordner gewaehlt ist. Der Griff darauf liegt
+    // in der Browserdatenbank und ueberlebt das Schliessen des Fensters.
+    ordnerstand = { moeglich: Platte.moeglich(), gewaehlt: false, name: '', erlaubt: false }
+    pruefeOrdner(stand)
+  }
 
   if (gemessenerDauerstand === null) {
     /*
@@ -600,6 +700,14 @@ function ordnerhinweis(stand) {
   // beschaeftigt, ist nicht, was der Kollege sieht, sondern ob die Fotos
   // liegen bleiben.
   return el('.hinweisbereich', {}, [
+    /*
+      DER ORDNER STEHT GANZ OBEN.
+
+      Karam am 17.09.2026: "Das ist mir sehr wichtig, sehr, sehr wichtig."
+      Was ihm am wichtigsten ist, steht zuerst, und zwar vor der Frage, was der
+      Kollege sieht.
+    */
+    ordnerblock(stand, ordnerstand, sicherungsstand, waehleOrdner, sichereAlles),
     speicherblock(gemessenerDauerstand, gemessenerPlatz, gemessenesBildmass),
     block,
   ])

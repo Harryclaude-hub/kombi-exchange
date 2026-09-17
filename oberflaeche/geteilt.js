@@ -120,6 +120,116 @@ export function sachen(stand, mass = null) {
 }
 
 /**
+ * Der Kasten fuer den Ordner auf der Platte.
+ *
+ * Karam am 17.09.2026: "Du musst wirklich sicherstellen, dass der Speicherplatz
+ * immer optimal gespeichert wird. Dass der Nutzer immer seine Fotos irgendwo
+ * hat. Also am besten noch auf dem Desktop, den er gerade nutzt."
+ *
+ * DREI ZUSTAENDE, und jeder sagt genau einen Satz:
+ *
+ *   kein Ordner gewaehlt   was es bringt, und ein Knopf, der ihn aussucht
+ *   Ordner gewaehlt        wie er heisst, wie viele Bilder noch fehlen
+ *   Browser kann es nicht  welcher Browser es kann, ohne Schuldzuweisung
+ *
+ * WARUM EIN KNOPF UND KEINE AUTOMATIK. Der Browser oeffnet die Ordnerauswahl
+ * nur aus einem Klick heraus. Das ist keine Einschraenkung, die man wegbauen
+ * sollte: ein Programm, das sich ungefragt einen Ordner auf der Platte nimmt,
+ * waere genau das, was man nicht will.
+ *
+ * @param {any} stand
+ * @param {{moeglich: boolean, gewaehlt: boolean, name: string, erlaubt: boolean}|null} ordner
+ * @param {{offen: number, laeuft: boolean, fertig: number, gesamt: number}} sicherung
+ * @param {() => void} aufWaehlen
+ * @param {() => void} aufSichern
+ * @returns {HTMLElement|null}
+ */
+export function ordnerblock(stand, ordner, sicherung, aufWaehlen, aufSichern) {
+  if (!ordner) return null
+
+  if (!ordner.moeglich) {
+    return el('.speicherblock', { daten: { dauerhaft: 'false' } }, [
+      el('.speichertitel', { text: 'Dieser Browser kann keinen Ordner auf der Platte' }),
+      el('p.geteilttext', {
+        text:
+          'Chrome und Edge können es: dort wählst du einmal einen Ordner aus, und jedes ' +
+          'Foto wird zusätzlich dorthin geschrieben. Firefox und Safari können es nicht, ' +
+          'und auf dem Telefon meistens auch nicht. Die Fotos liegen dann nur im Browser.',
+      }),
+    ])
+  }
+
+  if (!ordner.gewaehlt) {
+    return el('.speicherblock', { daten: { dauerhaft: 'false' } }, [
+      el('.speichertitel', { text: 'Noch kein Ordner auf der Platte' }),
+      el('p.geteilttext', {
+        text:
+          'Wähle einen Ordner aus, am besten auf dem Rechner, an dem du gerade sitzt. ' +
+          'Jedes Foto wird dann sofort zusätzlich dorthin geschrieben, als ganz normale ' +
+          'Datei. Die bleibt liegen, auch wenn der Browser aufräumt, auch ohne dieses ' +
+          'Programm, und du kannst den Ordner auf eine externe Platte legen.',
+      }),
+      el('p.geteilttext', {
+        text:
+          'Es kostet nichts und hat kein Limit außer der Platte selbst. Bei zehntausend ' +
+          'bis hunderttausend Fotos in einer Saison ist das der einzige Weg, der lange ' +
+          'genug trägt.',
+      }),
+      el('.ausgabeknoepfe', {}, [
+        el('button.knopf.knopf-haupt', {
+          type: 'button',
+          text: 'Ordner auswählen',
+          onclick: aufWaehlen,
+        }),
+      ]),
+    ])
+  }
+
+  return el('.speicherblock', { daten: { dauerhaft: String(ordner.erlaubt) } }, [
+    el('.speichertitel', {
+      text: ordner.erlaubt
+        ? `Deine Fotos gehen nach "${ordner.name}"`
+        : `Der Ordner "${ordner.name}" braucht noch dein Ja`,
+    }),
+    el('p.geteilttext', {
+      text: ordner.erlaubt
+        ? 'Jedes neue Foto wird sofort zusätzlich dorthin geschrieben. Was einmal drin ' +
+          'liegt, bleibt drin, auch wenn du das Bild im Programm entfernst: der Ordner ' +
+          'ist die Sicherung, und eine Sicherung, die mitlöscht, ist keine.'
+        : 'Der Browser fragt nach jedem Neustart einmal nach. Ein Klick, dann läuft es ' +
+          'wieder von selbst.',
+    }),
+
+    sicherung.laeuft
+      ? el('p.geteilttext', {
+          text: `Wird gesichert: ${sicherung.fertig} von ${sicherung.gesamt} ...`,
+        })
+      : sicherung.offen > 0
+        ? el('p.geteilttext', {
+            text:
+              `${sicherung.offen} Bild(er) aus diesem Projekt liegen noch nicht im Ordner. ` +
+              'Das sind die, die du vor dem Auswählen hochgeladen hast.',
+          })
+        : el('p.geteilttext', { text: 'Alle Bilder dieses Projekts liegen im Ordner.' }),
+
+    el('.ausgabeknoepfe', {}, [
+      el('button.knopf.knopf-haupt', {
+        type: 'button',
+        text: ordner.erlaubt ? 'Alle Bilder jetzt sichern' : 'Ordner wieder freigeben',
+        disabled: sicherung.laeuft ? 'disabled' : null,
+        onclick: aufSichern,
+      }),
+      el('button.knopf.knopf-klein', {
+        type: 'button',
+        text: 'Anderen Ordner wählen',
+        disabled: sicherung.laeuft ? 'disabled' : null,
+        onclick: aufWaehlen,
+      }),
+    ]),
+  ])
+}
+
+/**
  * Bleiben die Bilder liegen, und wie lange reicht der Platz.
  *
  * Karam am 17.09.2026: "Ich will wirklich, dass immer die Fotos gespeichert
