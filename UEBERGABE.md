@@ -1,6 +1,6 @@
 # Uebergabe an die naechste Sitzung
 
-Stand: 16.09.2026, Fassung 2026-09-16-f. Diese Datei ist so geschrieben, dass
+Stand: 17.09.2026, Fassung 2026-09-17-b. Diese Datei ist so geschrieben, dass
 jemand ohne jede Vorgeschichte weiterarbeiten kann. Zuerst lesen, dann anfangen.
 
 **Auftrag der naechsten Sitzung: Design und Bedienung.** Was am Programm
@@ -36,6 +36,12 @@ zusammen und gibt ein Blatt und eine Excel-Mappe aus.
 
 Der Code liegt nur als Einwegwert in `kombi.zugangscodes`. Niemals in eine
 Datei schreiben. Im Programm gibt es oben rechts "Code wechseln".
+
+**Karam am 16.09.2026, woertlich:** "Bitte lass ihn nie wieder aendern, okay?
+Der soll einfach gleich bleiben. Ausser ich schreibe das in diesen Chat, ich
+muss diesen Code aendern." Also: den Code NICHT wechseln, NICHT neu setzen,
+`update kombi.zugangscodes` NICHT ausfuehren, solange Karam es nicht selbst im
+Gespraech verlangt.
 
 **Ist der Code weg: `NOTFALL.md`.** Dort steht der eine SQL-Befehl, mit dem
 Karam sich selbst einen neuen setzt. Er steht auch im Programm am
@@ -625,6 +631,9 @@ oberflaeche/   Anzeige und Bedienung.
   zustand.js         Der eine Arbeitsstand.
   werkzeug.js        el(), fuelle(), anbieterzeichen().
   fotoknoepfe.js     Die drei Aufnahmewege. EINZIGE Stelle. Neu 16.09.
+  scheinfelder.js    Die Eingabefelder eines Scheins. EINZIGE Stelle. Neu 17.09.
+  ordner.js          Ordner fuer Riesenscheine, im Browser. Neu 17.09.
+  reihenfolge.js     Filtern, Anordnen, Ordnersumme. EINZIGE Stelle. Neu 17.09.
   ansicht_*.js       Je Reiter eine Datei, dazu ansicht_hilfe.js (neu 16.09).
 ausgabe/       Excel und CSV.
 stil/          NUR Design. Loeschbar.
@@ -637,14 +646,188 @@ daten/         Datenbank und oertliche Ablage.
 werkzeug/      Pruefskript, Server, Messwerkzeug, Probe- und Trainingsseiten.
   probe/anbieter.html         Der ganze Leseweg an nachgebauten Bildern.
   probe/hilfe.html            Vorschau der Hilfeseite, ohne Zugangscode.
+  probe/oberflaeche.html      Die ganze Oberflaeche, ohne Zugangscode.
   probe/anbieterzeichen.html  Alle sechzig Anbieterzeichen. Neu 16.09.
 supabase/migrations/  Der Datenbankaufbau, 0001 bis 0008.
-test/          236 Tests.
+test/          256 Tests.
 ```
+
+**Die Oberflaeche laesst sich ohne Zugangscode ansehen und messen:**
+`werkzeug/probe/oberflaeche.html`. Sie zeichnet Kopfzeile, Panel, Uebersicht,
+Riesenscheine und Scheine mit ECHTEN Scheinen aus dem Testkorpus, durch den
+echten Parser gelesen, und setzt `angemeldet: false`, damit nichts gespeichert
+werden kann. Sie startet auf Ebene 1, damit man die Uebersicht sieht.
 
 **Probeseiten brauchen KEINEN Zugangscode.** Alles andere schon. Wer ohne Code
 arbeitet, kann die Reiter Aufnahme, Scheine, Riesenscheine, Ausgabe und Ablage
 nicht selbst ansehen und muss das ehrlich sagen (Regel 2).
+
+## Was am 17.09.2026 gebaut wurde
+
+Alles veroeffentlicht, Fassung 2026-09-17-b, oeffentlich nachgeprueft.
+
+### Drei Ebenen statt zwei Spalten
+
+Karam: "Nummer 1, hier ist die Uebersicht, da sind alle Riesenscheine angezeigt
+und Folder. Wenn man einen Riesenschein aufmacht, kommt der Riesenschein dann
+in die Mitte, und ganz links werden dann alle Scheine angezeigt, die in diesem
+Riesenschein sind. Kann man sie dann separat aufmachen, und dann sieht man im
+grossen Bereich, welche Einsaetze man hat, da kann man die auch bearbeiten.
+Man kann dann auch auf Zurueck druecken."
+
+| Ebene | Bedingung | Mitte | Spalte links |
+|---|---|---|---|
+| 1 | `auswahl` ist null | Uebersicht: Ordner und alle Riesenscheine als Karten | Ordner, Anordnung, alle Riesenscheine |
+| 2 | `auswahl` gesetzt | der Riesenschein mit seinen Zahlen und seinen Scheinen | die Scheine darin |
+| 3 | `scheinAuswahl` gesetzt | ein einzelner Schein, gross und aenderbar | die Scheine darin |
+
+**Die Ebene steht NICHT eigens im Zustand.** Sie folgt aus `auswahl` und
+`scheinAuswahl`. Eine dritte Angabe koennte mit ihnen auseinanderlaufen
+(Regel 8). Wer eine Ebene sucht, sucht diese beiden Felder.
+
+**`ordneNeu` setzt die Auswahl nicht mehr.** Bis zum 17.09. sprang sie auf die
+offene Huelle oder ersatzweise auf den ersten Riesenschein. Beides ist jetzt
+falsch: die Huelle bleibt offen, also haette jede berichtigte Zahl die Ansicht
+weggerissen, und `auswahl` null IST die Uebersicht. `ordneNeu` raeumt nur noch
+auf, was ins Leere zeigt.
+
+### Neuer Riesenschein ohne Zeremonie
+
+Karam: "Ein neuer Riesenschein, wenn ich diesen Knopf druecke, komme ich auf
+einen neuen Riesenschein. Das heisst, ich habe jetzt 10, dann bekomme ich 11.
+Einen komplett neuen, keine Huelle schliessen, nichts."
+
+Der Streifen mit "Huelle schliessen" ist weg. Ein Druck, und der neue
+Riesenschein ist da und aufgeschlagen. Im Browser gemessen: 16 vorher, 17
+nachher, ohne Rueckfrage.
+
+**Die Huelle selbst ist geblieben, nur unsichtbar geworden.** Solange ein
+Riesenschein der zuletzt aufgemachte ist, wandert jedes neu gelesene Bild
+hinein, und die automatische Zuordnung ist dafuer abgeschaltet. Genau das hat
+am 16.09. drei verschiedene Wetten zu einer Position von 17.717,48 EUR
+verschmolzen (`test/huelle_mischt.test.mjs`). Deshalb steht die Marke "nimmt
+neue Fotos auf" an der Karte und am Kopf des Riesenscheins, mit einem kleinen
+Knopf, der es abstellt.
+
+### Ordner fuer Riesenscheine
+
+`oberflaeche/ordner.js` und `oberflaeche/reihenfolge.js` sind neu.
+
+**Die Zuordnung liegt im Browser, NICHT in der Datenbank.**
+`kombi.riesenscheine` hat keine Spalte `ordner`; ein Ordner am Riesenschein
+braucht eine neue Migration UND eine Aenderung an
+`kombi_riesenscheine_speichern`. Das ist ein Eingriff in Karams laufende
+Datenbank, und den macht niemand ohne sein ausdrueckliches Wort. **Das steht
+auch im Programm**, unter den Ordnerkacheln, damit Karam sich nicht darauf
+verlaesst, dass sein Kollege dieselben Ordner sieht.
+
+Sobald die Migration da ist, wird aus `ordner.js` eine Fassade auf das Feld am
+Riesenschein, und der Rest des Programms merkt nichts davon.
+
+**Ordner werden zusammengerechnet.** Gemessen an drei echten Riesenscheinen aus
+dem Testkorpus: 5.000,00 + 300,00 + 181,00 = 5.481,00 $ und 8.200,00 + 492,00 +
+296,84 = 8.988,84 $. Beides stimmt auf den Cent, von Hand nachgerechnet.
+Ueber Waehrungen hinweg wird NICHT summiert: kommt ein Euro-Riesenschein dazu,
+steht "Waehrungen gemischt, deshalb keine Summe".
+
+### Der teuerste Fund des Tages: Ordner gingen bei jedem Neuordnen verloren
+
+Vier Riesenscheine in einen Ordner gelegt, einmal auf "Neuer Riesenschein"
+gedrueckt: alle vier Ordner weg.
+
+`gruppiere()` vergibt bei JEDEM Lauf neue Kennungen. Stabil ist nicht die
+Kennung, sondern die Signatur; deshalb rettet `ordneNeu` auch den Namen ueber
+`alteNachSignatur` und nicht ueber die Kennung. Neu geordnet wird nach jeder
+berichtigten Zahl, Karam haette seine Ordner also mehrmals taeglich verloren,
+stillschweigend.
+
+Es ist derselbe Denkfehler, an dem am 16.09. schon `positionImBild` als Beweis
+fuer Gleichheit gescheitert ist: **eine Kennung, die sich aendert, taugt nicht
+als Gedaechtnis.** Wer kuenftig irgendetwas an einem Riesenschein festmacht,
+das nicht IM Riesenschein steht, muss es in `ordneNeu` mitwandern lassen.
+`Ordner.wandere()` zeigt, wie. Sieben Faelle in `test/ordner_wandern.test.mjs`.
+
+### Ausgabe: drei Schritte statt fuenf Knoepfe
+
+Vorher fuenf gleich laute Knoepfe in einer Reihe, einer davon ausgegraut ohne
+Grund. Jetzt drei nummerierte Schritte: das Bild zum Verschicken, die Tabelle
+zum Nachrechnen, die Rohdaten. Vor dem Knopf steht, zu wie vielen Scheinen das
+Foto noch vorliegt: ohne Foto fehlt der Schein auf dem Bild, und das stand
+bisher erst hinterher da.
+
+"Blatt" steht nur noch im Code (es kommt aus `bild/mosaik.js`), auf dem
+Bildschirm heisst es Bild.
+
+### Ablage: ein Knopf, der oeffnet
+
+Die ganze Zeile oeffnete schon immer beim Anklicken, nur stand es nirgends.
+Jetzt steht "Oeffnen" da, beim offenen Projekt die Marke "Offen". Dazu "In
+Ordner legen": verschoben wurde bisher NUR mit der Maus, und Karams Kollege
+arbeitet am Telefon.
+
+Der Knopf "Neuer Ordner" ist weg. Er legte das GERADE OFFENE Projekt in den
+neuen Ordner, nicht das, in dessen Zeile man stand.
+
+### Aufgeraeumt
+
+`oberflaeche/scheinfelder.js` ist neu: die Eingabefelder eines Scheins standen
+privat in `ansicht_scheine.js`, und Ebene 3 braucht dieselben. Zwei
+Abschriften waeren zwei Stellen, an denen sich das Lesen einer Zahl anders
+verhaelt; genau daran ist am 16.09. aus `5000.00` schon einmal 500000
+geworden. Wortgleich umgezogen, nur die Klasse der Huelle ist ein Zusatz.
+
+Aus `stil/` entfernt, weil kein Bauteil sie mehr traegt: `.scheinpanel`,
+`.huellenleiste` samt Zubehoer, `.positionsspalten`.
+
+### Neun Fehler, die dabei gefunden und gemessen wurden
+
+1. **Ordner gingen bei jedem Neuordnen verloren.** Siehe oben.
+2. **Zwei verschiedene Sachen hiessen `.projektkopf`:** die Zeile in einem
+   Ablage-Eintrag und der Block mit den Projektsummen. Die Ablage-Regel stand
+   in `bauteile.css` weiter unten und machte aus dem Raster eine Zeile.
+   Gemessen bei 375 Pixeln: die drei Projektzahlen standen als 38 Pixel breite
+   Saeulen nebeneinander, ein Buchstabe je Zeile. Breit fiel es nie auf. Die
+   Ablage heisst jetzt `.projektzeilenkopf`.
+3. **Die Projektzeile hatte drei Rasterspalten bei vier Kindern.** Der Name
+   bekam 13 Pixel. Jetzt eine Zeile, die umbricht.
+4. **Sechs Klassennamen trugen Umlaute**, seit dem Umlaut-Durchgang vom 16.09.:
+   `.hüllenname`, `.hüllenhinweis`, `.kärtcheninhalt`, `.kärtchenzahl`,
+   `.hilfeerklärung`, `.hilfewofür`. Fuenf davon haben in `stil/` eine Regel,
+   die damit ins Leere lief.
+5. **`--auf-schlecht` als Schriftfarbe auf der normalen Flaeche**, an drei
+   neuen Stellen. Sie ist die Schrift, die AUF einer roten Flaeche liegt:
+   dunkel fast schwarz, hell reines Weiss. Gemessen: rgb(26, 2, 6) auf dunklem
+   Grund.
+6. **Der gewaehlte Ordner im Panel: 1,35 zu 1 im hellen Schema.**
+   `.panelknopf[data-offen]` setzt Flaeche UND Schrift, ich hatte nur die
+   Flaeche ueberschrieben.
+7. **"nimmt neue Fotos auf": 2,63 zu 1 im dunklen Schema.** `--betonung` als
+   Flaeche mit `--knopf-haupt-schrift` darauf. Die alte Huellenmarke trug
+   denselben Fehler, nur hat ihn nie jemand gemessen.
+8. **`.panelprojektzahl` im Ordnerkasten: 4,25 zu 1 im hellen Schema.** Eine
+   Klasse, die woanders gemessen wurde, ist hier nicht gemessen.
+9. **`.kombiwarnung`: 4,39 zu 1 im hellen Schema.** Die Warnung war richtig,
+   nur zu leise gesetzt.
+
+**Merksatz aus 5 bis 9:** die Merkmale `--auf-gut`, `--auf-offen` und
+`--auf-schlecht` gehoeren AUF die gleichnamige Flaeche und nirgendwo sonst.
+Warnender Text auf der normalen Flaeche nimmt `--schlecht` oder `--offen`, und
+wenn es auf der Grenze landet, traegt die Kante das Signal und die Schrift
+bleibt `--schrift`.
+
+### Wie gemessen wurde
+
+Im Browser, jedes Textelement der Seite, Vorder- und Hintergrundfarbe mit Alpha
+uebereinandergelegt, bevor die Leuchtdichte gerechnet wird. Abgeschaltete
+Bedienelemente sind ausgenommen (so steht es in WCAG). Gemessen auf Ebene 1
+mit Ordnern, Ebene 2, Ebene 3, in der Ausgabe und in der Ablage, jeweils hell
+und dunkel, bei 1440 und bei 375 Pixeln Breite. Ueberall 0 Beanstandungen.
+
+**Wer nur die Klasse misst, misst nicht die Stelle.** Fuenf der neun Fehler
+oben sind genau so entstanden: eine Farbe, die anderswo passt, an einer neuen
+Flaeche.
+
+---
 
 ## Was am 16.09.2026 gebaut wurde
 
@@ -682,6 +865,8 @@ Riesenschein. Meldungen verschwinden von selbst, Fehler bleiben stehen.
 **Riesenscheine in drei Spalten:** links die Auswahl, in der Mitte die Zahlen,
 rechts die einzelnen Scheine nummeriert plus die Fotoknoepfe. Ein Riesenschein
 laesst sich in der Scheineliste von Hand aufmachen.
+*(Am 17.09.2026 abgeloest, siehe unten: die Ansicht hat jetzt drei EBENEN statt
+drei Spalten.)*
 
 **Anbieterzeichen:** jeder der sechzig Anbieter steht mit Hausfarbe und Kuerzel
 da. Echte Logos passen ohne Codeaenderung hinein: Datei nach
@@ -700,8 +885,29 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 ## Was offen ist
 
+0. **Migration 0009: eine Spalte `ordner` an `kombi.riesenscheine`.** Solange
+   sie fehlt, liegt die Ordnerzuordnung nur im Browser und wandert nicht zu
+   Karams Kollegen. Gebraucht wird die Spalte UND eine Aenderung an
+   `kombi_riesenscheine_speichern`, die sie mitschreibt. Dann wird aus
+   `oberflaeche/ordner.js` eine Fassade auf das Feld, und sonst aendert sich
+   nichts. **Karam muss es ausdruecklich sagen**, es ist seine laufende
+   Datenbank.
+
 1. **Karams echte Fotos.** Der eigentliche Auftrag. Der Weg dahin steht, ist
    im Browser durchgemessen und wartet nur noch auf die Bilder.
+
+   Gemessen am 16.09.2026: 3 von 19 Scheinen des Testkorpus landen im
+   Restposten mit "keine Auswahl erkannt". Der Parser liest Geld nur, wenn es
+   eine Beschriftung auf der eigenen Zeile traegt; eine reine Tabellenzeile mit
+   Ueberschriften darueber ist unlesbar. An Karams echter Zeile nachgeprueft:
+   nichts gefunden, und statt der Setzzeit wurde die Anstosszeit genommen.
+
+1b. **Drei Bilanzen nebeneinander** statt einer, wenn mehrere Waehrungen
+   vorkommen. Karam hat sich dafuer entschieden. Heute steht ueberall nur
+   "Waehrungen gemischt, deshalb keine Summe". Das ist richtig, aber es ist
+   eine Absage und keine Auskunft.
+
+1c. **Der Bericht "dieses Foto traegt N Wetten".** Offen seit dem 16.09.
 
 2. **Befunde aus der Gegenpruefung vom 13.09., bestaetigt aber NICHT
    repariert.** Sie wurden von einem zweiten Pruefer am Quelltext bestaetigt.
@@ -797,11 +1003,12 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 | | |
 |---|---|
-| Tests | 236, davon 235 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 256, davon 255 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, die Fotos fehlen |
-| Aufbaupruefung | 78 Dateien, keine Beanstandung |
-| Fassung | 2026-09-16-i, oeffentlich ausgeliefert |
+| Aufbaupruefung | 89 Dateien, keine Beanstandung |
+| Fassung | 2026-09-17-b, oeffentlich ausgeliefert und nachgeprueft |
+| Farbkontrast | Ebene 1, 2, 3, Ausgabe und Ablage, hell und dunkel, bei 1440 und bei 375 Pixeln: 0 Beanstandungen |
 | Probeseite (nachgebaute Bilder) | bet365 und BetOnline sauber, PS3838 2 von 3, Betway und Stake melden ihre Fehler laut |
 
 ## Bekannte Stolpersteine in diesem Container
