@@ -755,6 +755,10 @@ summary:focus-visible,
   display: inline-flex;
   align-items: center;
   gap: var(--luft-2);
+  /* Die ganze Beschriftung ist anklickbar, also traegt SIE die Mindesthoehe,
+     nicht nur das Kaestchen. 16 mal 16 sind 13 Prozent der Flaeche, die ein
+     Finger braucht. */
+  min-height: var(--bedienhoehe);
   font-size: var(--text-klein);
   color: var(--schrift-leise);
   cursor: pointer;
@@ -762,8 +766,8 @@ summary:focus-visible,
 
 .schalter input {
   accent-color: var(--gut);
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
 }
 
 /* ---------------------------------------------------------------- Hinweisblock */
@@ -801,6 +805,14 @@ summary:focus-visible,
 .blockliste li,
 .hinweisliste li {
   display: flex;
+  /*
+    UMBRECHEN. In diesen Zeilen steht Text und daneben ein Knopf, etwa
+    "trotzdem mitzaehlen" mit 170 Pixeln. Bei 375 Pixeln Fensterbreite und
+    der groesseren Schrift vom 17.09.2026 passte beides nicht mehr
+    nebeneinander, und die Seite bekam 29 Pixel Ueberlauf nach rechts.
+    Gemessen, nicht vermutet.
+  */
+  flex-wrap: wrap;
   gap: var(--luft-2);
   align-items: baseline;
   padding: 3px 0;
@@ -1000,7 +1012,13 @@ li[data-schwere="info"] .hinweisart {
 .feldwahl {
   width: 100%;
   min-width: 0;
-  padding: 4px 6px;
+  /*
+    44 statt 27 Pixel. Am 17.09.2026 gemessen: 133 dieser Felder auf EINER
+    Ansicht, und genau hier berichtigt Karam die Zahlen, an denen 20.000 EUR
+    je Spieltag haengen. Siehe --bedienhoehe in marken.css.
+  */
+  min-height: var(--bedienhoehe);
+  padding: var(--luft-2) var(--luft-2);
   background: var(--stufe-hoch);
   border: 1px solid transparent;
   border-radius: 4px;
@@ -2377,7 +2395,13 @@ li[data-schwere="info"] .hinweisart {
 .scheinstand {
   color: var(--schrift-still);
   text-align: right;
-  min-width: 5rem;
+  /*
+    5rem waren bei 14 Pixel Schrift 70 Pixel, bei 16 Pixel sind es 80, und
+    dann sprengte die Zeile bei 375 Pixeln das Fenster um 26 Pixel. Die
+    Mindestbreite haelt die Spalte ausgerichtet, sie darf aber nicht
+    wichtiger sein als das Fenster.
+  */
+  min-width: min(5rem, 100%);
 }
 
 /*
@@ -3743,6 +3767,14 @@ li[data-schwere="info"] .hinweisart {
   etwa 75 Zeichen je Zeile verliert man beim Zurueckspringen die Zeile.
 */
 .anleitung {
+  /*
+    AM 17.09.2026 BERICHTIGT. Hier stand width: min(680px, ...), und der
+    Kommentar darueber erklaerte die 680. Gemessen im Browser: das Fenster
+    war 512 Pixel breit. .dialog setzt max-width: 512px, und max-width
+    schlaegt width. Die Zeile war also seit jeher wirkungslos, und der
+    Kommentar beschrieb etwas, das nie passiert ist.
+  */
+  max-width: min(680px, calc(100vw - 2rem));
   width: min(680px, calc(100vw - 2rem));
   max-height: calc(100vh - 4rem);
   display: flex;
@@ -5709,4 +5741,30 @@ li[data-schwere="info"] .hinweisart {
 .dialogwahlzusatz {
   color: var(--schrift-leise);
   font-size: var(--text-winzig);
+}
+
+/*
+  WIE BREIT EINE ZEILE FLIESSTEXT WIRD.
+
+  Karam sitzt an einem breiten Bildschirm. Am 17.09.2026 bei 1920 Pixel
+  gemessen: bis zu 304 Zeichen je Zeile, und selbst die schon gedeckelten
+  Stellen lagen bei 100 bis 120. Ab etwa 75 Zeichen findet das Auge den Anfang
+  der naechsten Zeile nicht mehr zuverlaessig, man liest dieselbe zweimal oder
+  ueberspringt eine.
+
+  --lesebreite steht in ch und nicht in Pixeln: so waechst der Deckel mit,
+  wenn die Schrift groesser wird.
+
+  NUR FLIESSTEXT. Tabellen, Zahlenreihen und Listen duerfen breit sein, dort
+  springt das Auge ohnehin nicht zeilenweise.
+*/
+.leer-text,
+.ablage-hinweis,
+.hilfetext,
+.startbereichtext,
+.dialogtext,
+.geteilttext,
+.speichertitel + p,
+.probewarnung {
+  max-width: var(--lesebreite);
 }

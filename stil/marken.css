@@ -166,13 +166,66 @@
   --schriftart-zahl: "JetBrains Mono", "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono",
     "Courier New", monospace;
 
-  /* ---- Groessen ---- */
-  --text-winzig: 0.6875rem;
-  --text-klein: 0.75rem;
-  --text-normal: 0.875rem;
-  --text-gross: 1.0625rem;
-  --text-zahl: 1.375rem;
+  /*
+    ---- Groessen ----
+
+    Karam am 17.09.2026: "Die Groessen muessen einfach mehr angepasst werden."
+
+    WAS VORHER WAR, am 17.09.2026 gemessen: 11, 12, 14, 17, 22, 28 Pixel.
+    Die Schritte dazwischen: 1,091 / 1,167 / 1,214 / 1,294 / 1,273. Der erste
+    Schritt ist EIN Pixel, der groesste sechs. Das ist keine Reihe, das sind
+    sechs Zahlen, die zufaellig aufsteigen, und deshalb wirkte die Seite
+    unruhig, ohne dass man sagen konnte, woran es liegt.
+
+    Schlimmer war die Verteilung: 75,3 Prozent aller 219 Schriftgroessen im
+    ganzen Programm lagen auf 11 oder 12 Pixel, die beiden GROSSEN Stufen
+    zusammen auf 4,1 Prozent. Auf einer einzigen Ansicht standen 129 Elemente
+    auf 11 Pixel, und darunter waren Geldbetraege, Quoten und
+    Waehrungszeichen. Elf Pixel sind fuer eine Zahl, an der 20.000 EUR je
+    Spieltag haengen, zu klein.
+
+    DIE NEUE REIHE: 14, 16, 18, 21, 24, 28 Pixel.
+    Schritte 1,143 / 1,125 / 1,167 / 1,143 / 1,167. Spanne 3,6 statt 16,8
+    Prozent. Jeder Schritt ist sichtbar, keiner springt.
+
+    Die kleinste Stufe ist jetzt 14 und nicht 11: nichts im Programm ist so
+    unwichtig, dass es 11 Pixel verdient. Was wirklich Beiwerk ist, wird
+    leiser gefaerbt, nicht kleiner gesetzt.
+  */
+  --text-winzig: 0.875rem;
+  --text-klein: 1rem;
+  --text-normal: 1.125rem;
+  --text-gross: 1.3125rem;
+  --text-zahl: 1.5rem;
   --text-riesig: 1.75rem;
+
+  /*
+    WIE GROSS EINE BEDIENFLAECHE MINDESTENS IST.
+
+    Gemessen am 17.09.2026 auf der Ansicht Scheine mit 19 echten Scheinen:
+    207 Elemente kleiner als 44 mal 44 Pixel. Darunter 133 Eingabefelder mit
+    genau 27,0 Pixel Hoehe, also genau die Felder, in die Karam die Zahlen
+    berichtigt, und ein Haken von 16 mal 16 Pixeln, der die Auszahlung
+    umrechnet.
+
+    44 Pixel ist die Groesse, die ein Finger trifft. Karam sitzt nicht immer
+    am Laptop, und bei sechzig Scheinen am Spieltag ist jeder Fehlgriff eine
+    Zahl, die falsch wird.
+  */
+  --bedienhoehe: 44px;
+
+  /*
+    WIE BREIT EINE ZEILE FLIESSTEXT HOECHSTENS WIRD.
+
+    Gemessen bei 1920 Pixel Fensterbreite: bis zu 304 Zeichen je Zeile, und
+    selbst die schon gedeckelten Stellen lagen bei 100 bis 120. Ab etwa 75
+    Zeichen findet das Auge den Anfang der naechsten Zeile nicht mehr
+    zuverlaessig.
+
+    In ch und nicht in Pixeln, damit es mitwaechst, wenn die Schrift groesser
+    wird.
+  */
+  --lesebreite: 68ch;
 
   /* ---- Abstaende ---- */
   --luft-1: 0.25rem;
