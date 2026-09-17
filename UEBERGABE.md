@@ -1,10 +1,15 @@
 # Uebergabe an die naechste Sitzung
 
-**Stand: 17.09.2026, Fassung 2026-09-17-j, oeffentlich ausgeliefert.**
+**Stand: 17.09.2026, Fassung 2026-09-17-k, oeffentlich ausgeliefert.**
 
 Diese Datei ist so geschrieben, dass jemand ohne jede Vorgeschichte weiterarbeiten
 kann. Zuerst lesen, dann anfangen. Sie ist lang; die ersten fuenf Abschnitte
 reichen fuer den Anfang, der Rest ist Nachschlagewerk.
+
+**Wer sofort etwas zu tun sucht: der Abschnitt "DIE FEHLERSUCHE VOM 17.09.2026".**
+Dort stehen 47 gegengepruefte Funde mit Datei und Zeilennummer, nach Schaden
+geordnet. Die sechs unter "A. Wo Geld falsch wird" sind die einzigen, die
+wirklich zaehlen.
 
 ---
 
@@ -870,6 +875,8 @@ oberflaeche/   Anzeige und Bedienung. HIER WIRD NICHT GERECHNET.
   reihenfolge.js     Filtern, Suchen, Anordnen, Ordnersumme. EINZIGE Stelle.
   scheinfelder.js    Die Eingabefelder eines Scheins. EINZIGE Stelle.
   fotoknoepfe.js     Die drei Aufnahmewege. EINZIGE Stelle.
+  bildspeicher.js    Die entpackten Bilder, hoechstens 24. EINZIGE Stelle, an
+                     der ein Foto in den Arbeitsspeicher kommt.
   nadeln.js          Angeheftete Riesenscheine.
   anleitung.js       Die gefuehrte Anleitung in neun Schritten.
   aufnahme.js        Bild lesen, Scheine daraus machen, beides ablegen.
@@ -894,7 +901,7 @@ stil/          NUR Design. Loeschbar, ohne dass etwas aufhoert zu arbeiten.
 
 werkzeug/      Pruefskript, Server, Messwerkzeug, Probe- und Hilfsseiten.
 supabase/migrations/  0001 bis 0009. 0009 ist GESCHRIEBEN, NICHT AUSGEFUEHRT.
-test/          26 Testdateien, 274 Faelle.
+test/          28 Testdateien, 287 Faelle.
 ```
 
 ### Die Stellen, die man nur EINMAL anfassen darf
@@ -913,6 +920,416 @@ Stelle nachbaut, baut die naechste Drift ein:
 | Aufnahmewege | `oberflaeche/fotoknoepfe.js` |
 | Der Aufbau als Text | `oberflaeche/aufbau.js` |
 | Farben und Groessen | `stil/marken.css` |
+| Entpackte Bilder | `oberflaeche/bildspeicher.js` |
+
+## DIE FEHLERSUCHE VOM 17.09.2026. Hier steht die Arbeit fuer die naechste Sitzung.
+
+Am Abend des 17.09.2026 hat eine Fehlersuche mit 63 Agenten das ganze Programm
+durchgekaemmt, in sechs Richtungen: Geld, Bildverlust, halbfertige Wege, tote
+Knoepfe, falsche Aussagen, Datenverlust. **57 Funde, davon 47 nach einer
+Gegenpruefung bestaetigt**, jeder mit Stelle und nachgestelltem Ablauf.
+
+**Die Speicherfunde sind erledigt** (Fassung 2026-09-17-k, siehe unten). Alles
+Uebrige steht hier, nach Schaden geordnet. Es ist mit Absicht so ausfuehrlich:
+jede Zeile nennt die Datei und die Zeilennummer, damit niemand zweimal suchen
+muss.
+
+**Der Befund war jedes Mal derselbe: KEINER dieser Fehler erzeugt eine
+Meldung.** Von aussen sieht alles richtig aus.
+
+---
+
+### A. Wo Geld falsch wird. Das ist die einzige Liste, die wirklich zaehlt.
+
+Projektregel: bei sechzig Scheinen je Wette faellt eine falsche Zahl nicht auf,
+bis sie Geld gekostet hat. Alle sechs sind bestaetigt und mit `node` gegen die
+echten Rechenmodule nachgestellt.
+
+**A1. Der Knopf "Gewonnen" verspricht mehr, als er auszahlt.**
+`kern/rechnung.js:78`, `kern/parser.js:1585`, `oberflaeche/ansicht_positionen.js:1806`
+
+Ein Schein, den der Parser als verloren gelesen hat, bekommt `ausgezahlt = 0`.
+Der Knopftext rechnet ueber `offenePotenzialauszahlung({...sch, status: 'offen'})`
+und sieht dieses Feld gar nicht an. `setzeAusgangFuerRiesenschein`
+(`oberflaeche/zustand.js:661`) setzt danach nur den Status, nicht `ausgezahlt`.
+`realisierterRueckfluss` greift dann bei Zeile 78, weil `0 !== null` ist, und
+liefert null Euro mit dem Grund "Aus dem Bild gelesen".
+
+Nachgerechnet: zwei Scheine je 500 zu 1,8, einer als verloren gelesen. Der
+Knopf verspricht 1.800,00 zurueck. Heraus kommen 900,00 und ein Ergebnis von
+minus 100,00 statt plus 800,00. **Abweichung 900,00 bei zwei Scheinen.**
+Und `bekannt: true` sorgt dafuer, dass der Hinweis `realisiert_unklar` gerade
+NICHT ausloest.
+
+Derselbe Weg trifft die Statuskorrektur von Hand im Aufklappmenue
+(`oberflaeche/scheinfelder.js:211`).
+
+**A2. Each Way zahlt offen das Doppelte, gewonnen das Einfache.**
+`kern/rechnung.js:104` gegen `kern/status.js:98`
+
+`offenePotenzialauszahlung` verdoppelt bei `eachWay`, `erwarteterRueckfluss` in
+`kern/status.js` kennt `eachWay` ueberhaupt nicht. `kern/rechnung.js:43`
+verdoppelt den Aufwand dagegen in beiden Faellen.
+
+Nachgerechnet: Einsatz 1000, Quote 2,0, Each Way. Offen: moegliche Auszahlung
+4.000,00, bestenfalls plus 2.000,00. Nach dem Umstellen auf gewonnen: 2.000,00
+zurueck, Ergebnis 0,00. **Der Gewinn von 2.000,00 verschwindet beim Klick**,
+ohne Hinweis, und keine der vier Gegenproben in `rechne()` schlaegt an, weil
+beide Seiten in sich stimmig sind.
+
+**A3. Halb gewonnene Gratiswette verbucht den Einsatz als Rueckfluss.**
+`kern/status.js:102-115`
+
+Bei `halb_gewonnen` rechnet es `einsatz / 2 + (einsatz / 2) * dezimal`, bei
+`halb_verloren` `einsatz / 2`. Der Parameter `einsatzWirdZurueckgezahlt` wird in
+beiden Zweigen nicht abgefragt, obwohl `kern/rechnung.js:85` ihn mit
+`!schein.gratiswette` uebergibt. Bei einer Gratiswette war der Einsatz nie
+eigenes Geld; er darf nicht zurueckkommen.
+
+**A4. Excel rechnet "Moeglicher Gewinn" anders als das Programm.**
+`ausgabe/excel.js:350` und `:629` gegen `kern/rechnung.js:280`
+
+Die Formel ist `I-E`, also moegliche Auszahlung minus GESAMTeinsatz. Das
+Programm zieht `einsatzEntschieden` ab. Sobald ein Schein vorzeitig ausgezahlt
+wurde, laufen die beiden auseinander, und in der Mappe steht eine Zahl, die das
+Programm nie gezeigt hat.
+
+**A5. Excel ueberschreibt die Spalte, auf der eine Formel sitzt.**
+`ausgabe/excel.js:243`
+
+Die Abweichungsformel `N-O` steht schon, dann wird `auszahlungGelesen` noch
+einmal gesetzt. Nach dem ersten Neuberechnen in Excel zeigt die
+Abweichungsspalte eine Abweichung, die es nicht gibt.
+
+**A6. Ein Schein ohne erkannte Waehrung wandert in die Summe der anderen.**
+`kern/rechnung.js:173-176`
+
+Direkt unter der Ueberschrift `// ---- Waehrung. Es wird niemals ueber
+Waehrungen hinweg summiert. ----` filtert die Zeile `UNBEKANNT` aus der Menge
+heraus. Damit gilt der Bestand als einwaehrig, und der Schein ohne Waehrung
+zaehlt stillschweigend mit. **Genau die Zusage, die zwei Zeilen darueber
+gegeben wird.**
+
+---
+
+### B. Wo Arbeit verlorengeht
+
+**B1. Zwei Berichtigungen in derselben Minute: die zweite wird nie
+gespeichert.** `oberflaeche/app.js:1972`, `oberflaeche/werkzeug.js:166`,
+`oberflaeche/zustand.js:608`
+
+Der Waechter vergleicht einen Stempel aus `geaendertAm`. `jetzt()` liefert nur
+Minuten. Wer eine Zahl berichtigt und innerhalb derselben Minute noch einmal,
+hat denselben Stempel: `if (stempel === letzterStempel) return`. Die zweite
+Korrektur geht nicht hinaus. Beim Nachlesen von sechzig Scheinen ist eine
+Minute gar nichts.
+
+**B2. Die Widerspruchsmeldung raet zum Neuladen, und das Neuladen wirft die
+Arbeit weg.** `oberflaeche/app.js:1958-1966` gegen `:1741-1794`
+
+Der Text sagt: "Deine Arbeit liegt hier auf dem Geraet. Am besten diese Angaben
+notieren und die Seite neu laden, dann sind beide Staende zusammen sichtbar."
+`ladeAlles` ruft `Zustand.ordneNeu(scheine.daten)` mit dem Stand AUS DER
+DATENBANK. Die Arbeit auf dem Geraet ist danach fort. Der Rat fuehrt genau in
+den Verlust, gegen den er warnt.
+
+**B3. Ein abgebrochener Speicherlauf sperrt alle weiteren.**
+`oberflaeche/app.js:1911-1920`
+
+Bricht das Speichern zwischen zwei Haeppchen ab, kehrt der Ablauf um, ohne
+`fassung = scheine.fassung` zu setzen. Die Datenbank hat aber weitergezaehlt.
+Ab dann wird JEDER weitere Speicherlauf als "zweites Fenster" abgelehnt. Die
+Fehlerantwort traegt die neue Fassung mit; sie wird nur nicht uebernommen.
+
+**B4. Ein neuer, noch leerer Riesenschein verschwindet spurlos.**
+`oberflaeche/zustand.js:495-507`
+
+Er lebt nur in `stand.huelle`, und `huelle` steht in keinem `merkeStand`-Aufruf.
+Wer "Neuer Riesenschein" drueckt, ihn benennt und dann neu laedt oder den
+naechsten anlegt, findet ihn nicht wieder.
+
+**B5. Was am Foto von Hand eingestellt wird, ueberlebt kein Neuladen.**
+`oberflaeche/app.js:1862-1869` gegen `oberflaeche/aufnahme.js:605-612`
+
+Beim Wiederherstellen werden `karten: []`, `hinweise: []` und `buchmacher:
+{wert: null}` gesetzt. Abgelegt wird in `daten/ablage.js` nur
+`{id, projektId, dateiname, pruefsumme, breite, hoehe, inhalt}`. Der von Hand
+gesetzte Anbieter, der Rahmen und die Kartengrenzen sind danach weg, und aus
+dem Foto laesst sich ohne sie nichts mehr lesen.
+
+**B6. Ein geloeschter Schein kommt nach dem Neuladen zurueck.**
+`daten/datenbank.js:316`, `oberflaeche/ansicht_scheine.js:404`,
+`oberflaeche/zustand.js:784`
+
+`loescheSchein` ist gebaut, die RPC steht, **kein einziger Aufrufer im ganzen
+Projekt**. Der Loeschweg endet im oertlichen Stand.
+
+**B7. Die Bildangaben gehen nie in die Datenbank.**
+`daten/datenbank.js:346` und `:355`
+
+`holeBilder` und `speichereBilder` sind gebaut, die Tabelle `kombi.bilder` steht
+seit Migration 0001, die beiden RPCs und die Rechte auch. Niemand ruft sie.
+(Der TEXT, der das Gegenteil behauptete, ist am 17.09. berichtigt; der
+Mechanismus fehlt weiter.)
+
+---
+
+### C. Knoepfe und Wege, die nicht tun, was draufsteht
+
+**C1. "trotzdem mitzaehlen" im Resttopf zaehlt nie mit.**
+`oberflaeche/ansicht_scheine.js:176-181`
+
+Der Knopf haengt `-b` an die Scheinnummer und meldet Erfolg. Der Schein bleibt
+im Resttopf, zaehlt in keine Summe, und die Scheinnummer ist jetzt falsch.
+
+**C2. "Foto hinzufuegen" ausserhalb des Reiters Aufnahme tut sichtbar nichts.**
+`oberflaeche/fotoknoepfe.js:114`, `oberflaeche/aufnahme.js:103-238`
+
+`nimmAuf` bereitet nur vor und meldet bei Erfolg nichts. `leseBilder()` wird im
+ganzen Programm nur an EINER Stelle gerufen: `ansicht_aufnahme.js:670`. Wer den
+Knopf auf einer anderen Seite drueckt, laedt hoch und sieht nichts: kein
+Schein, keine Meldung, kein Wechsel.
+
+**C3. Der Haken "Geldfelder einzeln nachlesen" wirkt nur beim allerersten Mal.**
+`oberflaeche/aufnahme.js:46-48`
+
+`holeLeser()` liest die Einstellung nur beim Start und haelt den Leser fuer die
+ganze Sitzung. `beendeLeser()` wird im Programm nirgends gerufen.
+
+**C4. Die Erklaerung springt immer zum Abschnitt des ERSTEN Aufrufs.**
+`oberflaeche/app.js:427`, `oberflaeche/ansicht_hilfe.js:37` und `:52-60`
+
+`hilfeZu` wird nur geleert, wenn man den Knopf drueckt, waehrend man schon auf
+der Erklaerung steht. `scrollIntoView` laeuft bei JEDEM Neuzeichnen.
+
+**C5. Die Beschriftung "Sperrcode" zeigt ins Leere.**
+`oberflaeche/app.js:238` gegen `:191`
+
+`for: 'torfeld'` gegen ein Feld mit der KLASSE `torfeld` und ohne `id`. Ein
+Klick auf die Beschriftung setzt den Schreibzeiger nicht ins Feld.
+
+**C6. Die Ablageflaeche schuetzt sich mit einem toten Klassennamen.**
+`oberflaeche/ansicht_aufnahme.js:99`
+
+`.aufnahmeknopf` kommt in keiner `.js`-Datei mehr vor, nur noch in
+`stil/bauteile.css`. Die Knoepfe heissen seit `fotoknoepfe.js` anders. Dadurch
+loest der versteckte Dateiwaehler der Knopfreihe zusaetzlich den zweiten
+Dateiwaehler der Flaeche aus.
+
+---
+
+### D. Saetze, die etwas anderes versprechen, als das Programm tut
+
+**D1. Bei nicht erreichbarer Datenbank sagt "Was dein Kollege sieht" weiter,
+alles liege in der Datenbank.** `oberflaeche/geteilt.js:69` -- `sachen()` liest
+`stand.ordnerGeteilt`, aber nie `stand.datenbankErreichbar`.
+
+**D2. Die Anleitung verspricht zu viel.** `oberflaeche/anleitung.js:121` --
+"Der Schein wird gelesen und faellt in diesen Riesenschein." Das gilt nur,
+solange genau dieser die offene Huelle ist.
+
+**D3. Die Erklaerungsseite beschreibt eine Ausgabeseite von gestern.**
+`oberflaeche/ansicht_hilfe.js:359` und `:366` -- eine "Vorschau der Tabelle",
+die es nie gab, und kein Wort vom Blatt mit Bild.
+
+---
+
+### E. Fertig gebaut, nie angeschlossen
+
+- `kern/quoten.js:80` **`anzeigeAmerikanisch`** rundet wie der Buchmacher
+  (1,64 wird zu -157 statt -156). Kein Aufrufer, kein Test. Angezeigt wird
+  kaufmaennisch, und `kern/typen.js` behauptet das Gegenteil.
+- `kern/geld.js:118` **`excelFormat`** ist eine tote Zweitfassung der
+  Zahlenformate und weicht schon heute von `ausgabe/excel.js:24-34` ab.
+  **Loeschen**, sonst nimmt sie irgendwann jemand (Projektregel 8).
+- `oberflaeche/ordner.js:106` **`brueckenreste()`** soll anzeigen, dass
+  Ordnerzuordnungen noch nur im Browser liegen. Kein Aufrufer, und die Bruecke
+  wandert von selbst nie in die Datenbank.
+- `stil/buehne.js:15` und `:41` **`STUFEN` und `setzeStufe`**: die
+  Bewegungsstufen 0 und 2 sind in Code und Stil fertig, es gibt keinen Schalter.
+- `werkzeug/probe/anbieter.html` laeuft an der Spaltentrennung vorbei und meldet
+  als "bekannte Luecke", was das Programm laengst kann.
+
+---
+
+### F. Zwei Stellen, an denen DIESE Datei falsch lag
+
+Die Fehlersuche hat auch `UEBERGABE.md` gelesen. Beides ist unten berichtigt:
+
+- Der alte Punkt 7 ("Kein einziger Test fasst `oberflaeche/` an") war falsch.
+  Tests fassen `oberflaeche/` an, und die dort genannte Testzahl widersprach
+  der eigenen Tabelle zwei Seiten weiter.
+- Die nie freigegebenen Blob-Adressen standen als offen, obwohl sie inzwischen
+  freigegeben werden.
+
+**Wer diese Datei fortschreibt, prueft die eigenen Behauptungen mit.** Eine
+Uebergabe, die etwas Falsches als erledigt fuehrt, ist schlimmer als eine
+Luecke.
+
+---
+
+### Wo die vollstaendigen Funde liegen
+
+Jeder Fund traegt einen nachgestellten Ablauf mit Zahlen und ein
+Gegenpruefungsurteil. Das Tagebuch des Laufs:
+
+```
+.claude/projects/C--Users-Home-kombi-exchange/
+  82cdad1d-640e-45e2-a9c4-a4a3893e1900/subagents/workflows/
+  wf_c31007c6-346/journal.jsonl
+```
+
+Zehn der siebenundfuenfzig Funde haben die Gegenpruefung NICHT ueberstanden.
+Sie stehen hier nicht, und das mit Absicht: ein Fund, der sich nicht halten
+liess, ist kein Fund.
+
+---
+
+## Der Speicherplatz, Fassung 2026-09-17-k. Das Wichtigste des Tages.
+
+Karam: "Du musst wirklich sicherstellen, dass der Speicherplatz immer optimal
+gespeichert wird. Dass der User immer seine Fotos irgendwo hat. Also am besten
+noch auf dem Desktop, den er gerade nutzt."
+
+Die Fehlersuche hat gezeigt, dass genau das an drei Stellen nicht galt.
+
+### Drei Wege, auf denen ein Foto still verschwand
+
+**1. Die Reihenfolge beim Aufnehmen war falsch herum.**
+`oberflaeche/aufnahme.js` -- `legeBildAb` stand VOR `Platte.sichere`. Lief die
+Browserdatenbank voll, warf `legeBildAb`, der Ablauf sprang in den `catch` am
+Ende der Schleife, und **das Schreiben auf die Platte wurde nie erreicht**. Das
+Foto war dann nirgends, obwohl auf der Platte hunderte Gigabyte frei waren.
+
+Jetzt zuerst die Platte (`sichere()` wirft nie), dann der Browser in einem
+EIGENEN Versuch. Ein voller Browser darf kein Foto mehr aus der Hand geben, das
+drei Zeilen vorher sicher abgelegt wurde.
+
+**2. Die Browserdatenbank meldete Erfolg, bevor sie fertig war.**
+`daten/ablage.js`, `imLager` -- es hing an `anfrage.onsuccess`. Das kommt,
+sobald die Anfrage in der REIHE steht, nicht wenn sie auf der Platte liegt. Ist
+der Speicher voll, bricht der Browser den ganzen Vorgang **erst beim Abschluss**
+ab, mit `QuotaExceededError`. Das Programm hatte da laengst "gespeichert"
+gemeldet.
+
+Jetzt haengt jedes Schreiben an `vorgang.oncomplete`, mit `onerror` und
+`onabort` daneben. Beim LESEN bleibt es bei `onsuccess`: dort ist das Ergebnis
+das Ziel. `fehlerVon()` macht aus `QuotaExceededError` einen Satz, der sagt, was
+zu tun ist.
+
+**3. Beim Loeschen eines Projekts blieben alle seine Bilder liegen.**
+`oberflaeche/app.js` setzte nur `bilder = new Map()`. Die Bilder blieben in der
+Browserdatenbank: ohne Projekt, ohne Anzeige, ohne Weg sie je wiederzufinden.
+Bei Karams Mengen Gigabyte an Waisen je geloeschtem Projekt, und der Platz, den
+die naechste Saison braucht, waere von der vorletzten belegt.
+
+Neu: `loescheBilderZuProjekt` in `daten/ablage.js`, ueber den Index `projekt`,
+der dafuer immer schon da war. **Der Ordner auf der Platte bleibt unangetastet.**
+
+### Was bei zehntausend Fotos gebrochen waere
+
+`oberflaeche/bildspeicher.js` (neu).
+
+Beim Start hat das Programm JEDES Bild des Projekts entpackt. Ein
+Bildschirmfoto vom Telefon ist 1170 mal 2532 Punkte gross, entpackt vier Byte je
+Punkt, also **11,85 MB je Foto**, gleich ob die Datei 300 KB hat.
+
+| | |
+|---|---|
+| 60 Fotos, ein Spieltag | 711 MB |
+| 300 Fotos | 3,3 GB, der Reiter stirbt beim Laden |
+| Karams Erwartung | 10.000 bis 100.000 je Saison |
+
+Der Blob dagegen kostet fast nichts, er bleibt auf der Platte liegen. Teuer ist
+allein das Entpacken. Also wird erst entpackt, was jemand wirklich ansieht oder
+lesen laesst, und es bleiben **hoechstens 24 Stueck** gleichzeitig entpackt.
+Wer dazukommt, schiebt das aelteste hinaus; wer benutzt wird, rutscht ans Ende
+und faellt nicht heraus.
+
+**Die DATEI wird nie weggeraeumt, nur das Entpackte.** Was hinausgeschoben
+wurde, wird beim naechsten Ansehen neu entpackt. Es geht nichts verloren, es
+dauert einen Wimpernschlag laenger.
+
+Angeschlossen an vier Stellen: `oberflaeche/werkzeug.js` (`ausschnittbild` holt
+sich das Bild selbst nach und zeichnet, sobald es da ist),
+`oberflaeche/aufnahme.js` (`leseBilder`, `setzeBereich`) und
+`oberflaeche/ansicht_ausgabe.js`. `app.js` entpackt beim Start nichts mehr und
+leert den Bildspeicher bei jedem Projektwechsel.
+
+**Im Browser nachgemessen**, nicht nur im Test:
+
+```
+60 Fotos in Karams Groesse hintereinander hineingegeben
+  entpackt geblieben:     24 von 60
+  aeltestes noch da:      nein
+  juengstes da:           ja
+
+Ausschnitt aus einem Bild, das NUR als Datei vorlag
+  vorher entpackt:        0
+  gezeichnete Farbe:      0,0,255,255   (richtiger Bildbereich)
+  nachher entpackt:       1
+```
+
+### Was behauptet wurde, ohne es zu wissen
+
+**"Alle Bilder dieses Projekts liegen im Ordner"** stand da, sobald `offen` 0
+war. Der ANFANGSWERT war 0, und ohne Erlaubnis wurde nie gemessen. Der Kasten
+sagte also genau dann, es liege alles sicher, wenn gerade gar nichts
+geschrieben wurde.
+
+`offen` ist jetzt **null**, solange nicht nachgesehen wurde, und der Kasten hat
+drei Lagen statt zwei: nachgesehen / nicht nachgesehen / keine Erlaubnis.
+
+**"N Bild(er) liegen noch nicht im Ordner"** war die Gesamtzahl ALLER Bilder des
+Projekts, auch der laengst gesicherten. Neu: `Platte.fehlende()` zaehlt die
+Dateinamen IM ORDNER auf (`handle.keys()`) und vergleicht mit
+`dateinameFuer()`. Findet es nichts heraus, kommt `null` zurueck.
+
+**Der Knopf "Ordner wieder freigeben"** rief das Sichern auf, und das Sichern
+scheitert genau an der fehlenden Erlaubnis. Der Browser vergisst die Erlaubnis
+bei JEDEM Neustart. Es gab also keinen Weg zurueck ausser den Ordner neu
+auszusuchen. Neu: `Platte.holeErlaubnis()` mit `requestPermission`, und der
+Knopf ruft jetzt den, der zu seiner Aufschrift gehoert.
+
+**"Alle Bilder verwerfen"** hat nichts geloescht, nur ausgeblendet. Nach dem
+Neuladen waren alle wieder da, der Rueckfragetext war schlicht falsch, und beim
+erneuten Hochladen wurde dasselbe Foto ein ZWEITES Mal abgelegt, weil die
+Doppelpruefung nur den Arbeitsstand fragt. Jetzt wird geloescht, und die
+Rueckfrage sagt, was das heisst.
+
+**Die Speicherzahlen** wurden einmal je Sitzung gemessen und nie wieder. Nach
+einem Projektwechsel standen dort die Zahlen des anderen Projekts. Jetzt wird
+beim Wechsel neu gemessen.
+
+**Drei Saetze gestrichen**, die etwas versprachen, das es nicht gibt:
+
+- `daten/plattenspeicher.js` bot Browsern ohne Ordnerzugriff "alles in eine
+  ZIP-Datei" an. **Einen solchen Weg gibt es nirgends.** Jetzt steht dort, dass
+  es dort heute keinen Ersatz gibt.
+- `oberflaeche/geteilt.js` sagte "Eine zweite Kopie gibt es nicht", zwei Kaesten
+  unter dem Kasten, der den Ordner auf der Platte erklaert. Beides im selben
+  Bild. Der Satz haengt jetzt am gemessenen Zustand.
+- Die Liste behauptete, Dateiname und Groesse gingen in die Datenbank. Sie gehen
+  nicht: `speichereBilder` ruft niemand (siehe B7 oben).
+
+### Was dabei nachgemessen wurde
+
+`test/speicher_haelt.test.mjs` (6 Faelle, nachgebauter Ordner) und
+`test/bildspeicher_haelt.test.mjs` (6 Faelle, nachgebauter Browser). Alle sechs
+Lagen, die am 17.09. wirklich zugeschlagen haben, loesen dort aus
+(Projektregel 3).
+
+Neue Regel in `werkzeug/pruefe.mjs`: der Probehaken
+`__setzeGriffFuerProbe` in `daten/plattenspeicher.js` darf im PROGRAMM nicht
+vorkommen. Ein Ordner, den sich das Programm selbst setzt, waere genau das, was
+man nicht will. **Die Regel hat beim ersten Lauf ausgeloest**, auf drei Dateien,
+weil sie unter Windows die Pfadtrenner falsch verglich.
+
+Und der Browserlauf hat einen Fehler gefunden, den kein Test hatte:
+`speicherblock()` bekam den Ordner nicht uebergeben und warf
+`ordner is not defined`. Regel 2, woertlich: gruene Tests sind nicht fertig.
+
+---
 
 ## Was am 17.09.2026 zuletzt gebaut wurde
 
@@ -1453,9 +1870,12 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
      faellt dabei aus dem Korpus. Vorschlag: der Trainingsweg arbeitet auf den
      Scheinen VOR dem Verschmelzen, oder `sichere()` erkennt den Hinweis
      `zusammengefuehrt` und meldet ihn sichtbar.
-   - **Bei hundert Bildern laeuft der Speicher voll.** Jede
-     Fortschrittsmeldung der Texterkennung zeichnet die Aufnahmeansicht neu
-     und erzeugt dabei je Bild eine Blob-Adresse, die nie freigegeben wird.
+   - ~~**Bei hundert Bildern laeuft der Speicher voll.**~~ **ERLEDIGT, und die
+     Zeile stand hier zu lange falsch.** Die Blob-Adressen werden inzwischen
+     freigegeben; die Fehlersuche vom 17.09.2026 hat das nachgeprueft. Der
+     Speicher lief aus einem ANDEREN Grund voll, naemlich weil beim Start
+     jedes Bild entpackt wurde. Das ist seit Fassung 2026-09-17-k erledigt,
+     siehe `oberflaeche/bildspeicher.js`.
    - **`leseBilder` sichert erst nach dem letzten Bild und laesst sich nicht
      abbrechen.** Wer nach achtzig von hundert Bildern abbricht, verliert
      alles. Bei drei Bildern faellt das nicht auf.
@@ -1511,11 +1931,19 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
    **Auf einem Handy noch nicht gemessen.** Dort gibt es weniger Kerne, also
    weniger Leser. Mit zwei Kernen laeuft es wieder einspurig.
 
-7. **Kein einziger Test fasst `oberflaeche/` an.** Nachgepruefte Tatsache:
-   keine Datei in `test/` holt sich etwas aus diesem Ordner. Die 181 gruenen
-   Tests decken `kern/`, `bild/` und `ausgabe/` ab, aber weder die Ablage noch
-   das Clipping-Tool noch die Aufnahmeansicht. Wer die Zahl sieht und daraus
-   schliesst, die Ablage sei geprueft, irrt sich.
+7. **Die Ablage und das Zuschneidewerkzeug sind ungeprueft.**
+
+   **BERICHTIGT AM 17.09.2026.** Hier stand bis dahin "Kein einziger Test fasst
+   `oberflaeche/` an", und dazu eine Testzahl, die der eigenen Tabelle zwei
+   Seiten weiter widersprach. Beides war falsch, und die Fehlersuche hat es an
+   dieser Datei gefunden. Sechs Testdateien fassen `oberflaeche/` an:
+   `anbieterzeichen`, `gebiet`, `huelle_mischt`, `ordner_am_riesenschein`,
+   `reihenfolge_haelt` und `bildspeicher_haelt`.
+
+   Wahr bleibt der Kern: **die Ablage (`ansicht_ablage.js`) und das
+   Zuschneidewerkzeug (`bildschirmfoto.js`) hat kein Test je angefasst.** Wer
+   die Gesamtzahl sieht und daraus schliesst, die Ablage sei geprueft, irrt
+   sich.
 
    Beide brauchen ein Fenster: `getDisplayMedia`, Zwischenablage, Canvas,
    Ziehen mit der Maus. Unter `node --test` gibt es das nicht. Geprueft wurden
@@ -1533,13 +1961,15 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 | | |
 |---|---|
-| Tests | 274, davon 273 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 287, davon 286 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, die Fotos fehlen |
-| Aufbaupruefung | 96 Dateien, keine Beanstandung |
-| Fassung | 2026-09-17-j, oeffentlich ausgeliefert und nachgeprueft |
+| Aufbaupruefung | 99 Dateien, keine Beanstandung |
+| Fassung | 2026-09-17-k, oeffentlich ausgeliefert und nachgeprueft |
 | Quelltext | rund 23.700 Zeilen JavaScript, ohne lib/ |
-| Commits am 17.09.2026 | 11, jeder einzeln veroeffentlicht |
+| Commits am 17.09.2026 | 12, jeder einzeln veroeffentlicht |
+| Fehlersuche | 63 Agenten, 57 Funde, 47 nach Gegenpruefung bestaetigt |
+| Davon erledigt | alle Speicherfunde; der Rest steht mit Zeilennummer in "Die Fehlersuche" |
 | Farbkontrast | Ebene 1, 2, 3, Ausgabe und Ablage, hell und dunkel, bei 1440 und bei 375 Pixeln: 0 Beanstandungen |
 | Probeseite (nachgebaute Bilder) | bet365 und BetOnline sauber, PS3838 2 von 3, Betway und Stake melden ihre Fehler laut |
 
