@@ -66,8 +66,59 @@ test('das Kuerzel steht fuer den Anbieter, solange kein Bild da ist', () => {
   assert.equal(kuerzelFuer('PS3838'), 'PS')
   assert.equal(kuerzelFuer('BetOnline'), 'BO')
   assert.equal(kuerzelFuer('bet365'), 'B365')
-  assert.equal(kuerzelFuer('Betway'), 'BE')
   assert.equal(kuerzelFuer('Stake'), 'ST')
+
+  // Betway hiess bis zum 17.09.2026 "BE", und "BE" hiessen auch Betano,
+  // Bet3000, Betfair, Betfred und Betsson. Siehe die naechste Probe.
+  assert.equal(kuerzelFuer('Betway'), 'BTW')
+})
+
+test('KEINE ZWEI ANBIETER TRAGEN DASSELBE KUERZEL', () => {
+  /*
+    Am 17.09.2026 gemessen, vor der Berichtigung: 60 Anbieter, 47
+    verschiedene Kuerzel, 9 Kollisionen. Die schlimmste:
+
+      BE: Betano, Bet3000, Betway, Betfair, Betfred, Betsson
+
+    SECHS Anbieter mit demselben Zeichen, darunter Betway, einer von Karams
+    fuenf. In einer Liste von sechzig Scheinen standen sie als sechs gleiche
+    graue Kaestchen untereinander. Das Zeichen soll sagen, WER gesetzt hat,
+    und sagte es nicht. Genau darum hat Karam nach echten Logos gefragt.
+
+    Diese Probe ist die eigentliche Sicherung: wer einen Anbieter dazunimmt,
+    dessen Name mit einem vorhandenen kollidiert, erfaehrt es hier und nicht
+    erst, wenn zwei Zeichen in der Liste gleich aussehen.
+  */
+  const gesehen = new Map()
+  for (const profil of BUCHMACHER) {
+    const k = kuerzelFuer(profil.name)
+    const schon = gesehen.get(k)
+    assert.equal(schon, undefined, `"${k}" tragen ${schon} UND ${profil.name}`)
+    gesehen.set(k, profil.name)
+  }
+  assert.equal(gesehen.size, BUCHMACHER.length)
+})
+
+test('die Kuerzel bleiben lesbar, auch wo sie ausweichen mussten', () => {
+  /*
+    Eindeutig allein reicht nicht. Wer bei einer Kollision einfach
+    verlaengert, bekommt BET, BETW, BETF, BETS: vier Kuerzel, die sich erst
+    am letzten Zeichen unterscheiden, auf einem Kaestchen von 24 Pixeln.
+
+    Deshalb wird zuerst der erste Buchstabe mit dem ersten Buchstaben
+    DAHINTER versucht, der die Namen trennt.
+  */
+  assert.equal(kuerzelFuer('Betway'), 'BTW')
+  assert.equal(kuerzelFuer('Betfair'), 'BF')
+  assert.equal(kuerzelFuer('Betsson'), 'BS')
+  assert.equal(kuerzelFuer('Bovada'), 'BV')
+  assert.equal(kuerzelFuer('Cashpoint'), 'CS')
+  assert.equal(kuerzelFuer('Tipwin'), 'TP')
+
+  // Und keines wird laenger als der Kreis breit ist.
+  for (const profil of BUCHMACHER) {
+    assert.ok(kuerzelFuer(profil.name).length <= 4, profil.name)
+  }
 })
 
 test('auch ein unbekannter Name bekommt ein Kuerzel', () => {

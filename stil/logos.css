@@ -117,10 +117,65 @@
 [data-anbieter="heritage"],
 [data-anbieter="betanysports"],
 [data-anbieter="pokerstars"],
-[data-anbieter="rabona"] {
+[data-anbieter="rabona"],
+[data-anbieter="draftkings"],
+[data-anbieter="fanduel"],
+[data-anbieter="betmgm"],
+[data-anbieter="caesars"],
+[data-anbieter="espnbet"],
+[data-anbieter="fanatics"],
+[data-anbieter="pointsbet"],
+[data-anbieter="hardrock"],
+[data-anbieter="prizepicks"],
+[data-anbieter="underdog"],
+[data-anbieter="bwin"],
+[data-anbieter="tipico"],
+[data-anbieter="interwetten"],
+[data-anbieter="admiral"],
+[data-anbieter="winamax"],
+[data-anbieter="unibet"],
+[data-anbieter="betano"],
+[data-anbieter="betathome"],
+[data-anbieter="cashpoint"],
+[data-anbieter="merkur"],
+[data-anbieter="tipwin"],
+[data-anbieter="xtip"],
+[data-anbieter="happybet"],
+[data-anbieter="bet3000"],
+[data-anbieter="neobet"],
+[data-anbieter="bildbet"],
+[data-anbieter="sportwettende"],
+[data-anbieter="oddset"],
+[data-anbieter="williamhill"],
+[data-anbieter="ladbrokes"],
+[data-anbieter="coral"],
+[data-anbieter="betfair"],
+[data-anbieter="paddypower"],
+[data-anbieter="skybet"],
+[data-anbieter="betfred"],
+[data-anbieter="1xbet"],
+[data-anbieter="20bet"],
+[data-anbieter="22bet"],
+[data-anbieter="betsson"],
+[data-anbieter="leovegas"],
+[data-anbieter="888sport"],
+[data-anbieter="parimatch"],
+[data-anbieter="marathonbet"] {
   background-color: var(--anbieterfarbe);
-  border-color: var(--anbieterfarbe);
   color: #fff;
+
+  /*
+    DIE KANTE BLEIBT NEUTRAL, nicht in der Hausfarbe.
+
+    Eine gefuellte Flaeche mit lesbarer Schrift darin braucht keine 3:1 gegen
+    ihre Umgebung; die 17 aeltesten Hausfarben liegen selbst zwischen 1,05
+    (stake, ein sehr dunkles Blau) und 3,72. Stake auf dem dunklen Grund ist
+    darum praktisch unsichtbar als FLAECHE, obwohl seine Schrift traegt.
+
+    Eine duenne neutrale Kante macht jedes Kaestchen auffindbar, ohne die
+    Hausfarbe zu verfaelschen. Sie kommt schon aus der Grundregel oben; hier
+    wird sie nur nicht ueberschrieben.
+  */
 }
 
 /*
@@ -217,7 +272,88 @@
   behaupten, es sei eine bestimmte Marke (Projektregel 1).
 */
 [data-anbieter="unbekannt"] {
+  /*
+    Nicht gefuellt, und mit Absicht nicht in der Sammelregel oben: ein
+    unbekannter Anbieter soll KEINE Hausfarbe vortaeuschen.
+
+    --schrift-leise statt --schrift-still, und die Kante ebenfalls: gemessen
+    am 17.09.2026 trug --linie-hell als Kante nur 1,99:1 im hellen Zustand,
+    und dann sieht man nicht mehr, wo das Kaestchen aufhoert. --schrift-leise
+    traegt 10,22:1 (dunkel) und 5,91:1 (hell).
+
+    Gestrichelt heisst hier dasselbe wie bei den Stufenzeichen: noch nicht
+    festgelegt.
+  */
   --anbieterfarbe: transparent;
-  color: var(--schrift-still);
-  border: 1px dashed var(--linie-hell);
+  background-color: var(--grund-tief);
+  color: var(--schrift-leise);
+  border: 1px dashed var(--schrift-leise);
 }
+
+/*
+  DIE UEBRIGEN 43, am 17.09.2026 nachgetragen.
+
+  Karam: "Ich will, dass ab jetzt bei jedem Anbieter statt Namen immer das
+  Original-Logo der Anbieter dabei ist."
+
+  Echte Logodateien sind eine eigene Entscheidung (das Repository ist
+  oeffentlich, Logos sind fremde Bildmarken). Diese Ebene liegt darunter und
+  wird in JEDEM Fall gebraucht: keiner der untersuchten Bildwege liefert 60
+  von 60. Der Abruf beim Anbieter schaffte in drei Messungen 15, 18 und 18,
+  und nicht einmal dieselben.
+
+  Vorher trugen diese 43 alle dasselbe Grau. In einer Liste von sechzig
+  Scheinen standen sechs Anbieter als sechs gleiche graue Kaestchen mit
+  demselben "BE" untereinander.
+
+  DIE FARBEN SIND ANNAEHERUNGEN an die Hausfarbe des jeweiligen Anbieters,
+  keine amtlichen Markenwerte. Sie sollen unterscheidbar und lesbar sein,
+  nicht exakt.
+
+  JEDE IST GEMESSEN: weisse Schrift bei 9 Pixel fett braucht 4,5:1. 16 der 43
+  Vorschlaege waren dafuer zu hell und wurden nachgedunkelt, unter Beibehaltung
+  des Farbtons, bis sie tragen. Schlechtester Fall im ganzen Satz: 4,67:1.
+*/
+[data-anbieter="draftkings"] { --anbieterfarbe: #327e21; }  /* nachgedunkelt von #53d337, weiss traegt 5.07:1 */
+[data-anbieter="fanduel"] { --anbieterfarbe: #1176cd; }  /* nachgedunkelt von #1493ff, weiss traegt 4.67:1 */
+[data-anbieter="betmgm"] { --anbieterfarbe: #857134; }  /* nachgedunkelt von #bfa14a, weiss traegt 4.76:1 */
+[data-anbieter="caesars"] { --anbieterfarbe: #826d34; }  /* nachgedunkelt von #c8a951, weiss traegt 5.02:1 */
+[data-anbieter="espnbet"] { --anbieterfarbe: #c8102e; }
+[data-anbieter="fanatics"] { --anbieterfarbe: #1a1a2e; }
+[data-anbieter="pointsbet"] { --anbieterfarbe: #e4002b; }
+[data-anbieter="hardrock"] { --anbieterfarbe: #6b2d3c; }
+[data-anbieter="prizepicks"] { --anbieterfarbe: #8a2be2; }
+[data-anbieter="underdog"] { --anbieterfarbe: #2e7d32; }
+[data-anbieter="bwin"] { --anbieterfarbe: #856a00; }  /* nachgedunkelt von #ffcc00, weiss traegt 5.17:1 */
+[data-anbieter="tipico"] { --anbieterfarbe: #d8232a; }
+[data-anbieter="interwetten"] { --anbieterfarbe: #0a4d9c; }
+[data-anbieter="admiral"] { --anbieterfarbe: #0f3d7c; }
+[data-anbieter="winamax"] { --anbieterfarbe: #e2001a; }
+[data-anbieter="unibet"] { --anbieterfarbe: #147b45; }
+[data-anbieter="betano"] { --anbieterfarbe: #bf4c00; }  /* nachgedunkelt von #ff6600, weiss traegt 4.94:1 */
+[data-anbieter="betathome"] { --anbieterfarbe: #008181; }  /* nachgedunkelt von #00a0a0, weiss traegt 4.71:1 */
+[data-anbieter="cashpoint"] { --anbieterfarbe: #e30613; }
+[data-anbieter="merkur"] { --anbieterfarbe: #936500; }  /* nachgedunkelt von #f5a800, weiss traegt 5.12:1 */
+[data-anbieter="tipwin"] { --anbieterfarbe: #e2001a; }
+[data-anbieter="xtip"] { --anbieterfarbe: #005ca9; }
+[data-anbieter="happybet"] { --anbieterfarbe: #ca4417; }  /* nachgedunkelt von #e94e1b, weiss traegt 4.83:1 */
+[data-anbieter="bet3000"] { --anbieterfarbe: #d40511; }
+[data-anbieter="neobet"] { --anbieterfarbe: #007ba6; }  /* nachgedunkelt von #00b0f0, weiss traegt 4.79:1 */
+[data-anbieter="bildbet"] { --anbieterfarbe: #dd0000; }
+[data-anbieter="sportwettende"] { --anbieterfarbe: #1a6b3c; }
+[data-anbieter="oddset"] { --anbieterfarbe: #e2001a; }
+[data-anbieter="williamhill"] { --anbieterfarbe: #1a4b8c; }
+[data-anbieter="ladbrokes"] { --anbieterfarbe: #c8102e; }
+[data-anbieter="coral"] { --anbieterfarbe: #1a3d7c; }
+[data-anbieter="betfair"] { --anbieterfarbe: #8f6707; }  /* nachgedunkelt von #ffb80c, weiss traegt 5.11:1 */
+[data-anbieter="paddypower"] { --anbieterfarbe: #004833; }
+[data-anbieter="skybet"] { --anbieterfarbe: #0072c6; }
+[data-anbieter="betfred"] { --anbieterfarbe: #0a3d91; }
+[data-anbieter="1xbet"] { --anbieterfarbe: #1b6ec2; }
+[data-anbieter="20bet"] { --anbieterfarbe: #a06013; }  /* nachgedunkelt von #f7941e, weiss traegt 5.03:1 */
+[data-anbieter="22bet"] { --anbieterfarbe: #0973b3; }  /* nachgedunkelt von #0a7cc1, weiss traegt 5.10:1 */
+[data-anbieter="betsson"] { --anbieterfarbe: #bf500f; }  /* nachgedunkelt von #ff6a13, weiss traegt 4.81:1 */
+[data-anbieter="leovegas"] { --anbieterfarbe: #976928; }  /* nachgedunkelt von #e8a33d, weiss traegt 4.81:1 */
+[data-anbieter="888sport"] { --anbieterfarbe: #1a7a3c; }
+[data-anbieter="parimatch"] { --anbieterfarbe: #856c00; }  /* nachgedunkelt von #ffd100, weiss traegt 5.07:1 */
+[data-anbieter="marathonbet"] { --anbieterfarbe: #003a70; }

@@ -157,10 +157,14 @@ export function schluesselFuerName(name) {
  *   "Stake"       -> ST     ein Wort ohne Binnengrossbuchstaben: erste zwei
  *   "Mein Buchmacher" -> MB Anfangsbuchstaben zweier Woerter
  *
+ * ACHTUNG: das hier ist nur die GRUNDREGEL. Sie kann fuer zwei verschiedene
+ * Anbieter dasselbe Kuerzel liefern; wer ein eindeutiges will, nimmt
+ * kuerzelFuer() weiter unten.
+ *
  * @param {string|null|undefined} name
  * @returns {string} immer mindestens ein Zeichen, hoechstens vier
  */
-export function kuerzelFuer(name) {
+export function grundkuerzel(name) {
   const sauber = typeof name === 'string' ? name.trim() : ''
   if (sauber === '') return '?'
 
@@ -191,6 +195,107 @@ export function kuerzelFuer(name) {
   if (grosse.length >= 2) return (grosse[0] + grosse[1]).toUpperCase()
 
   return wort.slice(0, 2).toUpperCase() || '?'
+}
+
+/**
+ * Macht aus den Grundkuerzeln eindeutige.
+ *
+ * WARUM DAS NOETIG IST. Am 17.09.2026 nachgemessen, ueber alle 60 Anbieter:
+ *
+ *   60 Anbieter, 47 verschiedene Kuerzel, 9 Kollisionen
+ *   BE: Betano, Bet3000, Betway, Betfair, Betfred, Betsson
+ *   BO: BetOnline, Bovada        SB: SportsBetting.ag, Sky Bet
+ *   LV: LowVig.ag, LeoVegas      MB: MyBookie, Merkur Bets
+ *   PS: PS3838, PokerStars       CA: Caesars, Cashpoint
+ *   PP: PrizePicks, Paddy Power  TI: Tipico, Tipwin
+ *
+ * SECHS Anbieter trugen dasselbe "BE", darunter Betway, einer von Karams
+ * fuenf. In einer Liste von sechzig Scheinen standen sie als sechs identische
+ * graue Kaestchen untereinander. Das Zeichen sollte sagen, wer gesetzt hat,
+ * und sagte es nicht.
+ *
+ * DIE REGEL: bleibt das Grundkuerzel frei, wird es genommen. Ist es belegt,
+ * kommen Zeichen aus dem Namen dazu, bis es eindeutig ist. Das ist keine
+ * Zufallsvergabe: die Reihenfolge ist die der Liste BUCHMACHER, und die ist
+ * fest. Wer einen Anbieter dazwischenschiebt, aendert damit KEIN vorhandenes
+ * Kuerzel, weil der Erste seinen Platz behaelt.
+ *
+ * @returns {Map<string, string>} Schluessel des Anbieters auf sein Kuerzel.
+ */
+function baueEindeutigeKuerzel() {
+  /** @type {Map<string, string>} */
+  const ausSchluessel = new Map()
+  /** @type {Set<string>} */
+  const belegt = new Set()
+
+  for (const profil of BUCHMACHER) {
+    const basis = grundkuerzel(profil.name)
+    if (!belegt.has(basis)) {
+      belegt.add(basis)
+      ausSchluessel.set(profil.schluessel, basis)
+      continue
+    }
+
+    /*
+      Belegt. Jetzt zaehlt die LESBARKEIT, nicht nur die Eindeutigkeit.
+
+      "Betway", "Betano", "Betfair", "Betfred" und "Betsson" fangen alle mit
+      denselben drei Buchstaben an. Wer einfach verlaengert, bekommt BET,
+      BETW, BETF, BETS: vier Kuerzel, die sich erst am letzten Zeichen
+      unterscheiden, und auf 24 Pixeln liest das niemand.
+
+      Besser ist der erste Buchstabe plus der erste Buchstabe DAHINTER, der
+      die Namen trennt: BW, BA, BF, BFR, BS. Deshalb kommen diese Formen
+      zuerst an die Reihe, und das blosse Verlaengern erst danach.
+
+      Zahlen zaehlen mit, denn "Bet3000" unterscheidet sich gerade durch sie.
+    */
+    const zeichen = [...profil.name].filter((z) => /[\p{L}0-9]/u.test(z))
+    const z = (i) => (zeichen[i] ?? '').toUpperCase()
+    const vorschlaege = [
+      z(0) + z(2),
+      z(0) + z(3),
+      z(0) + z(2) + z(3),
+      zeichen.slice(0, 3).join('').toUpperCase(),
+      z(0) + z(2) + z(3) + z(4),
+      zeichen.slice(0, 4).join('').toUpperCase(),
+    ]
+
+    let kuerzel = vorschlaege.find((v) => v.length >= 2 && !belegt.has(v)) ?? ''
+
+    // Immer noch nichts: den Schluessel anhaengen. Der ist eindeutig, sonst
+    // waere die Liste selbst kaputt.
+    if (!kuerzel) {
+      kuerzel = (basis + profil.schluessel.replace(/[^a-z0-9]/g, '').toUpperCase()).slice(0, 4)
+    }
+
+    belegt.add(kuerzel)
+    ausSchluessel.set(profil.schluessel, kuerzel)
+  }
+
+  return ausSchluessel
+}
+
+/** Einmal gerechnet, beim Laden. Die Liste aendert sich zur Laufzeit nicht. */
+const KUERZEL_JE_ANBIETER = baueEindeutigeKuerzel()
+
+/**
+ * Das Kuerzel eines Anbieters, eindeutig unter allen bekannten.
+ *
+ * Kennt das Programm den Namen, kommt das eindeutige Kuerzel. Kennt es ihn
+ * nicht, kommt die Grundregel; zwei unbekannte Namen koennen sich dann
+ * weiterhin gleichen, aber unbekannte Anbieter stehen ohnehin einzeln da.
+ *
+ * @param {string|null|undefined} name
+ * @returns {string}
+ */
+export function kuerzelFuer(name) {
+  const schluessel = schluesselFuerName(name)
+  if (schluessel) {
+    const gefunden = KUERZEL_JE_ANBIETER.get(schluessel)
+    if (gefunden) return gefunden
+  }
+  return grundkuerzel(name)
 }
 
 /**
