@@ -33,7 +33,7 @@ an zu arbeiten, bevor du sie gelesen hast.
 | Die Seite, die ich benutze | `https://harryclaude-hub.github.io/kombi-exchange/` |
 | Datenbank | Supabase, Projekt `appload`, Kennung `eybwhnvjavovcxvimtxr` |
 | Zugangscode | **steht nirgends im Quelltext.** Frag mich. |
-| Stand heute | Fassung `2026-09-17-k`, oeffentlich ausgeliefert |
+| Stand heute | Fassung `2026-09-17-r`, oeffentlich ausgeliefert |
 
 ## Meine Regeln. Die sind nicht verhandelbar.
 
@@ -59,8 +59,8 @@ an zu arbeiten, bevor du sie gelesen hast.
     die Seite bei GitHub Pages. Was nicht dort ist, gibt es fuer mich nicht.
 
 ```
-npm test                  (287 Faelle, 286 gruen, 1 uebersprungen)
-node werkzeug/pruefe.mjs  (99 Dateien)
+npm test                  (301 Faelle, 300 gruen, 1 uebersprungen)
+node werkzeug/pruefe.mjs  (106 Dateien)
 git add -A
 git commit -F -           (lange deutsche Nachricht: Problem, Grund, Messung)
 git push origin main
@@ -110,9 +110,35 @@ Danach Abschnitt B, "Wo Arbeit verlorengeht". Besonders:
 - Ein abgebrochener Speicherlauf sperrt alle weiteren.
 - Ein geloeschter Schein kommt nach dem Neuladen zurueck.
 
-**Was noch fehlt und nur ich liefern kann: meine echten Fotos.** Der Lesekorpus
-ist leer, die OCR-Ausbildung ist nie mit echten Bildern gelaufen. Frag mich
-danach.
+**Was noch fehlt und nur ich liefern kann, und ich habe mich am 17.09.2026
+dafuer entschieden, es als Naechstes zu tun: MEINE ECHTEN FOTOS.**
+
+Der Lesekorpus (`test/korpus_echt.mjs`) ist leer. Solange er leer ist, ist
+JEDE Aussage ueber die Leseguete ungedeckt, auch die hundert Prozent, die
+`node werkzeug/messe_lesen.mjs` heute meldet: die gelten nur fuer nachgebaute
+Bilder. Man kann nicht einmal sagen, wie viel ueberhaupt an eine KI muesste.
+
+Der Weg, wenn ich die Fotos gelegt habe:
+
+```
+Fotos nach .arbeit/fotos/   (ist in .gitignore, verlaesst das Geraet nicht)
+node werkzeug/server.mjs
+http://localhost:4173/werkzeug/training/
+```
+
+Dort: alles lesen lassen, durchgehen, berichtigen, jeden Schein abhaken, dann
+"Als Pruefaelle sichern". Die Datei gehoert nach `test/korpus_echt.mjs`.
+
+**Zweitens, ebenfalls am 17.09.2026 entschieden: die Anbieterlogos kommen als
+Dateien ins Repository.** Der Weg steht fertig, ich lege die Dateien hinein:
+`stil/logos/<schluessel>.png`, dann `node werkzeug/logos_eintragen.mjs`. Die
+Anleitung steht in `stil/logos/LIESMICH.md`.
+
+**Drittens, noch offen und wichtig:** die Quotenpruefung zwischen Buchmachern
+laesst Faktor 1,5 durch, waehrend meine echte Streuung 4,5 Prozent betraegt.
+Ein verlesenes 1,69 als 1,89 kostet auf einem Schein 66 EUR und loest nichts
+aus. Die Streuung wird seit Fassung r ANGEZEIGT; die Grenze soll aus meinen
+echten Zahlen abgeleitet werden, nicht geraten.
 
 ## Stolpersteine in meiner Umgebung
 

@@ -1,6 +1,6 @@
 # Uebergabe an die naechste Sitzung
 
-**Stand: 17.09.2026, Fassung 2026-09-17-k, oeffentlich ausgeliefert.**
+**Stand: 17.09.2026, Fassung 2026-09-17-r, oeffentlich ausgeliefert.**
 
 Diese Datei ist so geschrieben, dass jemand ohne jede Vorgeschichte weiterarbeiten
 kann. Zuerst lesen, dann anfangen. Sie ist lang; die ersten fuenf Abschnitte
@@ -877,6 +877,8 @@ oberflaeche/   Anzeige und Bedienung. HIER WIRD NICHT GERECHNET.
   fotoknoepfe.js     Die drei Aufnahmewege. EINZIGE Stelle.
   bildspeicher.js    Die entpackten Bilder, hoechstens 24. EINZIGE Stelle, an
                      der ein Foto in den Arbeitsspeicher kommt.
+  aufbau.js          Dort steht auch stufenzeichen(): die Zeichen der vier
+                     Stufen. EINZIGE Stelle dafuer.
   nadeln.js          Angeheftete Riesenscheine.
   anleitung.js       Die gefuehrte Anleitung in neun Schritten.
   aufnahme.js        Bild lesen, Scheine daraus machen, beides ablegen.
@@ -900,6 +902,11 @@ stil/          NUR Design. Loeschbar, ohne dass etwas aufhoert zu arbeiten.
   buehne.css     Optionale Bewegung.
 
 werkzeug/      Pruefskript, Server, Messwerkzeug, Probe- und Hilfsseiten.
+  kontrastmesser.js     Misst die gezeichnete Seite, nicht das CSS.
+  probe/kontrast.html   Vier Durchgaenge ueber beide Probeseiten.
+  probe/zustaende.html  JEDER Zustand nebeneinander. Was hier fehlt, wird
+                        nicht gemessen.
+  logos_eintragen.mjs   Traegt stil/logos/*.png in stil/logos.css ein.
 supabase/migrations/  0001 bis 0009. 0009 ist GESCHRIEBEN, NICHT AUSGEFUEHRT.
 test/          28 Testdateien, 287 Faelle.
 ```
@@ -921,6 +928,212 @@ Stelle nachbaut, baut die naechste Drift ein:
 | Der Aufbau als Text | `oberflaeche/aufbau.js` |
 | Farben und Groessen | `stil/marken.css` |
 | Entpackte Bilder | `oberflaeche/bildspeicher.js` |
+| Die Zeichen der Stufen | `oberflaeche/aufbau.js` |
+| Ordnerauswahl im Fenster | `oberflaeche/ordner.js` |
+
+## Der Designdurchgang vom 17.09.2026 abends, Fassungen l bis r
+
+Karam: "Designtechnisch will ich, dass du Kontrast einmal komplett
+ueberpruefst, die Groessen muessen mehr angepasst werden, die Harmonie der
+Farben untereinander. Wenn ich was speichere, kann ich einen Ordner aussuchen
+oder direkt einen neuen anlegen. Ordner brauchen ein eigenes Symbol, die
+Riesenscheine und die Scheine auch. Und statt Namen immer das Original-Logo."
+
+### Das Werkzeug ist wichtiger als der einzelne Fund
+
+`werkzeug/kontrastmesser.js` und `werkzeug/probe/kontrast.html` (beide neu).
+Die Seite laedt die ECHTE Oberflaeche in einen Rahmen, stellt beide
+Farbzustaende und zwei Breiten ein, klickt jeden Reiter durch und fragt bei
+jedem Element den Browser, welche Farbe am Ende herauskam.
+
+**Nicht das CSS lesen, sondern das Ergebnis messen.** Bei CSS gewinnt die
+letzte passende Regel, und welche das ist, weiss nur der Browser.
+
+Der Messer kann die drei Sachen, an denen selbstgebaute Messungen scheitern:
+halbdurchsichtige Farben werden Schicht fuer Schicht auf ihre Unterlage
+gerechnet, die Unterlage wird nach oben GESUCHT statt beim Elternelement
+angenommen, und die Schwelle haengt an Schriftgroesse und Fettung.
+
+### `werkzeug/probe/zustaende.html`, und warum es die wichtigere der beiden Seiten ist
+
+Der erste Durchgang meldete null Textfehler. Danach wurden trotzdem vier
+gefunden. Der Grund: **was auf der Probeseite gerade nicht gezeichnet ist,
+wird auch nicht gemessen.**
+
+```
+der Hauptknopf unter dem Mauszeiger              4,22:1
+die Kartennummer in der hellen Fassung           2,98:1
+eine berechnete Zahl auf einer Warnflaeche       3,86:1
+das Anbieterzeichen von mybookie                 4,41:1
+```
+
+`zustaende.html` zeichnet deshalb JEDEN Zustand nebeneinander: 16 Zahlfelder
+(jede Sicherheit mal jede Herkunft), alle 60 Anbieterzeichen, alle
+Stufenzeichen auf drei Flaechen, die Bedeutungsfarben, die Ordnerauswahl, die
+Streuungskachel.
+
+Den Zeigezustand baut sie, ohne ihn ein zweites Mal hinzuschreiben: sie sucht
+in den geladenen Stilvorlagen nach Regeln mit `:hover` und legt deren
+Erklaerungen auf einen Zwilling. Eine neue Zeigeregel wird ohne Zutun
+mitgemessen.
+
+**WER EIN NEUES BAUTEIL MIT ZUSTAENDEN BAUT, GEHOERT IN DIESE DATEI.** Was
+dort fehlt, wird nicht gemessen.
+
+### Was die beiden Seiten zusammen gefunden haben
+
+**232 Beanstandungen im ersten Lauf, davon kein einziger Textfehler.** Alle
+betrafen RAENDER: im hellen Zustand hatte kein einziges Eingabefeld und keine
+Auswahlliste einen sichtbaren Rand (1,33:1 bis 2,10:1).
+
+Die Ursache war eine Verwechslung: `--linie` trennt Abschnitte, das ist
+Schmuck und darf leise sein. Der Rand eines Eingabefeldes sagt dagegen, WO DAS
+FELD AUFHOERT, und dafuer verlangt die Norm 3:1. Beides hing an derselben
+Marke. Neu ist `--feldrand`, gegen jede Flaeche gerechnet, auf der ein Feld
+liegen kann, schlechtester Fall 3,59:1 (dunkel) und 3,41:1 (hell).
+
+**Dann fand die Zustandsseite das Groessere: 43 von 60 Anbieterzeichen waren
+unlesbar.** Weisse Schrift auf `--schrift-still` ergibt 2,66:1. Auf der
+Probeseite kamen nur die 17 mit eigener Farbe vor, deshalb war es nie
+aufgefallen.
+
+### Zwei Fehler, die beim Beheben entstanden sind
+
+**1. Spezifitaet.** Die Sammelregel fuer die gefuellten Anbieterzeichen hatte
+erst `.anbieterzeichen[data-anbieter="..."]` und damit hoehere Staerke als die
+Einzelregeln. Ihr `color: #fff` ueberschrieb betways eigene dunkle Schrift,
+und der Messer meldete prompt 3,17:1 statt der 5,94:1, die betway von sich aus
+hatte. Der erste Anlauf, betways Gruen zu verdunkeln, haette es
+verschlimmert (3,32:1). Richtig war, die Staerke anzugleichen.
+
+**2. Die falsche Schwelle.** Die 43 neuen Farben wurden zuerst gegen 3:1
+gegen den Hintergrund gemessen, und alle fielen durch. Die Schwelle gilt fuer
+eine KANTE, nicht fuer eine gefuellte Flaeche mit lesbarer Schrift darin: die
+17 aeltesten Hausfarben liegen selbst zwischen 1,05 (stake) und 3,72.
+Stattdessen traegt jedes Kaestchen jetzt eine duenne neutrale Kante.
+
+**Merksatz: wer einen Messwert unter einer Schwelle findet, prueft zuerst, ob
+es die richtige Schwelle ist.**
+
+### Die Groessen
+
+```
+vorher   11, 12, 14, 17, 22, 28   Schritte 1,091 / 1,167 / 1,214 / 1,294 / 1,273
+nachher  14, 16, 18, 21, 24, 28   Schritte 1,143 / 1,125 / 1,167 / 1,143 / 1,167
+```
+
+Spanne 3,6 statt 16,8 Prozent. Wichtiger als die Reihe war die Verteilung:
+**75,3 Prozent aller 219 Schriftgroessen lagen auf den beiden kleinsten
+Stufen**, die beiden groessten kamen zusammen auf 4,1 Prozent. Auf einer
+Ansicht standen 129 Elemente auf 11 Pixel, darunter Geldbetraege und Quoten.
+
+Dazu zwei neue Marken:
+
+- `--bedienhoehe: 44px`. Gemessen: 207 Elemente unter 44 mal 44, darunter 133
+  Eingabefelder mit 27 Pixel Hoehe, also genau die Felder, in denen Karam die
+  Zahlen berichtigt, und ein Haken von 16 mal 16.
+- `--lesebreite: 68ch`. Gemessen: bis zu 304 Zeichen je Zeile. In `ch` und
+  nicht in Pixeln, damit der Deckel mitwaechst.
+
+**DIE GROESSERE SCHRIFT HAT ZWEI LAYOUTS GESPRENGT**, und das faellt ohne
+Messung nicht auf. Bei echter Fensterbreite von 375 Pixeln, jeden Reiter
+durchgeklickt: vorher 0 Ueberlauf ueberall, nachher Scheine 29 und Ablage 26
+Pixel. Ursachen: eine Zeile mit Text UND Knopf, die nicht umbrach, und ein
+`min-width: 5rem`, das bei groesserer Schrift 80 statt 70 Pixel wurde.
+
+**Wer die Schriftreihe anfasst, misst danach den Ueberlauf bei 375 Pixeln
+nach.** Mit echter Fensterbreite, nicht mit `style.width`: das reflowt nicht
+und liefert Unsinn.
+
+### Die Zeichen der vier Stufen
+
+`oberflaeche/aufbau.js`, `stufenzeichen()`. Gebaut wie `anbieterzeichen()`:
+das Programm setzt ein Merkmalswort und einen Buchstaben, alles Sichtbare
+steht in `stil/`.
+
+**FUENF Zeichen und nicht vier**, weil das Wort "Ordner" auf zwei Ebenen
+vorkommt. Zwei Merkmale tragen die Aussage: **blau** ist die Projektseite,
+**violett** die Wettseite; **gestrichelt** haelt andere Sachen,
+**durchgezogen** ist selbst eine.
+
+Das Violett `--stufe-wette` ist keine neue Farbfamilie: der Abstand zu
+`--betonung` betraegt in BEIDEN Zustaenden genau 44 Grad, und Saettigung und
+Helligkeit sind gleich gewaehlt, damit keine lauter ist als die andere. **Nicht
+`--gut`, `--schlecht` oder `--offen`: die bedeuten den Ausgang einer Wette.**
+
+In der linken Spalte standen Riesenscheine und Scheine als dieselbe laufende
+Nummer im gleichen Kasten. Eingeklappt ist die Spalte 56 Pixel breit, dann ist
+dieser Kasten fast alles, was zu sehen ist. Ein zweites Zeichen passt nicht
+hin, also faerbt die Stufe den Kasten, den es schon gibt.
+
+### Die Ordnerauswahl
+
+Vorher ein Textfeld mit einem `datalist`, und der zeigt sich erst beim Tippen.
+Wer seine Ordner nicht auswendig wusste, sah sie nicht. Von Karams drei Wegen
+war einer sichtbar.
+
+`oberflaeche/ordner.js`, `ordnerfeldbauplan()`. **Die Schnittstelle nimmt
+NAMEN, nicht Riesenscheine**, und das ist der Kern: in der Ablage ordnen Ordner
+PROJEKTE. Waeren Riesenscheine der Parameter, entstuende daneben eine zweite
+Funktion fuer die Ablage, und damit die Verwechslung, vor der Karam Angst hat.
+
+Nebenbei abgestellt: `frageNachOrdner` filterte den JETZIGEN Ordner aus der
+Liste. Gut gemeint, aber man fand den Ordner, in dem der Riesenschein gerade
+liegt, nicht wieder.
+
+### Die Anbieterzeichen und die Logos
+
+**Die Kuerzel waren nicht eindeutig.** 60 Anbieter, 47 verschiedene Kuerzel, 9
+Kollisionen, und die schlimmste hiess `BE` fuer Betano, Bet3000, **Betway**,
+Betfair, Betfred und Betsson.
+
+`kern/buchmacher.js`: die alte Regel heisst jetzt `grundkuerzel()`, darueber
+liegt `kuerzelFuer()` mit einer Aufloesung. Eindeutig allein reicht nicht: wer
+bei einer Kollision verlaengert, bekommt BET, BETW, BETF, BETS. Deshalb wird
+zuerst der erste Buchstabe mit dem ersten Buchstaben DAHINTER versucht: BTW,
+BF, BS, BV, CS, TP.
+
+**Alle 60 haben jetzt eine eigene Hausfarbe.** Die 43 neuen sind
+ANNAEHERUNGEN, keine amtlichen Markenwerte, jede gemessen, 16 nachgedunkelt.
+
+**Karam hat sich am 17.09.2026 entschieden: die Logodateien kommen ins
+Repository.** Der Weg dafuer steht (`werkzeug/logos_eintragen.mjs`,
+`stil/logos/LIESMICH.md`), **die Dateien legt er selbst hinein.**
+
+Nicht von Hand eintragen: die Regel setzt `color: transparent`, damit das Bild
+das Kuerzel verdeckt. Fehlt das Bild, bleibt ein LEERES Kaestchen. Das
+Werkzeug liest den ORDNER statt einer Liste, also kann das nicht passieren,
+und `pruefe.mjs` faengt es zusaetzlich ab (neue Regel: jede `url()` in `stil/`
+muss auf eine vorhandene Datei zeigen).
+
+### Und ein Geldfund nebenbei
+
+Bei der Untersuchung zum Ausleseprogramm gefunden, an Karams einzigem echten
+anbieteruebergreifenden Riesenschein nachgerechnet:
+
+```
+echte Quoten   1,64  1,64  1,64  1,690903  1,690903  1,740741
+Median         1,665452
+echte Streuung 4,52 Prozent
+```
+
+Die Warnung `quote_reisst_aus` schlaegt bei Faktor **1,5** an, also bei 50
+Prozent. Ein verlesenes 1,69 als 1,89 macht 13,48 Prozent, loest nichts aus
+und kostet auf einem Schein von 333 EUR **66,30 EUR** zu hoch ausgewiesenen
+Gewinn.
+
+**Die Grenze wurde NICHT angeruehrt.** Sechs Scheine sind kein Beleg, und eine
+Warnung bei jedem zweiten Schein liest niemand mehr. Stattdessen gibt `rechne()`
+jetzt `quotenstreuung` mit (Median, groesster Abstand, Anzahl), und die
+Uebersicht zeigt es. Ueber eine Saison sieht Karam selbst, was normal ist.
+
+**Die Kachel ist auf der Probeseite der Oberflaeche NICHT zu sehen**, und das
+ist kein Zufall: sie braucht drei Quoten in einem Riesenschein, und im
+Testkorpus gruppieren 19 Scheine zu 16 Riesenscheinen. **Karams Normalfall,
+dieselbe Wette bei vielen Anbietern, kommt im Korpus gar nicht vor.** Das ist
+eine echte Luecke des Korpus, nicht nur der Anzeige.
+
+---
 
 ## DIE FEHLERSUCHE VOM 17.09.2026. Hier steht die Arbeit fuer die naechste Sitzung.
 
@@ -1961,16 +2174,16 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 | | |
 |---|---|
-| Tests | 287, davon 286 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 301, davon 300 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, die Fotos fehlen |
-| Aufbaupruefung | 99 Dateien, keine Beanstandung |
-| Fassung | 2026-09-17-k, oeffentlich ausgeliefert und nachgeprueft |
+| Aufbaupruefung | 106 Dateien, keine Beanstandung |
+| Fassung | 2026-09-17-r, oeffentlich ausgeliefert und nachgeprueft |
 | Quelltext | rund 23.700 Zeilen JavaScript, ohne lib/ |
-| Commits am 17.09.2026 | 12, jeder einzeln veroeffentlicht |
+| Commits am 17.09.2026 | 19, jeder einzeln veroeffentlicht |
 | Fehlersuche | 63 Agenten, 57 Funde, 47 nach Gegenpruefung bestaetigt |
 | Davon erledigt | alle Speicherfunde; der Rest steht mit Zeilennummer in "Die Fehlersuche" |
-| Farbkontrast | Ebene 1, 2, 3, Ausgabe und Ablage, hell und dunkel, bei 1440 und bei 375 Pixeln: 0 Beanstandungen |
+| Farbkontrast | 10430 Stellen ueber beide Probeseiten, beide Farbzustaende, 1440 und 375 Pixel: 0 Beanstandungen |
 | Probeseite (nachgebaute Bilder) | bet365 und BetOnline sauber, PS3838 2 von 3, Betway und Stake melden ihre Fehler laut |
 
 ## Bekannte Stolpersteine in diesem Container
