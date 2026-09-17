@@ -2,27 +2,25 @@
 /**
  * Ordner fuer Riesenscheine.
  *
- * Karam am 17.09.2026: "in einem Ordner sind Riesenscheine drinnen. Und die
- * Ordner werden auch miteinander gerechnet. Ordner und Riesenscheine sorgen
- * fuer Ordnung, Projekte sind komplett separat."
+ * Karam am 17.09.2026: "In einem Ordner sind Riesenscheine drinnen. Und diese
+ * Ordner werden auch miteinander gerechnet."
  *
- * WARUM DAS VORERST IM BROWSER LIEGT, UND NICHT IN DER DATENBANK
+ * WO DIE ZUORDNUNG LIEGT, UND WARUM SIE DORT LIEGT
  *
- * kombi.riesenscheine hat KEINE Spalte ordner. Nachgesehen in
- * supabase/migrations/0001: die Speicherfunktion schreibt id, projekt_id,
- * name, signatur, schein_ids und notiz, sonst nichts. Ein Ordner am
- * Riesenschein braucht also eine neue Migration UND eine Aenderung an
- * kombi_riesenscheine_speichern.
+ * Am Riesenschein selbst, im Feld `ordner`, und damit in der Datenbank.
  *
- * Das ist ein Eingriff in Karams laufende Datenbank, und den mache ich nicht
- * ohne sein ausdrueckliches Wort. Bis dahin liegt die Zuordnung hier, im
- * Browser dieses Geraets.
+ * Bis zur Fassung 2026-09-17-b lag sie im Browserspeicher, weil
+ * kombi.riesenscheine keine Spalte dafuer hatte. Im Programm stand deshalb, die
+ * Ordner lagen "nur auf diesem Geraet". Karam am 17.09.2026 dazu:
  *
- * WAS DAS BEDEUTET, und es steht auch im Programm:
- *   Es funktioniert sofort und vollstaendig auf DIESEM Geraet.
- *   Es wandert NICHT zu Karams Kollegen, der denselben Zugangscode hat.
- * Sobald die Migration da ist, wird aus dieser Datei eine Fassade auf das
- * Feld am Riesenschein, und der Rest des Programms merkt nichts davon.
+ *   "Du musst verstehen, dieses Programm ist ein Account. Es wird alles auf
+ *   einer Datenbank gespeichert, in Supabase. Und ich sehe jedes Foto, jeden
+ *   Schein, den eine Person macht, und die Person genauso bei mir. Das ist kein
+ *   eigenes Profil. Das ist einfach DAS Profil."
+ *
+ * Er hat recht, und der Satz im Programm hat eine fehlende Spalte wie eine
+ * Eigenschaft des Programms aussehen lassen. Die Spalte kommt mit
+ * supabase/migrations/0009.
  *
  * EIN ORDNER IST NUR EIN NAME AM RIESENSCHEIN, keine eigene Sache. Er besteht,
  * solange ein Riesenschein darin liegt, und verschwindet sonst von selbst.
@@ -30,26 +28,38 @@
  * (supabase/migrations/0008), und zwei verschiedene Bauarten fuer dasselbe
  * waeren eine Quelle fuer Verwirrung.
  *
+ * DIESE DATEI AENDERT NICHTS. Sie liest nur und sagt, was ein sauberer Name
+ * ist. Gesetzt wird der Ordner in zustand.js, dort wo auch Name und Notiz
+ * gesetzt werden (Projektregel 8).
+ *
  * HIER STEHT KEINE FARBE UND KEINE GROESSE (Projektregel 5).
  */
-
-/** Unter welchem Schluessel die Zuordnung im Browser liegt. */
-const SCHLUESSEL = 'kombi-riesenschein-ordner'
 
 /** Der Name, unter dem alles ohne Ordner laeuft. */
 export const OHNE_ORDNER = ''
 
-/** @type {Set<() => void>} */
-const zuhoerer = new Set()
+/**
+ * DIE BRUECKE AUS DEM BROWSERSPEICHER.
+ *
+ * Wer zwischen dem 17.09.2026 und der Migration 0009 Ordner angelegt hat, hat
+ * sie hier liegen. Sie duerfen nicht einfach verschwinden, nur weil die
+ * Zuordnung umgezogen ist.
+ *
+ * EINE EINBAHNSTRASSE: es wird nur noch GELESEN und nur dort eingesetzt, wo am
+ * Riesenschein selbst nichts steht. Sobald jemand einen Ordner von Hand setzt,
+ * faellt der alte Eintrag weg (siehe vergissBruecke). Damit kann ein Ordner,
+ * den Karam ausdruecklich entfernt hat, nicht wieder auftauchen.
+ */
+const BRUECKE_SCHLUESSEL = 'kombi-riesenschein-ordner'
 
 /**
- * Die ganze Zuordnung, Riesenschein-Kennung auf Ordnername.
+ * Die alte Zuordnung aus dem Browserspeicher, Riesenschein-Kennung auf Name.
  *
  * @returns {Record<string, string>}
  */
-function hole() {
+function bruecke() {
   try {
-    const roh = localStorage.getItem(SCHLUESSEL)
+    const roh = localStorage.getItem(BRUECKE_SCHLUESSEL)
     const wert = roh ? JSON.parse(roh) : {}
     if (!wert || typeof wert !== 'object' || Array.isArray(wert)) return {}
     /** @type {Record<string, string>} */
@@ -65,40 +75,65 @@ function hole() {
 }
 
 /**
- * @param {Record<string, string>} zuordnung
+ * Nimmt eine Kennung aus der Bruecke heraus.
+ *
+ * Wird gerufen, sobald jemand den Ordner dieses Riesenscheins von Hand setzt.
+ * Danach gilt nur noch, was am Riesenschein steht.
+ *
+ * @param {string} riesenscheinId
  */
-function merke(zuordnung) {
+export function vergissBruecke(riesenscheinId) {
   try {
-    localStorage.setItem(SCHLUESSEL, JSON.stringify(zuordnung))
+    const alt = bruecke()
+    if (alt[riesenscheinId] === undefined) return
+    delete alt[riesenscheinId]
+    if (Object.keys(alt).length === 0) localStorage.removeItem(BRUECKE_SCHLUESSEL)
+    else localStorage.setItem(BRUECKE_SCHLUESSEL, JSON.stringify(alt))
   } catch {
-    // Kein Platz im Browser: dann haelt die Zuordnung nur, solange das Fenster
-    // offen ist. Kein Grund, das Programm anzuhalten.
+    // Kein Speicher: dann bleibt der alte Eintrag stehen und wird beim
+    // naechsten Laden wieder eingesetzt. Kein Grund, etwas anzuhalten.
   }
+}
+
+/**
+ * Wie viele Zuordnungen noch in der Bruecke liegen.
+ *
+ * Nur zum Anzeigen: solange hier etwas liegt, ist es noch nicht bei Karams
+ * Kollegen angekommen.
+ *
+ * @returns {number}
+ */
+export function brueckenreste() {
+  return Object.keys(bruecke()).length
 }
 
 /**
  * In welchem Ordner ein Riesenschein liegt. Leerer Text heisst: in keinem.
  *
- * @param {string} riesenscheinId
+ * Was am Riesenschein steht, gilt. Steht dort nichts, greift die alte
+ * Zuordnung aus dem Browser, damit nichts verloren geht.
+ *
+ * @param {{id: string, ordner?: string}} riesenschein
  * @returns {string}
  */
-export function ordnerVon(riesenscheinId) {
-  return hole()[riesenscheinId] ?? OHNE_ORDNER
+export function ordnerVon(riesenschein) {
+  if (!riesenschein) return OHNE_ORDNER
+  const amSchein = String(riesenschein.ordner ?? '').trim()
+  if (amSchein !== OHNE_ORDNER) return amSchein
+  return bruecke()[riesenschein.id] ?? OHNE_ORDNER
 }
 
 /**
- * Legt einen Riesenschein in einen Ordner. Leerer Name nimmt ihn heraus.
+ * Was aus einem eingetippten Ordnernamen wird.
  *
- * @param {string} riesenscheinId
- * @param {string} ordner
+ * Ein Ordnername ist nur Text. Die einzige Regel: aussen keine Leerzeichen,
+ * sonst waeren " Woche 1" und "Woche 1" zwei Ordner, die gleich aussehen.
+ *
+ * @param {string} text
+ * @returns {string}
  */
-export function legeIn(riesenscheinId, ordner) {
-  const name = String(ordner ?? '').trim()
-  const zuordnung = hole()
-  if (name === OHNE_ORDNER) delete zuordnung[riesenscheinId]
-  else zuordnung[riesenscheinId] = name
-  merke(zuordnung)
-  for (const was of zuhoerer) was()
+export function sauberName(text) {
+  return String(text ?? '').trim()
 }
 
 /**
@@ -107,15 +142,14 @@ export function legeIn(riesenscheinId, ordner) {
  * Es werden nur Ordner gezaehlt, in denen wirklich etwas liegt: ein Ordner
  * ist kein eigenes Ding, sondern eine Beschriftung.
  *
- * @param {{id: string}[]} riesenscheine
+ * @param {{id: string, ordner?: string}[]} riesenscheine
  * @returns {{name: string, anzahl: number}[]}
  */
 export function alleOrdner(riesenscheine) {
-  const zuordnung = hole()
   /** @type {Map<string, number>} */
   const zaehler = new Map()
-  for (const r of riesenscheine) {
-    const ordner = zuordnung[r.id] ?? OHNE_ORDNER
+  for (const r of riesenscheine ?? []) {
+    const ordner = ordnerVon(r)
     if (ordner === OHNE_ORDNER) continue
     zaehler.set(ordner, (zaehler.get(ordner) ?? 0) + 1)
   }
@@ -127,65 +161,20 @@ export function alleOrdner(riesenscheine) {
 /**
  * Wie viele Riesenscheine in keinem Ordner liegen.
  *
- * @param {{id: string}[]} riesenscheine
+ * @param {{id: string, ordner?: string}[]} riesenscheine
  * @returns {number}
  */
 export function anzahlOhneOrdner(riesenscheine) {
-  const zuordnung = hole()
-  return riesenscheine.filter((r) => (zuordnung[r.id] ?? OHNE_ORDNER) === OHNE_ORDNER).length
+  return (riesenscheine ?? []).filter((r) => ordnerVon(r) === OHNE_ORDNER).length
 }
 
 /**
- * Zieht die Zuordnung auf neue Kennungen um und wirft weg, was ins Leere zeigt.
+ * Nur die Riesenscheine eines Ordners.
  *
- * WARUM ES DAS GEBEN MUSS, gefunden am 17.09.2026 im Browser, eine Viertelstunde
- * nachdem die Ordner das erste Mal liefen:
- *
- *   vier Riesenscheine in den Ordner "Spieltag 3" gelegt, gemessen: richtig.
- *   einmal auf "Neuer Riesenschein" gedrueckt, gemessen: alle vier Ordner weg.
- *
- * Der Grund steht in zustand.js, ordneNeu: gruppiere() baut die Riesenscheine
- * bei JEDEM Neuordnen frisch und vergibt dabei neue Kennungen. Stabil ist
- * nicht die Kennung, sondern die Signatur; deshalb rettet ordneNeu den Namen
- * auch ueber die Signatur und nicht ueber die Kennung.
- *
- * Neu geordnet wird nach jeder berichtigten Zahl. Karam haette seine Ordner
- * also mehrmals taeglich verloren, ohne dass irgendwo etwas dagestanden haette.
- *
- * Die Zuordnung wandert deshalb dort mit, wo die Kennungen neu vergeben werden,
- * und nur dort (Projektregel 8).
- *
- * @param {[string, string][]} umzuege Paare von alter auf neue Kennung
- * @param {Set<string>} gueltig alle Kennungen, die es danach noch gibt
+ * @param {{id: string, ordner?: string}[]} riesenscheine
+ * @param {string} ordner
+ * @returns {{id: string, ordner?: string}[]}
  */
-export function wandere(umzuege, gueltig) {
-  const alt = hole()
-  /** @type {Record<string, string>} */
-  const neu = {}
-
-  for (const [von, nach] of umzuege) {
-    const ordner = alt[von]
-    if (ordner !== undefined) neu[nach] = ordner
-  }
-
-  // Was schon auf einer gueltigen Kennung sitzt und nicht umgezogen ist,
-  // bleibt stehen. Was auf nichts mehr zeigt, faellt weg: sonst waechst die
-  // Zuordnung ueber eine Saison hinweg um lauter tote Eintraege.
-  for (const [id, ordner] of Object.entries(alt)) {
-    if (neu[id] === undefined && gueltig.has(id)) neu[id] = ordner
-  }
-
-  merke(neu)
-  // KEIN Wecken der Zuhoerer: das hier laeuft mitten in ordneNeu, und das
-  // zeichnet danach ohnehin alles neu. Ein zweiter Anstoss waere ein zweites
-  // Zeichnen desselben Bildes.
-}
-
-/**
- * Sagt Bescheid, wenn sich an der Zuordnung etwas geaendert hat.
- *
- * @param {() => void} was
- */
-export function hoerZu(was) {
-  zuhoerer.add(was)
+export function imOrdner(riesenscheine, ordner) {
+  return (riesenscheine ?? []).filter((r) => ordnerVon(r) === ordner)
 }

@@ -196,6 +196,104 @@ if (!imProgramm) {
   })
 }
 
+/*
+  DERSELBE SQL-BEFEHL STEHT AN ZWEI STELLEN, UND DAS DARF NICHT AUSEINANDERLAUFEN.
+
+  supabase/migrations/0009_riesenschein_ordner.sql ist die Wahrheit. Die Seite
+  werkzeug/datenbank_erweitern.html traegt denselben Befehl noch einmal zum
+  Kopieren, weil Karam ihn in seinen SQL-Editor einfuegen muss und die Seite
+  auch dann funktionieren soll, wenn sie jemand einzeln speichert. Aus der
+  Datei nachladen geht nicht: ueber file:// gibt es kein fetch.
+
+  Zwei Abschriften sind eine Stelle zu viel (Projektregel 8). Wenn sie schon
+  sein muessen, dann mit einer Sperre davor: hier wird verglichen, was wirklich
+  ausgefuehrt wird. Kommentare, Leerzeilen und die Klammer aus begin und commit
+  bleiben aussen vor. Wer eine der beiden Fassungen aendert und die andere
+  vergisst, kommt an dieser Stelle nicht vorbei.
+*/
+function sqlKern(text) {
+  return text
+    .split(/\r?\n/)
+    .map((z) => z.trim())
+    .filter((z) => z !== '' && !z.startsWith('--'))
+    .filter((z) => z !== 'begin;' && z !== 'commit;')
+    .join(' ')
+    .replace(/\s+/g, ' ')
+}
+
+try {
+  const migration = fs.readFileSync(
+    path.join(wurzel, 'supabase', 'migrations', '0009_riesenschein_ordner.sql'),
+    'utf8'
+  )
+  const seite = fs.readFileSync(path.join(wurzel, 'werkzeug', 'datenbank_erweitern.html'), 'utf8')
+
+  // Aus der Seite die Zeilen des Befehls herausholen. Sie stehen als Liste von
+  // Zeichenketten im Skript, zwischen "const BEFEHL = [" und "].join".
+  const stueck = seite.match(/const BEFEHL = \[([\s\S]*?)\]\.join/)
+  if (!stueck) {
+    beanstandungen.push({
+      art: 'sql',
+      datei: 'werkzeug/datenbank_erweitern.html',
+      text: 'Der Befehl liess sich nicht finden. Erwartet wird "const BEFEHL = [ ... ].join".',
+    })
+  } else {
+    const roh = stueck[1]
+    /** @type {string[]} */
+    const zeilen = []
+    // Von Hand durchgehen statt mit einem Ausdruck: in den Zeilen stehen
+    // Anfuehrungszeichen beider Art, und ein Ausdruck, der das sauber trennt,
+    // waere schwerer zu lesen als diese Schleife.
+    let i = 0
+    while (i < roh.length) {
+      const zeichen = roh[i]
+      if (zeichen !== "'" && zeichen !== '"') {
+        i += 1
+        continue
+      }
+      const ende = zeichen
+      let text = ''
+      i += 1
+      while (i < roh.length && roh[i] !== ende) {
+        if (roh[i] === '\\') {
+          const naechstes = roh[i + 1]
+          text += naechstes === 'n' ? '\n' : naechstes
+          i += 2
+          continue
+        }
+        text += roh[i]
+        i += 1
+      }
+      i += 1
+      zeilen.push(text)
+    }
+
+    const ausSeite = sqlKern(zeilen.join('\n'))
+    const ausDatei = sqlKern(migration)
+    if (ausSeite !== ausDatei) {
+      // Die erste Stelle nennen, an der es auseinandergeht. "Sie sind
+      // verschieden" schickt sonst jemanden auf die Suche durch sechzig Zeilen.
+      let stelle = 0
+      while (stelle < ausSeite.length && ausSeite[stelle] === ausDatei[stelle]) stelle += 1
+      beanstandungen.push({
+        art: 'sql',
+        datei: 'werkzeug/datenbank_erweitern.html',
+        text:
+          'Der Befehl zum Kopieren stimmt nicht mehr mit ' +
+          'supabase/migrations/0009_riesenschein_ordner.sql ueberein. ' +
+          `Erste Abweichung bei Zeichen ${stelle}: Seite "` +
+          `${ausSeite.slice(stelle, stelle + 40)}", Datei "${ausDatei.slice(stelle, stelle + 40)}".`,
+      })
+    }
+  }
+} catch (fehler) {
+  beanstandungen.push({
+    art: 'sql',
+    datei: 'supabase/migrations/0009_riesenschein_ordner.sql',
+    text: `laesst sich nicht mit der Kopierseite vergleichen: ${fehler instanceof Error ? fehler.message : String(fehler)}`,
+  })
+}
+
 // --- Bericht ---
 
 console.log(`${geprueft} Dateien geprueft.`)

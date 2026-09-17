@@ -185,6 +185,11 @@ export const DATENFASSUNG = 1
  * @property {string} signatur
  * @property {string[]} scheinIds      Reihenfolge im Riesenschein, vom Nutzer aenderbar.
  * @property {string} notiz
+ * @property {string} ordner
+ *   In welchem Ordner er liegt. Leerer Text heisst: in keinem. Ein Ordner ist
+ *   nur dieser Name, keine eigene Sache; er besteht, solange ein Riesenschein
+ *   darin liegt. Seit supabase/migrations/0009 steht er in der Datenbank und
+ *   wird damit geteilt, so wie alles andere in diesem Programm auch.
  * @property {string} angelegtAm
  * @property {string} geaendertAm
  */

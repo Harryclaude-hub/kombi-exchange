@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: Datenbank erweitern</title>
+    <link rel="stylesheet" href="../stil/marken.css" />
+    <link rel="stylesheet" href="../stil/grund.css" />
+    <link rel="stylesheet" href="../stil/bauteile.css" />
+    <style>
+      /* Nur fuer diese Seite. Gehoert nicht zum Programm. */
+      .seite { max-width: 52rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+      .schritt { margin-bottom: 2rem; padding: 1rem 1.25rem;
+        background: var(--flaeche); border: 1px solid var(--linie);
+        border-left: 4px solid var(--betonung); border-radius: var(--rundung); }
+      .schrittnr { font-size: var(--text-winzig); font-weight: 700;
+        letter-spacing: 0.1em; color: var(--schrift-still); }
+      .schritt h2 { margin: 0.25rem 0 0.5rem; font-size: var(--text-gross); }
+      .schritt p { color: var(--schrift-leise); line-height: 1.6; }
+      .schritt li { color: var(--schrift-leise); line-height: 1.7; }
+      .kasten { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+        margin: 0.75rem 0; }
+      .befehl { margin: 0.75rem 0; padding: 0.75rem; background: var(--grund-tief);
+        border: 1px solid var(--linie); border-radius: var(--rundung);
+        font-family: var(--schriftart-zahl); font-size: var(--text-winzig);
+        line-height: 1.6; white-space: pre; user-select: all; overflow-x: auto;
+        color: var(--schrift); }
+      .ruhig { padding: 0.75rem 1rem; margin-bottom: 1.5rem;
+        background: var(--gut-tief); border-left: 4px solid var(--gut);
+        border-radius: var(--rundung); color: var(--schrift);
+        font-size: var(--text-klein); line-height: 1.6; }
+      .gemerkt { font-size: var(--text-klein); color: var(--gut); font-weight: 700; }
+      h1 { font-size: var(--text-riesig); margin: 0 0 0.5rem; }
+      .unterzeile { color: var(--schrift-still); margin-bottom: 2rem; }
+      table { border-collapse: collapse; margin: 0.75rem 0; font-size: var(--text-klein); }
+      td, th { text-align: left; padding: 0.35rem 0.9rem 0.35rem 0;
+        border-bottom: 1px solid var(--linie); color: var(--schrift-leise); }
+      th { color: var(--schrift); }
+    </style>
+  </head>
+  <body>
+    <!--
+      WOZU DIESE SEITE
+
+      Karam am 17.09.2026: "Du musst verstehen, dieses Programm ist ein Account.
+      Es wird alles auf einer Datenbank gespeichert, in Supabase. Und ich sehe
+      jedes Foto, jeden Schein, den eine Person macht, und die Person genauso
+      bei mir. Das ist kein eigenes Profil. Das ist einfach DAS Profil."
+
+      Genau so ist es gebaut, mit einer Ausnahme, die ich am Morgen desselben
+      Tages selbst eingebaut habe: die Ordner fuer Riesenscheine lagen im
+      Browserspeicher, weil kombi.riesenscheine keine Spalte dafuer hatte.
+
+      Die Spalte anzulegen dauert eine Sekunde. Ich kann sie nicht selbst
+      anlegen: der Zugang zu Karams Datenbank liegt bei Karam, und das ist
+      richtig so. Diese Seite nimmt ihm das Tippen ab.
+
+      Sie liegt unter werkzeug/ und nicht im Programm: sie ist ein Werkzeug fuer
+      den Besitzer, keine Seite fuer den taeglichen Gebrauch.
+    -->
+    <main class="seite">
+      <h1>Datenbank erweitern</h1>
+      <p class="unterzeile">
+        Ein Befehl, damit Ordner für Riesenscheine geteilt werden, so wie alles
+        andere in diesem Programm auch.
+      </p>
+
+      <div class="ruhig">
+        <strong>Dieser Befehl nimmt nichts weg.</strong> Er fügt eine Spalte hinzu
+        und ersetzt eine Funktion durch dieselbe Funktion mit einem Feld mehr.
+        Kein bestehender Wert ändert sich, kein Schein, kein Bild, kein Projekt.
+        Zweimal ausführen richtet ebenfalls nichts an.
+      </div>
+
+      <section class="schritt">
+        <div class="schrittnr">WARUM</div>
+        <h2>Ordner lagen bisher nur im Browser</h2>
+        <p>
+          Am 17.09.2026 sind die Ordner für Riesenscheine dazugekommen. Die
+          Tabelle <code>kombi.riesenscheine</code> hatte kein Feld dafür, also lag
+          die Zuordnung zunächst im Browser. Das heißt: dein Kollege sieht sie
+          nicht, und nach einem Neuladen ist sie weg.
+        </p>
+        <p>
+          Alles andere in diesem Programm wird geteilt: Projekte, Scheine,
+          Bilder, Namen, Notizen. Die Ordner sollen es auch, und dafür fehlt
+          genau diese eine Spalte.
+        </p>
+        <table>
+          <tr><th>Was der Befehl tut</th><th>Wirkung</th></tr>
+          <tr><td>Spalte <code>ordner</code> an <code>kombi.riesenscheine</code></td><td>leer bei allen bestehenden Zeilen</td></tr>
+          <tr><td>Index darauf</td><td>Ordner bleiben schnell, auch bei tausenden Riesenscheinen</td></tr>
+          <tr><td><code>kombi.riesenscheine_schreiben</code> neu</td><td>schreibt das Feld mit, sonst unverändert</td></tr>
+        </table>
+      </section>
+
+      <section class="schritt">
+        <div class="schrittnr">SCHRITT 1</div>
+        <h2>Befehl kopieren</h2>
+        <p>Ein Klick legt ihn in die Zwischenablage.</p>
+        <div class="kasten">
+          <button class="knopf knopf-haupt" id="kopieren" type="button">Befehl kopieren</button>
+          <span class="gemerkt" id="gemerkt" hidden>kopiert</span>
+        </div>
+        <div class="befehl" id="befehl"></div>
+      </section>
+
+      <section class="schritt">
+        <div class="schrittnr">SCHRITT 2</div>
+        <h2>Im SQL-Editor einfügen und ausführen</h2>
+        <p>
+          Der Editor gehört zu deinem Supabase-Projekt. Du bist dort mit deinem
+          eigenen Zugang angemeldet, nicht mit dem Zugangscode des Programms.
+        </p>
+        <div class="kasten">
+          <a class="knopf" target="_blank" rel="noopener"
+             href="https://supabase.com/dashboard/project/eybwhnvjavovcxvimtxr/sql/new">SQL-Editor öffnen</a>
+        </div>
+        <p>
+          Einfügen, auf <strong>Run</strong> drücken. Es sollte
+          <em>Success. No rows returned</em> dastehen.
+        </p>
+      </section>
+
+      <section class="schritt">
+        <div class="schrittnr">SCHRITT 3</div>
+        <h2>Im Programm nachsehen</h2>
+        <p>
+          Seite neu laden. Der Hinweis „Ordner werden noch nicht geteilt“ in der
+          Übersicht verschwindet dann von selbst. Er verschwindet nicht, weil
+          irgendwo etwas umgestellt wurde, sondern weil das Programm nachsieht,
+          ob die Spalte da ist. Steht er noch da, hat der Befehl nicht gegriffen.
+        </p>
+      </section>
+
+      <section class="schritt">
+        <div class="schrittnr">WENN ETWAS SCHIEFGEHT</div>
+        <h2>Nichts ist kaputt</h2>
+        <p>
+          Der ganze Befehl läuft in einer Klammer (<code>begin</code> …
+          <code>commit</code>). Bricht irgendetwas darin ab, wird gar nichts
+          übernommen, und die Datenbank steht genau so da wie vorher.
+        </p>
+        <p>
+          Derselbe Befehl liegt im Quelltext unter
+          <code>supabase/migrations/0009_riesenschein_ordner.sql</code>, mit der
+          ausführlichen Begründung daneben.
+        </p>
+      </section>
+    </main>
+
+    <script type="module">
+      /*
+        Der Befehl steht hier als Text und wird NICHT aus der Migrationsdatei
+        geladen: diese Seite muss auch dann funktionieren, wenn sie jemand
+        einzeln speichert. Er ist Zeichen fuer Zeichen derselbe wie in
+        supabase/migrations/0009_riesenschein_ordner.sql, nur ohne die langen
+        Erklaerungen und in eine Klammer gesetzt.
+
+        BEGIN UND COMMIT sind der Unterschied zur Datei: im SQL-Editor laeuft
+        sonst Anweisung fuer Anweisung, und ein Abbruch in der Mitte liesse die
+        Spalte da und die Funktion alt. So gilt entweder alles oder nichts.
+      */
+      const BEFEHL = [
+        '-- Kombi Exchange, Migration 0009: Ordner fuer Riesenscheine.',
+        '-- Fuegt eine Spalte hinzu und schreibt sie mit. Nimmt nichts weg.',
+        '',
+        'begin;',
+        '',
+        'alter table kombi.riesenscheine',
+        "  add column if not exists ordner text not null default '';",
+        '',
+        'create index if not exists riesenscheine_ordner_idx',
+        '  on kombi.riesenscheine (projekt_id, ordner);',
+        '',
+        'create or replace function kombi.riesenscheine_schreiben(p_token text, p_projekt uuid, p_liste jsonb)',
+        'returns integer',
+        'language plpgsql',
+        'volatile',
+        'security definer',
+        "set search_path = ''",
+        'as $$',
+        'declare',
+        '  anzahl integer := 0;',
+        'begin',
+        '  perform kombi.verlange_sitzung(p_token);',
+        '',
+        "  if jsonb_typeof(p_liste) <> 'array' then",
+        "    raise exception 'Es wurde keine Liste uebergeben.' using errcode = '22023';",
+        '  end if;',
+        '',
+        '  insert into kombi.riesenscheine (id, projekt_id, name, signatur, schein_ids, notiz, ordner, geaendert_am)',
+        '  select',
+        "    (e ->> 'id')::uuid,",
+        '    p_projekt,',
+        "    coalesce(e ->> 'name', ''),",
+        "    coalesce(e ->> 'signatur', ''),",
+        '    coalesce(',
+        "      (select array_agg(x::uuid) from jsonb_array_elements_text(e -> 'scheinIds') as x),",
+        "      '{}'::uuid[]",
+        '    ),',
+        "    coalesce(e ->> 'notiz', ''),",
+        "    coalesce(e ->> 'ordner', ''),",
+        '    now()',
+        '  from jsonb_array_elements(p_liste) as e',
+        '  on conflict (id) do update',
+        '    set name = excluded.name,',
+        '        signatur = excluded.signatur,',
+        '        schein_ids = excluded.schein_ids,',
+        '        notiz = excluded.notiz,',
+        '        ordner = excluded.ordner,',
+        '        geaendert_am = now();',
+        '',
+        '  get diagnostics anzahl = row_count;',
+        '  return anzahl;',
+        'end;',
+        '$$;',
+        '',
+        'revoke all on function kombi.riesenscheine_schreiben(text, uuid, jsonb) from public, anon, authenticated;',
+        '',
+        'commit;',
+      ].join('\n')
+
+      document.getElementById('befehl').textContent = BEFEHL
+
+      document.getElementById('kopieren').addEventListener('click', async () => {
+        const gemerkt = document.getElementById('gemerkt')
+        try {
+          await navigator.clipboard.writeText(BEFEHL)
+          gemerkt.hidden = false
+          gemerkt.textContent = 'kopiert'
+        } catch {
+          // Ohne Erlaubnis fuer die Zwischenablage bleibt der Weg von Hand.
+          // Das Feld ist auf user-select: all gesetzt, ein Klick hinein waehlt
+          // alles aus.
+          gemerkt.hidden = false
+          gemerkt.textContent = 'ging nicht, bitte den Kasten anklicken und von Hand kopieren'
+        }
+      })
+    </script>
+  </body>
+</html>

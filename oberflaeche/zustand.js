@@ -50,8 +50,9 @@ import * as Ordner from './ordner.js'
  * @property {string|null} hilfeZu
  * @property {string|null} scheinAuswahl
  * @property {string|null} ordnerFilter
+ * @property {boolean|null} ordnerGeteilt
  * @property {'neueste'|'alphabetisch'|'meisteGeld'|'wenigsteGeld'|'zuletztGeoeffnet'} sortierung
- * @property {{id: string, name: string}|null} huelle
+ * @property {{id: string, name: string, ordner?: string}|null} huelle
  * @property {string|null} auswahl
  * @property {number|null} fassung
  * @property {{laeuft: boolean, text: string, anteil: number}} arbeit
@@ -116,8 +117,23 @@ const stand = {
     (Projektregel 8).
   */
   scheinAuswahl: null,
-  /* Welcher Ordner in der linken Spalte gewaehlt ist. null heisst: alle. */
+  /* Welcher Ordner gerade offen ist. null heisst: keiner, man steht davor. */
   ordnerFilter: null,
+  /*
+    OB DIE ORDNER WIRKLICH GETEILT WERDEN.
+
+    Karam am 17.09.2026: "dieses Programm ist ein Account, ich sehe jedes Foto,
+    jeden Schein, den eine Person macht."
+
+    Der Ordner liegt am Riesenschein und damit in der Datenbank, sobald
+    supabase/migrations/0009 gelaufen ist. Vorher gibt es die Spalte nicht, und
+    ein Ordner ueberlebt das Neuladen nicht.
+
+    DAS WIRD NICHT GERATEN, SONDERN GEMESSEN: app.js sieht beim Laden nach, ob
+    die Zeilen aus der Datenbank ein Feld ordner mitbringen. Genau dann ist es
+    true. Kommen gar keine Zeilen, bleibt es null, denn dann weiss es niemand.
+  */
+  ordnerGeteilt: null,
   /* Wonach die Riesenscheine links sortiert sind. */
   sortierung: 'neueste',
   // Aus welcher Ansicht heraus die Erklaerung geoeffnet wurde. Damit springt
@@ -265,14 +281,59 @@ export function fuegeScheineHinzu(neue) {
  * @param {string} name
  * @returns {string} die Kennung des neuen Riesenscheins
  */
-export function macheHuelleAuf(name) {
+export function macheHuelleAuf(name, ordner = '') {
   const id = neueKennung()
-  aendere({ huelle: { id, name: String(name || '').trim() || 'Neuer Riesenschein' } })
+  /*
+    STEHT MAN IN EINEM ORDNER, LANDET DER NEUE RIESENSCHEIN DARIN.
+
+    Karam am 17.09.2026: "man kann Sachen in Ordner hinzufuegen." Wer einen
+    Ordner aufgemacht hat und dort auf "Neuer Riesenschein" drueckt, meint
+    diesen Ordner. Ihn danach erst hineinzuziehen waere ein Handgriff, den
+    niemand erwartet, und bei taeglich mehreren Riesenscheinen ueber eine
+    Saison waeren es hunderte.
+  */
+  aendere({
+    huelle: {
+      id,
+      name: String(name || '').trim() || 'Neuer Riesenschein',
+      ordner: Ordner.sauberName(ordner),
+    },
+  })
   // ordneNeu setzt den leeren Riesenschein in die Liste, damit man ihn sofort
   // sieht. Es setzt die Auswahl NICHT mehr, das geschieht hier und nur hier.
   ordneNeu()
   aendere({ auswahl: id, scheinAuswahl: null })
   return id
+}
+
+/**
+ * Legt einen Riesenschein in einen Ordner. Leerer Name nimmt ihn heraus.
+ *
+ * DER ORDNER STEHT AM RIESENSCHEIN, also genau dort, wo auch Name und Notiz
+ * stehen, und wandert mit ihnen in die Datenbank. Karam am 17.09.2026:
+ * "dieses Programm ist ein Account, ich sehe jedes Foto, jeden Schein, den
+ * eine Person macht."
+ *
+ * @param {string} riesenscheinId
+ * @param {string} ordner
+ */
+export function setzeOrdner(riesenscheinId, ordner) {
+  const name = Ordner.sauberName(ordner)
+  // Was von Hand gesetzt wird, gilt. Der alte Eintrag aus dem Browserspeicher
+  // darf danach nicht mehr dazwischenreden, sonst kaeme ein Ordner, den Karam
+  // ausdruecklich entfernt hat, beim naechsten Laden wieder.
+  Ordner.vergissBruecke(riesenscheinId)
+  aendere({
+    riesenscheine: stand.riesenscheine.map((r) =>
+      r.id === riesenscheinId ? { ...r, ordner: name, geaendertAm: jetzt() } : r
+    ),
+    // Die offene Huelle traegt denselben Ordner weiter, sonst setzte das
+    // naechste Neuordnen den alten wieder ein.
+    huelle:
+      stand.huelle && stand.huelle.id === riesenscheinId
+        ? { ...stand.huelle, ordner: name }
+        : stand.huelle,
+  })
 }
 
 /**
@@ -319,23 +380,29 @@ export function ordneNeu(scheine) {
   /*
     WER WAR VORHER WER.
 
-    gruppiere() vergibt bei jedem Lauf neue Kennungen. Alles, was am
-    Riesenschein haengt und NICHT im Riesenschein selbst steht, muss deshalb
-    hier mitwandern, und zwar an dieser einen Stelle: hier und nur hier wird
-    aus einer alten Kennung eine neue (Projektregel 8).
+    gruppiere() vergibt eine neue Kennung, sobald eine Gruppe FRISCH entsteht,
+    also wenn die Scheine darin keine gruppeId tragen. Tragen sie eine, bleibt
+    die Kennung. Am 17.09.2026 nachgemessen, weil ich es zuerst zu grob
+    aufgeschrieben hatte:
 
-    Bisher wanderten Name und Notiz mit, weil sie im Riesenschein stehen. Die
-    Ordnerzuordnung liegt aber daneben, im Browser, und ging deshalb bei jedem
-    Neuordnen verloren. Gemessen am 17.09.2026: vier Ordner gesetzt, einmal
-    "Neuer Riesenschein" gedrueckt, alle vier weg.
+      zweimal ordneNeu hintereinander          Kennungen unveraendert
+      Scheine ohne gruppeId, Gruppe neu gebaut neue Kennung
+
+    Verlassen kann man sich also nur auf die SIGNATUR, nicht auf die Kennung.
+    Alles, was an einem Riesenschein haengt und nicht aus den Scheinen neu
+    entsteht, wird deshalb hier von der alten Zeile auf die neue uebernommen:
+    Name, Notiz, Anlagedatum und seit dem 17.09.2026 auch der ORDNER.
+
+    Der Ordner lag vorher daneben, im Browserspeicher, unter der Kennung. Auf
+    der Probeseite, wo die Scheine roh hereinkommen, sind dabei vier Ordner auf
+    einen Schlag verschwunden. Jetzt steht er IM Riesenschein und wandert
+    dieselbe Zeile wie der Name. Eine eigene Umzugsliste braucht es nicht mehr,
+    und damit auch keine zweite Stelle, die man vergessen kann.
+    Nachgestellt in test/ordner_am_riesenschein.test.mjs.
   */
-  /** @type {[string, string][]} */
-  const umzuege = []
-
   const riesenscheine = ergebnis.gruppen.map((gruppe) => {
     const dabei = gruppe.scheinIds.map((id) => nachId.get(id)).filter(Boolean)
     const alt = alteNachId.get(gruppe.id) ?? alteNachSignatur.get(gruppe.signatur)
-    if (alt && alt.id !== gruppe.id) umzuege.push([alt.id, gruppe.id])
     return {
       id: gruppe.id,
       projektId: stand.projekt?.id ?? '',
@@ -343,6 +410,7 @@ export function ordneNeu(scheine) {
       signatur: gruppe.signatur,
       scheinIds: gruppe.scheinIds,
       notiz: alt?.notiz ?? '',
+      ordner: alt?.ordner ?? '',
       angelegtAm: alt?.angelegtAm ?? jetzt(),
       geaendertAm: jetzt(),
     }
@@ -372,14 +440,11 @@ export function ordneNeu(scheine) {
       signatur: '',
       scheinIds: [],
       notiz: alteHuelle?.notiz ?? '',
+      ordner: alteHuelle?.ordner ?? stand.huelle.ordner ?? '',
       angelegtAm: alteHuelle?.angelegtAm ?? jetzt(),
       geaendertAm: jetzt(),
     })
   }
-
-  // Die Ordner auf die neuen Kennungen umziehen. Siehe oberflaeche/ordner.js,
-  // wandere(): dort steht, was am 17.09.2026 dabei verloren ging.
-  Ordner.wandere(umzuege, new Set(riesenscheine.map((r) => r.id)))
 
   // Die Zugehoerigkeit auch auf den Scheinen vermerken, damit sie beim Speichern
   // mitgeht und beim naechsten Laden erhalten bleibt.

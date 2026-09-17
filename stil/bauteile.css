@@ -1631,11 +1631,37 @@ li[data-schwere="info"] .hinweisart {
 
 /* ---------------------------------------------------------------- Projektwahl */
 
+/*
+  ZWEI ZEILEN: oben das Projekt, darunter das Plus.
+
+  Karam am 17.09.2026: "Runde vom 16.09.2026, darunter moechte ich ein
+  Pluszeichen, da kann man Projekte hinzufuegen."
+
+  Vorher standen Auswahlfeld, "Neu" und "Leeren" in EINER Reihe. Anlegen und
+  Ausraeumen nebeneinander, beide zwei Silben lang: das ist die Reihe, in der
+  man sich vergreift.
+*/
 .projektwahl {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto;
   align-items: center;
   gap: var(--luft-1);
   flex: 0 0 auto;
+}
+
+.projektwahl .projektfeld {
+  grid-column: 1 / -1;
+}
+
+.projektplus {
+  justify-self: start;
+  font-weight: 700;
+}
+
+/* Ausraeumen ist kein Weg, den man sucht. Er steht da, aber leise. */
+.projektleeren {
+  justify-self: end;
+  color: var(--schrift-leise);
 }
 
 .projektfeld {
@@ -4281,11 +4307,14 @@ li[data-schwere="info"] .hinweisart {
   border-color: var(--betonung);
 }
 
-/* Der gewaehlte Ordner traegt eine deutliche Kante, nicht nur einen Hauch. */
-.ordnerkachel[data-gewaehlt='true'] {
-  background: var(--betonung-tief);
-  border-color: var(--betonung);
-}
+/*
+  KEINE MARKE "GEWAEHLT" MEHR AN DER KACHEL.
+
+  Sie hat bis zum 17.09.2026 nur gefiltert, also blieb sie stehen und musste
+  zeigen, dass sie die gewaehlte ist. Jetzt MACHT sie den Ordner auf: danach
+  ist man drin, und die anderen Kacheln sind gar nicht mehr da. Eine Marke fuer
+  einen Zustand, den es nicht mehr gibt, waere nur eine Frage an den Leser.
+*/
 
 .ordnerkachelname {
   font-weight: 700;
@@ -4431,8 +4460,26 @@ li[data-schwere="info"] .hinweisart {
 }
 
 .riesenkartefuss {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+  margin-top: var(--luft-1);
+  padding-top: var(--luft-2);
+  border-top: 1px solid var(--linie);
+}
+
+.riesenkartezahl {
   font-size: var(--text-winzig);
   color: var(--schrift-still);
+}
+
+.riesenkarteknoepfe {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-2);
+  flex-wrap: wrap;
 }
 
 /* ---- Der Ordner am Riesenschein selbst ---- */
@@ -4875,4 +4922,81 @@ li[data-schwere="info"] .hinweisart {
   font-size: var(--text-winzig);
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+/* ============================================================== Ordner
+   Karam am 17.09.2026: "kann man die Ordner separat aufmachen, also einen
+   Ordner aufmachen, und dann kommen alle Riesenscheine, die im Ordner sind."
+   ===================================================================== */
+
+/*
+  Das Zeichen vor einem Ordnernamen. Es steht im JavaScript als Buchstabe und
+  nicht hier als Bild: faellt die Designschicht weg, soll trotzdem etwas
+  dastehen (Projektregel 5). Hier bekommt es nur seine Form.
+*/
+.ordnersymbol {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4em;
+  height: 1.4em;
+  margin-right: 0.45em;
+  border-radius: 3px;
+  background: var(--betonung-tief);
+  border: 1px solid var(--betonung);
+  color: var(--schrift);
+  font-family: var(--schriftart-zahl);
+  font-size: 0.8em;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: -0.15em;
+}
+
+.ordnerkachelname {
+  display: flex;
+  align-items: center;
+}
+
+/* Wo ein Riesenschein liegt, an seiner Zeile in der Spalte links. */
+.panelordner {
+  grid-column: 1 / -1;
+  font-size: var(--text-winzig);
+  color: var(--schrift-still);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  Der Kasten "Ordner werden noch nicht geteilt".
+
+  Er steht, solange der Datenbank die Spalte fehlt, und verschwindet von selbst,
+  sobald sie da ist: das Programm sieht beim Laden nach, es behauptet nichts.
+  Deshalb die Farbe des offenen Standes und nicht die des Fehlers: es ist kein
+  Fehler, es ist ein Schritt, der noch aussteht.
+*/
+.ordnerachtung {
+  padding: var(--luft-3) var(--luft-4);
+  background: var(--offen-tief);
+  border: 1px solid var(--offen);
+  border-left: 4px solid var(--offen);
+  border-radius: var(--rundung);
+}
+
+.ordnerachtungtitel {
+  font-weight: 700;
+  color: var(--schrift);
+  margin-bottom: var(--luft-1);
+}
+
+.ordnerachtung p {
+  margin: var(--luft-1) 0 0;
+  max-width: 88ch;
+  font-size: var(--text-klein);
+  line-height: 1.6;
+  color: var(--schrift-leise);
+}
+
+.ordnerachtung a {
+  color: var(--schrift);
+  font-weight: 700;
 }

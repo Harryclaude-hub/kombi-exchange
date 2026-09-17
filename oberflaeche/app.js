@@ -88,11 +88,13 @@ export async function starte(ziel) {
   // eigener Zuhoerer und kein Umweg ueber den Zustand.
   Nadeln.hoerZu(zeichnePanel)
   /*
-    Ein Ordnerwechsel aendert die linke Spalte UND die Uebersicht in der Mitte:
-    dort stehen die Ordnerkacheln mit ihren Summen. Deshalb der normale Weg
-    ueber den Zustand und nicht ein zweiter, eigener Zeichenweg (Projektregel 8).
+    EIN EIGENER ZUHOERER FUER DIE ORDNER BRAUCHT ES NICHT MEHR.
+
+    Bis zur Fassung 2026-09-17-b lagen die Ordner neben dem Arbeitsstand, im
+    Browserspeicher, und mussten sich von dort aus melden. Seit dem 17.09.2026
+    steht der Ordner IM Riesenschein: er aendert sich ueber Zustand.setzeOrdner
+    wie ein Name, und damit zeichnet der normale Weg ohnehin alles neu.
   */
-  Ordner.hoerZu(() => Zustand.aendere({}))
   horcheAufAblage()
 
   const gemerkt = localStorage.getItem(SITZUNG_SCHLUESSEL) ?? ''
@@ -145,7 +147,6 @@ export function zeichneFuerProbe(ziel) {
   probeModus = true
   Zustand.hoerZu(zeichneHuelle)
   Nadeln.hoerZu(zeichnePanel)
-  Ordner.hoerZu(() => Zustand.aendere({}))
   zeichneHuelle()
 }
 
@@ -716,10 +717,26 @@ function projektwahl(stand) {
         el('option', { value: p.id, text: p.name, selected: p.id === stand.projekt?.id ? 'selected' : null })
       )
     ),
-    el('button.knopf.knopf-klein', {
+    /*
+      DAS PLUSZEICHEN STEHT UNTER DEM PROJEKT, NICHT DANEBEN.
+
+      Karam am 17.09.2026: "schau mal, Runde vom 16.09.2026. Darunter moechte
+      ich ein Pluszeichen, da kann man Projekte hinzufuegen. Projekte sind halt
+      wirklich so wie eigene Profile, die haben nichts mit dem anderen zu tun."
+
+      Es gab den Knopf schon, er hiess "Neu" und stand RECHTS neben dem
+      Auswahlfeld, zwischen "Neu" und "Leeren". Zwei kurze Woerter nebeneinander,
+      von denen eines anlegt und eines ausraeumt: das ist genau die Reihe, in
+      der man sich vergreift. Jetzt steht das Plus in einer eigenen Zeile
+      darunter, mit ausgeschriebener Beschriftung, und "Leeren" daneben bleibt
+      klein und leise.
+    */
+    el('button.knopf.knopf-klein.projektplus', {
       type: 'button',
-      text: 'Neu',
-      title: 'Neues Projekt anlegen',
+      text: '+ Neues Projekt',
+      title:
+        'Legt ein neues Projekt an. Ein Projekt ist ein eigener Arbeitsplatz und ' +
+        'teilt nichts mit den anderen.',
       onclick: async () => {
         /*
           KEIN DATUM IM PROJEKTNAMEN.
@@ -749,7 +766,7 @@ function projektwahl(stand) {
         await legeProjektAn(name.trim())
       },
     }),
-    el('button.knopf.knopf-klein', {
+    el('button.knopf.knopf-winzig.projektleeren', {
       type: 'button',
       text: 'Leeren',
       title: 'Alle Scheine und Bilder dieses Projekts entfernen',
@@ -989,10 +1006,10 @@ async function ladeProjektinhalt(projektId) {
   Zustand.arbeite(true, 'Projekt wird geladen', 0.4)
 
   const riesenscheine = await Datenbank.holeRiesenscheine(stand.token, projektId)
+  const rohe = Array.isArray(riesenscheine.daten) ? riesenscheine.daten : []
   Zustand.aendere({
-    riesenscheine: (Array.isArray(riesenscheine.daten) ? riesenscheine.daten : []).map(
-      ausDatenbankRiesenschein
-    ),
+    riesenscheine: rohe.map(ausDatenbankRiesenschein),
+    ordnerGeteilt: ordnerWerdenGeteilt(rohe),
   })
 
   const scheine = await Datenbank.holeScheine(stand.token, projektId)
@@ -1285,11 +1302,23 @@ function panelRiesenscheine(stand, schmal) {
         daten: { offen: String(stand.ordnerFilter === wert) },
         title:
           wert === null
-            ? 'Alle Riesenscheine zeigen'
+            ? 'Alle Riesenscheine des Projekts zeigen'
             : wert === Ordner.OHNE_ORDNER
               ? 'Nur die, die in keinem Ordner liegen'
-              : `Nur der Ordner ${beschriftung}`,
-        onclick: () => Zustand.aendere({ ordnerFilter: wert }),
+              : `Den Ordner "${beschriftung}" aufmachen`,
+        /*
+          DERSELBE KLICK WIE AUF DIE KACHEL IN DER MITTE.
+
+          Die Spalte links und die Uebersicht in der Mitte zeigen denselben
+          Ordner. Wuerde hier nur gefiltert und dort aufgemacht, staende links
+          etwas anderes als rechts, und niemand wuesste, wo er ist.
+
+          auswahl und scheinAuswahl werden mit zurueckgesetzt: wer den Ordner
+          wechselt, will die Uebersicht des Ordners sehen und nicht den
+          Riesenschein, der zufaellig noch offen war.
+        */
+        onclick: () =>
+          Zustand.aendere({ ordnerFilter: wert, auswahl: null, scheinAuswahl: null }),
       },
       [
         el('span.panelzeichen', {
@@ -1383,7 +1412,7 @@ function panelRiesenscheine(stand, schmal) {
 
     ...sichtbar.map((r, i) => {
       const rechnung = Zustand.rechnungVon(r.id)
-      const liegtIn = Ordner.ordnerVon(r.id)
+      const liegtIn = Ordner.ordnerVon(r)
       return el(
         'button.panelknopf.panelknopf-wette',
         {
@@ -1406,6 +1435,18 @@ function panelRiesenscheine(stand, schmal) {
                 el('span.panelzahl', {
                   text: formatiere(rechnung.einsatzGesamt, rechnung.waehrung, 'de'),
                 }),
+                /*
+                  DER ORDNER STEHT AN DER ZEILE.
+
+                  Die Mitte zeigt bei "Alle" nur noch Ordner und das, was in
+                  keinem liegt. Diese Spalte fuehrt weiter JEDEN Riesenschein
+                  des Projekts, damit nichts unerreichbar wird (Projektregel 9).
+                  Dann muss aber an der Zeile stehen, wo er liegt, sonst sucht
+                  man ihn in der Mitte vergeblich.
+                */
+                liegtIn && stand.ordnerFilter === null
+                  ? el('span.panelordner', { text: liegtIn })
+                  : null,
               ]),
         ]
       )
@@ -1681,12 +1722,14 @@ async function ladeAlles() {
   }
 
   const riesenscheine = await Datenbank.holeRiesenscheine(stand.token, projekt.id)
+  const roheRiesenscheine = Array.isArray(riesenscheine.daten) ? riesenscheine.daten : []
   /** @type {import('../kern/typen.js').Riesenschein[]} */
-  const geladeneRiesenscheine = (Array.isArray(riesenscheine.daten) ? riesenscheine.daten : []).map(
-    ausDatenbankRiesenschein
-  )
+  const geladeneRiesenscheine = roheRiesenscheine.map(ausDatenbankRiesenschein)
 
-  Zustand.aendere({ riesenscheine: geladeneRiesenscheine })
+  Zustand.aendere({
+    riesenscheine: geladeneRiesenscheine,
+    ordnerGeteilt: ordnerWerdenGeteilt(roheRiesenscheine),
+  })
   if (scheine.daten.length > 0) {
     Zustand.ordneNeu(scheine.daten)
   }
@@ -1924,9 +1967,39 @@ function ausDatenbankRiesenschein(zeile) {
     signatur: String(zeile.signatur ?? ''),
     scheinIds: Array.isArray(zeile.schein_ids) ? zeile.schein_ids.map(String) : [],
     notiz: String(zeile.notiz ?? ''),
+    // Vor supabase/migrations/0009 gibt es die Spalte nicht. Dann steht hier
+    // ein leerer Text, und ordner.js greift auf die alte Zuordnung im Browser
+    // zurueck, damit nichts verloren geht.
+    ordner: String(zeile.ordner ?? ''),
     angelegtAm: String(zeile.angelegt_am ?? ''),
     geaendertAm: String(zeile.geaendert_am ?? ''),
   }
+}
+
+/**
+ * Ob die Ordner wirklich geteilt werden, GEMESSEN statt geraten.
+ *
+ * Karam am 17.09.2026: "dieses Programm ist ein Account. Ich sehe jedes Foto,
+ * jeden Schein, den eine Person macht, und die Person genauso bei mir."
+ *
+ * Ein Ordner wird nur dann geteilt, wenn kombi.riesenscheine die Spalte hat,
+ * also wenn supabase/migrations/0009 gelaufen ist. Das laesst sich an den
+ * Zeilen ablesen: kommt ordner mit, gibt es die Spalte.
+ *
+ * NICHT VERMUTEN, NACHSEHEN. Es waere leicht, im Programm einfach zu
+ * behaupten, die Ordner wuerden geteilt. Am 17.09.2026 stand dort die
+ * umgekehrte Behauptung, sie wuerden es nicht, und auch die war nur so lange
+ * richtig, bis jemand die Spalte anlegt.
+ *
+ * Kommen GAR KEINE Zeilen, weiss es niemand, und dann bleibt es null. Ein
+ * leeres Projekt beweist nichts.
+ *
+ * @param {any[]} zeilen
+ * @returns {boolean|null}
+ */
+function ordnerWerdenGeteilt(zeilen) {
+  if (!Array.isArray(zeilen) || zeilen.length === 0) return null
+  return zeilen.every((z) => z !== null && typeof z === 'object' && 'ordner' in z)
 }
 
 function ladeEinstellungen() {

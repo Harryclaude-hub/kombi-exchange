@@ -1,6 +1,6 @@
 # Uebergabe an die naechste Sitzung
 
-Stand: 17.09.2026, Fassung 2026-09-17-b. Diese Datei ist so geschrieben, dass
+Stand: 17.09.2026, Fassung 2026-09-17-c. Diese Datei ist so geschrieben, dass
 jemand ohne jede Vorgeschichte weiterarbeiten kann. Zuerst lesen, dann anfangen.
 
 **Auftrag der naechsten Sitzung: Design und Bedienung.** Was am Programm
@@ -632,7 +632,7 @@ oberflaeche/   Anzeige und Bedienung.
   werkzeug.js        el(), fuelle(), anbieterzeichen().
   fotoknoepfe.js     Die drei Aufnahmewege. EINZIGE Stelle. Neu 16.09.
   scheinfelder.js    Die Eingabefelder eines Scheins. EINZIGE Stelle. Neu 17.09.
-  ordner.js          Ordner fuer Riesenscheine, im Browser. Neu 17.09.
+  ordner.js          Ordner fuer Riesenscheine, am Riesenschein. Neu 17.09.
   reihenfolge.js     Filtern, Anordnen, Ordnersumme. EINZIGE Stelle. Neu 17.09.
   ansicht_*.js       Je Reiter eine Datei, dazu ansicht_hilfe.js (neu 16.09).
 ausgabe/       Excel und CSV.
@@ -662,7 +662,164 @@ werden kann. Sie startet auf Ebene 1, damit man die Uebersicht sieht.
 arbeitet, kann die Reiter Aufnahme, Scheine, Riesenscheine, Ausgabe und Ablage
 nicht selbst ansehen und muss das ehrlich sagen (Regel 2).
 
-## Was am 17.09.2026 gebaut wurde
+## Was am 17.09.2026 abends gebaut wurde
+
+Fassung 2026-09-17-c.
+
+### Der Satz, der falsch war
+
+Im Programm stand unter den Ordnerkacheln: *"Die Ordner liegen bis auf Weiteres
+nur in diesem Browser. Sie wandern nicht zu deinem Kollegen mit."*
+
+Karam darauf, woertlich:
+
+> "Kannst du mir bitte erklaeren, warum da steht, nur auf diesem Geraet? Du
+> musst verstehen, dieses Programm ist ein Account. Es wird alles auf einer
+> Datenbank gespeichert, in Supabase. Und ich sehe jedes Foto, jeden Schein,
+> den eine Person macht, und die Person genauso bei mir. Da ist einfach alles
+> so, ein Programm fuer jeden. Das ist kein eigenes Profil. Das ist einfach DAS
+> Profil."
+
+Er hat recht. Der Satz war technisch wahr und trotzdem irrefuehrend: er hat
+eine fehlende SPALTE beschrieben, als waere sie eine Eigenschaft des Programms.
+Es gibt genau einen Zugang; wer ihn hat, sieht alles. Ein Ordner, den nur ein
+Geraet kennt, gehoert da nicht hinein.
+
+**MERKSATZ.** Wenn eine Einschraenkung im Programm steht, muss dabeistehen,
+WORAN sie liegt und WAS sie aufhebt. Sonst liest sie sich wie eine
+Entscheidung, und der Besitzer richtet seine Arbeit danach ein.
+
+### Der Ordner steht jetzt am Riesenschein
+
+`kern/typen.js` kennt `Riesenschein.ordner`. `oberflaeche/ordner.js` liest nur
+noch und rechnet nicht mehr mit Kennungen; geschrieben wird ueber
+`Zustand.setzeOrdner`, dort wo auch Name und Notiz geschrieben werden
+(Projektregel 8).
+
+Damit faellt `Ordner.wandere` weg, die Umzugsliste vom Vormittag: der Ordner
+wandert in `ordneNeu` dieselbe Zeile wie der Name, ueber die SIGNATUR. Eine
+zweite Stelle, die man vergessen kann, gibt es nicht mehr.
+
+**DIE BRUECKE.** Wer zwischen `2026-09-17-a` und dieser Fassung Ordner angelegt
+hat, hat sie im Browserspeicher unter `kombi-riesenschein-ordner`. Sie werden
+weiterhin GELESEN, aber nur dort, wo am Riesenschein selbst nichts steht, und
+`setzeOrdner` loescht den alten Eintrag. Damit kann ein Ordner, den Karam
+ausdruecklich entfernt hat, nicht wiederkommen. Die Bruecke ist eine
+Einbahnstrasse und darf verschwinden, sobald Karam einmal ueberall neu
+zugeordnet hat.
+
+### supabase/migrations/0009_riesenschein_ordner.sql
+
+Fuegt `ordner` an `kombi.riesenscheine`, einen Index darauf, und schreibt das
+Feld in `kombi.riesenscheine_schreiben` mit. Nimmt nichts weg, ist zweimal
+ausfuehrbar.
+
+**DIE STELLE, AN DER ICH FAST DANEBENGEGRIFFEN HAETTE.** In 0001 hiess die
+schreibende Funktion `public.kombi_riesenscheine_speichern(text, uuid, jsonb)`.
+In **0004** ist sie nach `kombi.riesenscheine_schreiben` umgezogen, und in
+`public` steht seither nur eine Huelle, die die Fassung hochzaehlt; **0005** hat
+die Huelle noch einmal ersetzt, jetzt mit vier Parametern und `jsonb` als
+Rueckgabe. Mein erster Entwurf haette die alte Signatur in `public` neu
+angelegt: eine ZWEITE Funktion, die niemand ruft. Der Ordner waere gespeichert
+worden, ohne dass je einer ankommt, und nichts haette sich beschwert.
+
+**Wer an diesen Funktionen etwas aendert, liest vorher 0001 BIS 0009 durch und
+nicht nur 0001.**
+
+`kombi_riesenscheine_lesen` braucht nichts: es gibt `setof kombi.riesenscheine`
+zurueck und waehlt mit `*`, traegt die neue Spalte also von selbst mit.
+
+**DIE MIGRATION IST NICHT AUSGEFUEHRT.** Der MCP-Zugang dieser Sitzung fuehrt
+auf ein anderes Supabase-Konto; `eybwhnvjavovcxvimtxr` ist von hier aus nicht
+erreichbar, und ein lokales Postgres gibt es in diesem Container nicht. Das SQL
+ist also **an keiner Datenbank gelaufen**. Karam fuehrt es selbst aus, ueber
+`werkzeug/datenbank_erweitern.html`.
+
+### werkzeug/datenbank_erweitern.html
+
+Dieselbe Seite wie `code_setzen.html`, nur fuer diesen einen Befehl: erklaeren,
+kopieren, SQL-Editor oeffnen, nachsehen. Der Befehl steht dort in einer Klammer
+aus `begin` und `commit`, damit ein Abbruch in der Mitte gar nichts uebernimmt.
+
+**DERSELBE BEFEHL STEHT DAMIT AN ZWEI STELLEN.** Deshalb hat `werkzeug/pruefe.mjs`
+jetzt eine Sperre: es vergleicht, was wirklich ausgefuehrt wird, Kommentare und
+die Klammer aussen vor. **Nachgewiesen, dass sie feuert**: ein `'notiz'` in der
+Seite auf `'XX'` geaendert, und die Pruefung nannte die Abweichung bei Zeichen
+914 mit beiden Textstellen daneben.
+
+### Das Programm behauptet nicht mehr, es sieht nach
+
+`stand.ordnerGeteilt` ist `true`, `false` oder `null`. Gesetzt wird es beim
+Laden, aus den Zeilen selbst: bringt eine Zeile das Feld `ordner` mit, gibt es
+die Spalte. Kommt keine einzige Zeile, bleibt es `null`, denn dann weiss es
+niemand, und ein leeres Projekt beweist nichts.
+
+Der Kasten "Ordner werden noch nicht geteilt" haengt genau daran. Er
+verschwindet von selbst, sobald die Migration gelaufen ist, ohne dass jemand
+etwas umstellt.
+
+### Die Uebersicht ist ein Dateifenster geworden
+
+Karam: *"Ich will, dass man bei der Uebersicht Ordner anlegen kann, dass man
+Sachen in Ordner hinzufuegen kann. Man kann die Ordner separat aufmachen, und
+dann kommen alle Riesenscheine, die im Ordner sind. Ich will einfach eine gute
+Uebersicht."*
+
+Oben stehen **Ordner und das, was in keinem Ordner liegt**, nicht Ordner UND
+zusaetzlich alles: ein Riesenschein im Ordner stuende sonst zweimal auf
+demselben Bildschirm. Eine Ordnerkachel MACHT AUF statt zu filtern; drinnen
+stehen der Ordnername, seine drei Summen und ein "Zurueck zu allen Ordnern".
+Ein neuer Riesenschein, den man in einem Ordner anlegt, landet darin, und der
+Knopf sagt das auch.
+
+Unerreichbar wird dabei nichts: die Spalte GANZ LINKS fuehrt weiterhin jeden
+Riesenschein des Projekts, mit dem Ordnernamen an der Zeile (Projektregel 9).
+
+`.riesenkarte` ist kein `<button>` mehr, sondern eine Karte mit Knoepfen
+("Öffnen", "In Ordner legen"): ein Knopf in einem Knopf ist kein gueltiges
+HTML, der Browser zieht ihn heraus.
+
+### Das Pluszeichen unter dem Projekt
+
+Karam: *"Runde vom 16.09.2026, darunter moechte ich ein Pluszeichen, da kann
+man Projekte hinzufuegen."*
+
+Den Knopf gab es, er hiess "Neu" und stand zwischen dem Auswahlfeld und
+"Leeren". Anlegen und Ausraeumen nebeneinander, beide zwei Silben lang. Jetzt
+steht "+ Neues Projekt" in einer eigenen Zeile darunter, und "Leeren" bleibt
+klein und leise.
+
+### Eine Berichtigung am Vormittagsbefund
+
+Hier stand, `gruppiere()` vergebe "bei JEDEM Lauf" neue Kennungen. Das ist zu
+weit gefasst. Abends nachgemessen:
+
+    zweimal ordneNeu hintereinander            Kennungen unveraendert
+    Scheine ohne gruppeId, Gruppe neu gebaut   neue Kennung
+
+Der Fund im Browser war echt (auf der Probeseite kommen die Scheine roh
+herein, also ohne `gruppeId`), die Begruendung war zu gross. Beides steht jetzt
+in `test/ordner_am_riesenschein.test.mjs`, samt dem Gegenbeweis.
+
+### Gemessen
+
+  Uebersicht mit Ordnern    dunkel 0 Beanstandungen   hell 0
+  Offener Ordner            dunkel 0                  hell 0
+  Bei 375 Pixeln            dunkel 0                  hell 0, kein Ueberlauf
+  Seite Datenbank erweitern dunkel 0                  hell 0
+
+  Ordner "Spieltag 3"       5.000 + 300 + 181     = 5.481,00 $
+                            8.200 + 492 + 296,84  = 8.988,84 $
+                            Ergebnis 0 + 192 + 0  =   192,00 $
+  Neuer Riesenschein im Ordner   landet darin, Feld und Marke stimmen
+  Waehrungen gemischt            keine Summe, mit Grund
+
+12 Faelle in `test/ordner_am_riesenschein.test.mjs`, 260 Faelle gruen,
+90 Dateien ohne Beanstandung.
+
+---
+
+## Was am 17.09.2026 vormittags gebaut wurde
 
 Alles veroeffentlicht, Fassung 2026-09-17-b, oeffentlich nachgeprueft.
 
@@ -713,16 +870,10 @@ Knopf, der es abstellt.
 
 `oberflaeche/ordner.js` und `oberflaeche/reihenfolge.js` sind neu.
 
-**Die Zuordnung liegt im Browser, NICHT in der Datenbank.**
-`kombi.riesenscheine` hat keine Spalte `ordner`; ein Ordner am Riesenschein
-braucht eine neue Migration UND eine Aenderung an
-`kombi_riesenscheine_speichern`. Das ist ein Eingriff in Karams laufende
-Datenbank, und den macht niemand ohne sein ausdrueckliches Wort. **Das steht
-auch im Programm**, unter den Ordnerkacheln, damit Karam sich nicht darauf
-verlaesst, dass sein Kollege dieselben Ordner sieht.
-
-Sobald die Migration da ist, wird aus `ordner.js` eine Fassade auf das Feld am
-Riesenschein, und der Rest des Programms merkt nichts davon.
+**Die Zuordnung lag zunaechst im Browser, NICHT in der Datenbank**, weil
+`kombi.riesenscheine` keine Spalte `ordner` hatte. *(Am selben Abend abgeloest:
+der Ordner steht seit `2026-09-17-c` am Riesenschein. Warum das von Anfang an
+der richtige Ort war, steht im naechsten Abschnitt.)*
 
 **Ordner werden zusammengerechnet.** Gemessen an drei echten Riesenscheinen aus
 dem Testkorpus: 5.000,00 + 300,00 + 181,00 = 5.481,00 $ und 8.200,00 + 492,00 +
@@ -735,11 +886,18 @@ steht "Waehrungen gemischt, deshalb keine Summe".
 Vier Riesenscheine in einen Ordner gelegt, einmal auf "Neuer Riesenschein"
 gedrueckt: alle vier Ordner weg.
 
-`gruppiere()` vergibt bei JEDEM Lauf neue Kennungen. Stabil ist nicht die
-Kennung, sondern die Signatur; deshalb rettet `ordneNeu` auch den Namen ueber
-`alteNachSignatur` und nicht ueber die Kennung. Neu geordnet wird nach jeder
-berichtigten Zahl, Karam haette seine Ordner also mehrmals taeglich verloren,
-stillschweigend.
+`gruppiere()` vergibt eine neue Kennung, sobald eine Gruppe FRISCH entsteht,
+also wenn die Scheine darin keine `gruppeId` tragen. Tragen sie eine, bleibt
+die Kennung stehen. **Am 17.09.2026 abends nachgemessen, weil diese Zeile hier
+zuerst zu grob stand ("bei jedem Lauf"):**
+
+    zweimal ordneNeu hintereinander            Kennungen unveraendert
+    Scheine ohne gruppeId, Gruppe neu gebaut   neue Kennung
+
+Verlassen kann man sich also nur auf die Signatur, nicht auf die Kennung;
+deshalb rettet `ordneNeu` auch den Namen ueber `alteNachSignatur`. Der Fund im
+Browser war echt (auf der Probeseite kommen die Scheine roh herein, also ohne
+`gruppeId`), die Begruendung war zu weit gefasst.
 
 Es ist derselbe Denkfehler, an dem am 16.09. schon `positionImBild` als Beweis
 fuer Gleichheit gescheitert ist: **eine Kennung, die sich aendert, taugt nicht
@@ -885,13 +1043,15 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 ## Was offen ist
 
-0. **Migration 0009: eine Spalte `ordner` an `kombi.riesenscheine`.** Solange
-   sie fehlt, liegt die Ordnerzuordnung nur im Browser und wandert nicht zu
-   Karams Kollegen. Gebraucht wird die Spalte UND eine Aenderung an
-   `kombi_riesenscheine_speichern`, die sie mitschreibt. Dann wird aus
-   `oberflaeche/ordner.js` eine Fassade auf das Feld, und sonst aendert sich
-   nichts. **Karam muss es ausdruecklich sagen**, es ist seine laufende
-   Datenbank.
+0. **Migration 0009 AUSFUEHREN.** Geschrieben ist sie
+   (`supabase/migrations/0009_riesenschein_ordner.sql`), das Programm ist darauf
+   vorbereitet, und die Seite `werkzeug/datenbank_erweitern.html` haelt den
+   Befehl fertig zum Kopieren. **Gelaufen ist sie nicht**: der MCP-Zugang dieser
+   Sitzung fuehrt auf ein anderes Supabase-Konto, `eybwhnvjavovcxvimtxr` ist von
+   hier aus nicht erreichbar, und ein lokales Postgres gibt es im Container
+   nicht. Das SQL ist also an keiner Datenbank geprueft worden, nur gelesen.
+   Karam fuehrt es aus; bis dahin steht in der Uebersicht ein Kasten, der sagt,
+   dass die Ordner noch nicht geteilt werden, und der von selbst verschwindet.
 
 1. **Karams echte Fotos.** Der eigentliche Auftrag. Der Weg dahin steht, ist
    im Browser durchgemessen und wartet nur noch auf die Bilder.
@@ -1003,11 +1163,11 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 | | |
 |---|---|
-| Tests | 256, davon 255 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 261, davon 260 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, die Fotos fehlen |
-| Aufbaupruefung | 89 Dateien, keine Beanstandung |
-| Fassung | 2026-09-17-b, oeffentlich ausgeliefert und nachgeprueft |
+| Aufbaupruefung | 90 Dateien, keine Beanstandung |
+| Fassung | 2026-09-17-c, oeffentlich ausgeliefert und nachgeprueft |
 | Farbkontrast | Ebene 1, 2, 3, Ausgabe und Ablage, hell und dunkel, bei 1440 und bei 375 Pixeln: 0 Beanstandungen |
 | Probeseite (nachgebaute Bilder) | bet365 und BetOnline sauber, PS3838 2 von 3, Betway und Stake melden ihre Fehler laut |
 

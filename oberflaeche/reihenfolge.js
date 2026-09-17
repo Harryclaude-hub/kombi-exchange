@@ -17,6 +17,11 @@
  *
  * HIER WIRD KEIN GELD GERECHNET. Die Betraege kommen fertig aus
  * kern/rechnung.js herein, hier werden sie nur verglichen.
+ *
+ * WELCHER ORDNER, entscheidet ordner.js an einer Stelle: ordnerVon nimmt seit
+ * dem 17.09.2026 den RIESENSCHEIN und nicht mehr seine Kennung, weil der
+ * Ordner jetzt am Riesenschein selbst steht und mit ihm in die Datenbank
+ * wandert (supabase/migrations/0009).
  */
 
 import { OHNE_ORDNER, ordnerVon } from './ordner.js'
@@ -95,7 +100,7 @@ export function ordne(riesenscheine, wie, rechnungVon) {
   const gefiltert =
     wie.ordnerFilter === null
       ? liste
-      : liste.filter((r) => ordnerVon(r.id) === wie.ordnerFilter)
+      : liste.filter((r) => ordnerVon(r) === wie.ordnerFilter)
 
   // Die Einsaetze einmal holen und nicht je Vergleich. Bei sechzig Scheinen je
   // Riesenschein waere das sonst spuerbar.
@@ -155,7 +160,7 @@ export function ordne(riesenscheine, wie, rechnungVon) {
  * @returns {{anzahl: number, einsatz: number, moeglich: number, ergebnis: number, waehrung: string, gemischt: boolean}}
  */
 export function ordnersumme(riesenscheine, ordner, rechnungVon) {
-  const drin = riesenscheine.filter((r) => ordnerVon(r.id) === ordner)
+  const drin = riesenscheine.filter((r) => ordnerVon(r) === ordner)
   const rechnungen = drin.map((r) => rechnungVon(r.id))
 
   const waehrungen = new Set(

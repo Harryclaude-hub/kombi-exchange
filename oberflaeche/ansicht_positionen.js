@@ -113,15 +113,31 @@ function zurueckleiste(beschriftung, hilfe, was) {
 }
 
 /**
- * EBENE 1: alle Riesenscheine und alle Ordner auf einen Blick.
+ * EBENE 1: die Uebersicht. Ordner und Riesenscheine, wie in einem Dateifenster.
  *
- * Karam am 17.09.2026: "hier ist die Uebersicht, da sind alle Riesenscheine
- * angezeigt und Folder." Und: "die Ordner werden auch miteinander gerechnet."
+ * Karam am 17.09.2026: "Ich moechte bitte, dass man bei der Uebersicht Ordner
+ * anlegen kann, das heisst, man kann Sachen in Ordner hinzufuegen. Bei den
+ * Riesenscheinen, dass man auch Ordner hat, alle ohne Ordner. Und dann hat man
+ * eine Uebersicht von den Ordnern, wenn es ueberhaupt Ordner gibt, kann man die
+ * Ordner separat aufmachen, also einen Ordner aufmachen, und dann kommen alle
+ * Riesenscheine, die im Ordner sind. Ich will, dass man einfach eine gute
+ * Uebersicht hat."
+ *
+ * OBEN STEHEN ORDNER UND DAS, WAS IN KEINEM ORDNER LIEGT.
+ *
+ * Nicht Ordner UND zusaetzlich alles. Ein Riesenschein, der in einem Ordner
+ * liegt, steht dann naemlich zweimal auf demselben Bildschirm, einmal in der
+ * Kachel und einmal darunter, und man raetselt, ob es zwei sind. So macht es
+ * auch der Dateimanager, den Karam am 14.09.2026 als Vorbild genannt hat:
+ * Ordner und lose Dateien, und was im Ordner liegt, sieht man, wenn man ihn
+ * aufmacht.
+ *
+ * VERLOREN GEHT DABEI NICHTS: die Spalte ganz links fuehrt weiterhin ALLE
+ * Riesenscheine des Projekts, mit dem Ordnernamen darunter. Wer springen will,
+ * springt dort; wer ordnen will, ordnet hier (Projektregel 9).
  *
  * Gefiltert und angeordnet wird ueber oberflaeche/reihenfolge.js, also mit
- * genau derselben Rechnung wie die Liste links. Staende die Sortierung an
- * beiden Stellen, saehe die Spalte links irgendwann anders aus als die Kacheln
- * hier, und niemand wuesste, welche stimmt (Projektregel 8).
+ * genau derselben Rechnung wie die Liste links (Projektregel 8).
  *
  * @param {any} stand
  * @returns {HTMLElement}
@@ -131,26 +147,42 @@ function uebersicht(stand) {
   const gesamt = rechneProjekt(rechnungen)
   const ordner = Ordner.alleOrdner(stand.riesenscheine)
   const ohne = Ordner.anzahlOhneOrdner(stand.riesenscheine)
-  const sichtbar = Reihenfolge.ordne(
+
+  const offenerOrdner = stand.ordnerFilter
+
+  // Im offenen Ordner: nur seine. Sonst: nur die, die in keinem liegen.
+  const gezeigt = Reihenfolge.ordne(
     stand.riesenscheine,
-    { ordnerFilter: stand.ordnerFilter, sortierung: stand.sortierung },
+    {
+      ordnerFilter: offenerOrdner === null ? Ordner.OHNE_ORDNER : offenerOrdner,
+      sortierung: stand.sortierung,
+    },
     Zustand.rechnungVon
   )
+
+  if (offenerOrdner !== null) return imOrdner(stand, offenerOrdner, gezeigt)
 
   return el('.uebersicht', {}, [
     el('.uebersichtkopf', {}, [
       el('.uebersichttitel', {}, [
-        el('h2', { text: 'Alle Riesenscheine' }),
+        el('h2', { text: 'Übersicht' }),
         el('p.uebersichtunter', {
           text:
             stand.riesenscheine.length === 0
-              ? 'Noch keiner da.'
-              : `${stand.riesenscheine.length} im Projekt ${stand.projekt?.name || 'ohne Namen'}` +
-                (stand.ordnerFilter === null ? '' : `, ${sichtbar.length} davon werden gezeigt`),
+              ? 'Noch kein Riesenschein da.'
+              : `${stand.riesenscheine.length} Riesenscheine im Projekt ` +
+                `${stand.projekt?.name || 'ohne Namen'}` +
+                (ordner.length === 0
+                  ? ''
+                  : `, davon ${stand.riesenscheine.length - ohne} in ${
+                      ordner.length === 1 ? '1 Ordner' : `${ordner.length} Ordnern`
+                    }`),
         }),
       ]),
       neuerknopf(stand),
     ]),
+
+    ordnerhinweis(stand),
 
     // Die Projektsumme erst ab zwei Riesenscheinen: bei einem staende dieselbe
     // Zahl zweimal auf dem Bildschirm, und das macht nur unsicher, ob es
@@ -160,59 +192,189 @@ function uebersicht(stand) {
     /*
       DIE ORDNER, MIT IHREN SUMMEN.
 
-      Karam am 17.09.2026: "in einem Ordner sind Riesenscheine drinnen, und
-      diese Ordner werden auch miteinander gerechnet."
+      Karam am 17.09.2026: "diese Ordner werden auch miteinander gerechnet."
 
       Gezaehlt wird hier nichts selbst: ordnersumme in reihenfolge.js zaehlt
       zusammen, was kern/rechnung.js je Riesenschein schon ausgerechnet hat.
       Und es wird NIE ueber Waehrungen hinweg summiert: kommen mehrere vor,
       bleibt die Kachel ohne Summe und sagt warum.
 
-      DIE ZUORDNUNG LIEGT DERZEIT NUR AUF DIESEM GERAET. kombi.riesenscheine
-      hat keine Spalte dafuer, und Karams Datenbank ruehre ich ohne sein Wort
-      nicht an. Das steht auch fuer ihn sichtbar unter den Kacheln, damit er
-      sich nicht darauf verlaesst, dass sein Kollege dieselben Ordner sieht.
+      Der Abschnitt faellt ganz weg, solange es keinen Ordner gibt. Eine
+      Ueberschrift ueber nichts ist eine Frage an den Leser, keine Auskunft.
     */
-    ordner.length > 0 || ohne > 0
+    ordner.length > 0
       ? el('.ordnerbereich', {}, [
-          el('.teiltitel', { text: 'Ordner' }),
-          el('.ordnerkacheln', {}, [
-            ordnerkachel(stand, null, 'Alle zusammen', stand.riesenscheine.length),
-            ohne > 0 ? ordnerkachel(stand, Ordner.OHNE_ORDNER, 'Ohne Ordner', ohne) : null,
-            ...ordner.map((o) => ordnerkachel(stand, o.name, o.name, o.anzahl)),
-          ]),
-          ordner.length > 0
-            ? el('p.ordnerhinweis', {
-                text:
-                  'Die Ordner liegen bis auf Weiteres nur in diesem Browser. ' +
-                  'Sie wandern nicht zu deinem Kollegen mit, weil die Datenbank ' +
-                  'dafür noch keine Spalte hat. Zahlen und Scheine wandern wie immer mit.',
-              })
-            : null,
+          el('.teiltitel', {
+            text: ordner.length === 1 ? '1 Ordner' : `${ordner.length} Ordner`,
+          }),
+          el(
+            '.ordnerkacheln',
+            {},
+            ordner.map((o) => ordnerkachel(stand, o.name, o.name, o.anzahl))
+          ),
         ])
       : null,
 
-    sichtbar.length === 0
+    el('.ordnerbereich', {}, [
+      el('.teiltitel', {
+        text:
+          ordner.length === 0
+            ? gezeigt.length === 1
+              ? '1 Riesenschein'
+              : `${gezeigt.length} Riesenscheine`
+            : gezeigt.length === 1
+              ? '1 Riesenschein in keinem Ordner'
+              : `${gezeigt.length} Riesenscheine in keinem Ordner`,
+      }),
+      gezeigt.length === 0
+        ? el('.leerhinweis', {}, [
+            el('p.leer-titel', {
+              text:
+                stand.riesenscheine.length === 0
+                  ? 'Noch kein Riesenschein da.'
+                  : 'Alles liegt in Ordnern.',
+            }),
+            el('p.leer-text', {
+              text:
+                stand.riesenscheine.length === 0
+                  ? 'Mach mit dem Knopf oben einen neuen auf und lade die Bildschirmfotos hinein. ' +
+                    'Gleiche Wetten wandern sonst auch von selbst zusammen.'
+                  : 'Mach oben einen Ordner auf, dann siehst du, was darin liegt.',
+            }),
+          ])
+        : el(
+            '.riesenkarten',
+            {},
+            gezeigt.map((r) => riesenkarte(r, stand))
+          ),
+    ]),
+  ])
+}
+
+/**
+ * EBENE 1 mit offenem Ordner: nur, was darin liegt.
+ *
+ * Karam am 17.09.2026: "kann man die Ordner separat aufmachen, also einen
+ * Ordner aufmachen, und dann kommen alle Riesenscheine, die im Ordner sind."
+ *
+ * @param {any} stand
+ * @param {string} ordner
+ * @param {any[]} gezeigt
+ * @returns {HTMLElement}
+ */
+function imOrdner(stand, ordner, gezeigt) {
+  const leer = ordner === Ordner.OHNE_ORDNER
+  const name = leer ? 'Ohne Ordner' : ordner
+  const summe = leer ? null : Reihenfolge.ordnersumme(stand.riesenscheine, ordner, Zustand.rechnungVon)
+
+  return el('.uebersicht', {}, [
+    zurueckleiste('Alle Ordner', 'Zurueck zur Uebersicht', () =>
+      Zustand.aendere({ ordnerFilter: null })
+    ),
+
+    el('.uebersichtkopf', {}, [
+      el('.uebersichttitel', {}, [
+        el('h2', {}, [leer ? null : el('span.ordnersymbol', { text: 'O', 'aria-hidden': 'true' }), name]),
+        el('p.uebersichtunter', {
+          text:
+            gezeigt.length === 1
+              ? '1 Riesenschein darin'
+              : `${gezeigt.length} Riesenscheine darin`,
+        }),
+      ]),
+      neuerknopf(stand),
+    ]),
+
+    // Die Summe des Ordners, gross und nicht als Kleingedrucktes an der Kachel.
+    // Karam rechnet in Geld; wenn er einen Ordner aufmacht, ist das die erste
+    // Frage.
+    summe === null
+      ? null
+      : summe.gemischt
+        ? el('.kachelreihe.kachelreihe-wichtig', {}, [
+            el('.kachel.kachel-fehler', {}, [
+              el('.kachelname', { text: 'Achtung' }),
+              el('.kachelwert', { text: 'Währungen gemischt' }),
+              el('.kachelhilfe', {
+                text: `In diesem Ordner liegen ${summe.anzahl} Riesenscheine in mehreren Währungen. Deshalb steht hier keine Summe.`,
+              }),
+            ]),
+          ])
+        : el('.kachelreihe.kachelreihe-wichtig', {}, [
+            kachel('Ordner: gesamt gesetzt', formatiere(summe.einsatz, summe.waehrung, 'de'), 'neutral',
+              `${summe.anzahl} Riesenschein(e) zusammengezählt`),
+            kachel('Ordner: kann zurückkommen', formatiere(summe.moeglich, summe.waehrung, 'de'), 'gut',
+              'Wenn alles Offene gewinnt, einschließlich Einsatz'),
+            kachel('Ordner: Ergebnis bisher', formatiere(summe.ergebnis, summe.waehrung, 'de'),
+              summe.ergebnis >= 0 ? 'gut' : 'schlecht', 'Nur entschiedene Scheine'),
+          ]),
+
+    gezeigt.length === 0
       ? el('.leerhinweis', {}, [
-          el('p.leer-titel', {
-            text:
-              stand.riesenscheine.length === 0
-                ? 'Noch kein Riesenschein da.'
-                : 'In diesem Ordner liegt gerade nichts.',
-          }),
+          el('p.leer-titel', { text: 'Dieser Ordner ist leer.' }),
           el('p.leer-text', {
             text:
-              stand.riesenscheine.length === 0
-                ? 'Mach mit dem Knopf oben einen neuen auf, dann lade die Bildschirmfotos hinein. ' +
-                  'Gleiche Wetten wandern sonst auch von selbst zusammen.'
-                : 'Wähle oben "Alle zusammen", dann siehst du wieder jeden.',
+              'Ein Ordner besteht nur, solange ein Riesenschein darin liegt. ' +
+              'Sobald der letzte heraus ist, verschwindet er von selbst.',
           }),
         ])
       : el(
           '.riesenkarten',
           {},
-          sichtbar.map((r) => riesenkarte(r, stand))
+          gezeigt.map((r) => riesenkarte(r, stand))
         ),
+  ])
+}
+
+/**
+ * Der Satz darueber, ob die Ordner wirklich geteilt werden.
+ *
+ * Karam am 17.09.2026: "Du musst verstehen, dieses Programm ist ein Account.
+ * Es wird alles auf einer Datenbank gespeichert, in Supabase. Und ich sehe
+ * jedes Foto, jeden Schein, den eine Person macht."
+ *
+ * Genau so ist es, und genau deshalb steht hier ein Hinweis, solange die
+ * Datenbank die Spalte noch nicht hat: dann ueberlebt ein Ordner das Neuladen
+ * nicht, und das muss dastehen, BEVOR jemand dreissig Riesenscheine einsortiert.
+ *
+ * DIE ZAHL WIRD GEMESSEN, NICHT BEHAUPTET: app.js sieht beim Laden nach, ob die
+ * Zeilen aus der Datenbank das Feld mitbringen. Sobald die Migration gelaufen
+ * ist, verschwindet dieser Kasten von selbst, ohne dass jemand etwas umstellt.
+ *
+ * @param {any} stand
+ * @returns {HTMLElement|null}
+ */
+function ordnerhinweis(stand) {
+  if (stand.ordnerGeteilt === true) return null
+  // null heisst: es kam keine einzige Zeile, also weiss es niemand. Dann wird
+  // auch nichts behauptet.
+  if (stand.ordnerGeteilt === null) return null
+
+  return el('.ordnerachtung', {}, [
+    el('.ordnerachtungtitel', { text: 'Ordner werden noch nicht geteilt' }),
+    el('p', {
+      text:
+        'Der Datenbank fehlt noch eine Spalte für den Ordner. Bis sie da ist, ' +
+        'bleibt eine Ordnerzuordnung nur in diesem Browser und überlebt das ' +
+        'Neuladen nicht. Alles andere, Scheine, Bilder, Namen, Notizen, wird ' +
+        'wie immer geteilt.',
+    }),
+    el('p', {}, [
+      'Ein einziger Befehl behebt das. Er steht fertig auf der Seite ',
+      el('a', {
+        /*
+          Der Weg wird aus der Adresse DIESER Datei gebaut und nicht aus der
+          Adresse der Seite. Das Programm liegt unter /, die Probeseite unter
+          /werkzeug/probe/, und auf GitHub Pages liegt alles noch einmal unter
+          /kombi-exchange/. Ein fester Weg waere in zwei von drei Faellen falsch.
+        */
+        href: new URL('../werkzeug/datenbank_erweitern.html', import.meta.url).href,
+        text: 'Datenbank erweitern',
+        target: '_blank',
+        rel: 'noopener',
+      }),
+      ' zum Kopieren.',
+    ]),
   ])
 }
 
@@ -227,53 +389,67 @@ function uebersicht(stand) {
  * selbst und steht oben im Riesenschein in einem Feld, in das man einfach
  * hineinschreibt.
  *
+ * STEHT MAN IN EINEM ORDNER, LANDET ER DARIN. Wer einen Ordner aufgemacht hat
+ * und dort auf diesen Knopf drueckt, meint diesen Ordner. Das steht auch am
+ * Knopf, damit es niemanden ueberrascht.
+ *
  * @param {any} stand
  * @returns {HTMLElement}
  */
 function neuerknopf(stand) {
+  const inOrdner =
+    stand.ordnerFilter !== null && stand.ordnerFilter !== Ordner.OHNE_ORDNER
+      ? stand.ordnerFilter
+      : ''
+
   return el('button.knopf.knopf-haupt.neuerknopf', {
     type: 'button',
-    text: 'Neuer Riesenschein',
+    text: inOrdner ? `Neuer Riesenschein in "${inOrdner}"` : 'Neuer Riesenschein',
     title:
       'Legt sofort einen neuen, leeren Riesenschein an und macht ihn auf. ' +
-      'Alles, was du danach hochlädst, landet darin, bis du den nächsten anlegst.',
+      'Alles, was du danach hochlädst, landet darin, bis du den nächsten anlegst.' +
+      (inOrdner ? ` Er liegt dann im Ordner "${inOrdner}".` : ''),
     onclick: () => {
-      const id = Zustand.macheHuelleAuf(`Riesenschein ${stand.riesenscheine.length + 1}`)
+      const id = Zustand.macheHuelleAuf(`Riesenschein ${stand.riesenscheine.length + 1}`, inOrdner)
       Reihenfolge.merkeGeoeffnet(id)
     },
   })
 }
 
 /**
- * Eine Ordnerkachel mit ihrer Summe.
+ * Eine Ordnerkachel. Ein Klick MACHT DEN ORDNER AUF.
+ *
+ * Karam am 17.09.2026: "kann man die Ordner separat aufmachen, also einen
+ * Ordner aufmachen, und dann kommen alle Riesenscheine, die im Ordner sind."
+ *
+ * Vorher hat dieselbe Kachel nur gefiltert: die anderen Kacheln blieben stehen,
+ * und darunter wechselte die Liste. Das ist etwas anderes, als einen Ordner
+ * aufzumachen, und man sah nie, ob man nun drin war oder davor.
  *
  * @param {any} stand
- * @param {string|null} wert
+ * @param {string} wert
  * @param {string} beschriftung
  * @param {number} anzahl
  * @returns {HTMLElement}
  */
 function ordnerkachel(stand, wert, beschriftung, anzahl) {
-  const gewaehlt = stand.ordnerFilter === wert
-
-  // "Alle zusammen" und "Ohne Ordner" sind keine Ordner im Sinne der Summe:
-  // die eine Zahl steht schon im Projektkopf, die andere waere eine Summe
-  // ueber lauter Unzusammengehoeriges. Beide zeigen deshalb nur die Anzahl.
   const summe =
-    wert !== null && wert !== Ordner.OHNE_ORDNER
-      ? Reihenfolge.ordnersumme(stand.riesenscheine, wert, Zustand.rechnungVon)
-      : null
+    wert === Ordner.OHNE_ORDNER
+      ? null
+      : Reihenfolge.ordnersumme(stand.riesenscheine, wert, Zustand.rechnungVon)
 
   return el(
     'button.ordnerkachel',
     {
       type: 'button',
-      daten: { gewaehlt: String(gewaehlt) },
-      title: gewaehlt ? 'Wird gerade gezeigt' : `Nur ${beschriftung} zeigen`,
-      onclick: () => Zustand.aendere({ ordnerFilter: wert }),
+      title: `Ordner "${beschriftung}" aufmachen`,
+      onclick: () => Zustand.aendere({ ordnerFilter: wert, auswahl: null, scheinAuswahl: null }),
     },
     [
-      el('.ordnerkachelname', { text: beschriftung }),
+      el('.ordnerkachelname', {}, [
+        el('span.ordnersymbol', { text: 'O', 'aria-hidden': 'true' }),
+        beschriftung,
+      ]),
       el('.ordnerkachelzahl', {
         text: anzahl === 1 ? '1 Riesenschein' : `${anzahl} Riesenscheine`,
       }),
@@ -296,6 +472,14 @@ function ordnerkachel(stand, wert, beschriftung, anzahl) {
 /**
  * Eine Karte je Riesenschein in der Uebersicht.
  *
+ * SIE IST KEIN KNOPF MEHR, sondern eine Karte MIT Knoepfen.
+ *
+ * Karam am 17.09.2026: "man kann Sachen in Ordner hinzufuegen." Dafuer braucht
+ * die Karte einen zweiten Weg neben dem Aufmachen, und ein Knopf in einem Knopf
+ * ist kein gueltiges HTML: der Browser zieht ihn heraus, und dann liegt er
+ * irgendwo. Die Karte oeffnet weiterhin beim Anklicken, der Knopf "Öffnen" ist
+ * der sichtbare Weg, so wie in der Ablage seit dem 17.09.2026 auch.
+ *
  * @param {import('../kern/typen.js').Riesenschein} riesenschein
  * @param {any} stand
  * @returns {HTMLElement}
@@ -303,7 +487,7 @@ function ordnerkachel(stand, wert, beschriftung, anzahl) {
 function riesenkarte(riesenschein, stand) {
   const rechnung = Zustand.rechnungVon(riesenschein.id)
   const w = rechnung.waehrung
-  const liegtIn = Ordner.ordnerVon(riesenschein.id)
+  const liegtIn = Ordner.ordnerVon(riesenschein)
   const empfaengt = stand.huelle?.id === riesenschein.id
   const etwasEntschieden = rechnung.einsatzEntschieden > 0.005
   const schwere = rechnung.hinweise.some((h) => h.schwere === 'fehler')
@@ -312,53 +496,102 @@ function riesenkarte(riesenschein, stand) {
       ? 'warnung'
       : 'gut'
 
-  return el(
-    'button.riesenkarte',
-    {
-      type: 'button',
-      daten: { schwere },
-      title: `${riesenschein.name || 'Ohne Namen'} aufmachen`,
-      onclick: () => {
-        Reihenfolge.merkeGeoeffnet(riesenschein.id)
-        Zustand.aendere({ auswahl: riesenschein.id, scheinAuswahl: null })
-      },
-    },
-    [
-      el('.riesenkartekopf', {}, [
-        el('.riesenkartename', { text: riesenschein.name || 'Ohne Namen' }),
-        liegtIn ? el('span.ordnermarke', { text: liegtIn }) : null,
-        /*
-          WER NEUE FOTOS AUFNIMMT, MUSS SEHEN, WO SIE LANDEN.
+  const aufmachen = () => {
+    Reihenfolge.merkeGeoeffnet(riesenschein.id)
+    Zustand.aendere({ auswahl: riesenschein.id, scheinAuswahl: null })
+  }
 
-          Solange ein Riesenschein neu aufgemacht ist, wandert alles Gelesene
-          hinein, und die automatische Zuordnung ist dafuer abgeschaltet. Am
-          16.09.2026 hat genau das drei verschiedene Wetten zu einer Position
-          von 17.717,48 EUR verschmolzen. Aufgebrochen wird trotzdem nichts:
-          Karam legt die Scheine selbst dorthin, und gegen seine Entscheidung
-          zu gruppieren waere eine Automatik ohne Pruefstein in die
-          Gegenrichtung (Projektregel 1). Gesagt werden muss es aber, und zwar
-          da, wo man hinsieht (Projektregel 9).
-        */
-        empfaengt ? el('span.empfangsmarke', { text: 'nimmt neue Fotos auf' }) : null,
-      ]),
-      el('.riesenkartezahlen', {}, [
-        zahlenpaar('Gesetzt', formatiere(rechnung.einsatzGesamt, w, 'de'), 'neutral'),
-        zahlenpaar('Kann zurück', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut'),
-        etwasEntschieden
-          ? zahlenpaar(
-              'Ergebnis',
-              formatiere(rechnung.ergebnisRealisiert, w, 'de'),
-              rechnung.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht'
-            )
-          : zahlenpaar('Im Risiko', formatiere(rechnung.imRisiko, w, 'de'), 'offen'),
-      ]),
-      el('.riesenkartefuss', {
+  const karte = el('.riesenkarte', { daten: { schwere } }, [
+    el('.riesenkartekopf', {}, [
+      el('.riesenkartename', { text: riesenschein.name || 'Ohne Namen' }),
+      liegtIn ? el('span.ordnermarke', { text: liegtIn }) : null,
+      /*
+        WER NEUE FOTOS AUFNIMMT, MUSS SEHEN, WO SIE LANDEN.
+
+        Solange ein Riesenschein neu aufgemacht ist, wandert alles Gelesene
+        hinein, und die automatische Zuordnung ist dafuer abgeschaltet. Am
+        16.09.2026 hat genau das drei verschiedene Wetten zu einer Position
+        von 17.717,48 EUR verschmolzen. Aufgebrochen wird trotzdem nichts:
+        Karam legt die Scheine selbst dorthin, und gegen seine Entscheidung
+        zu gruppieren waere eine Automatik ohne Pruefstein in die
+        Gegenrichtung (Projektregel 1). Gesagt werden muss es aber, und zwar
+        da, wo man hinsieht (Projektregel 9).
+      */
+      empfaengt ? el('span.empfangsmarke', { text: 'nimmt neue Fotos auf' }) : null,
+    ]),
+    el('.riesenkartezahlen', {}, [
+      zahlenpaar('Gesetzt', formatiere(rechnung.einsatzGesamt, w, 'de'), 'neutral'),
+      zahlenpaar('Kann zurück', formatiere(rechnung.auszahlungMoeglich, w, 'de'), 'gut'),
+      etwasEntschieden
+        ? zahlenpaar(
+            'Ergebnis',
+            formatiere(rechnung.ergebnisRealisiert, w, 'de'),
+            rechnung.ergebnisRealisiert >= 0 ? 'gut' : 'schlecht'
+          )
+        : zahlenpaar('Im Risiko', formatiere(rechnung.imRisiko, w, 'de'), 'offen'),
+    ]),
+    el('.riesenkartefuss', {}, [
+      el('span.riesenkartezahl', {
         text:
           `${rechnung.anzahlScheine} Schein(e) bei ${rechnung.anzahlBuchmacher} Anbieter(n)` +
           (rechnung.hinweise.length > 0 ? `, ${rechnung.hinweise.length} Anmerkung(en)` : ''),
       }),
-    ]
+      el('.riesenkarteknoepfe', {}, [
+        el('button.knopf.knopf-klein.knopf-haupt', {
+          type: 'button',
+          text: 'Öffnen',
+          title: `"${riesenschein.name || 'Ohne Namen'}" aufmachen`,
+          onclick: (e) => {
+            e.stopPropagation()
+            aufmachen()
+          },
+        }),
+        el('button.knopf.knopf-klein', {
+          type: 'button',
+          text: liegtIn ? 'Ordner ändern' : 'In Ordner legen',
+          title: liegtIn
+            ? `Liegt im Ordner "${liegtIn}". Leeren nimmt ihn wieder heraus.`
+            : 'Legt diesen Riesenschein in einen Ordner. Gibt es den Namen noch nicht, entsteht der Ordner dabei.',
+          onclick: (e) => {
+            e.stopPropagation()
+            frageNachOrdner(riesenschein, liegtIn)
+          },
+        }),
+      ]),
+    ]),
+  ])
+
+  // Die ganze Karte macht auf, so wie die Zeile in der Ablage. Die Knoepfe
+  // darin halten ihren Klick selbst an, sonst oeffnete "In Ordner legen"
+  // nebenbei auch noch den Riesenschein.
+  karte.addEventListener('click', aufmachen)
+  return karte
+}
+
+/**
+ * Fragt, in welchen Ordner ein Riesenschein soll, und legt ihn hinein.
+ *
+ * EINE STELLE FUER BEIDE WEGE: die Karte in der Uebersicht und der Kopf des
+ * offenen Riesenscheins fragen dasselbe und schreiben ueber dieselbe Funktion
+ * (Projektregel 8).
+ *
+ * @param {import('../kern/typen.js').Riesenschein} riesenschein
+ * @param {string} jetzigerOrdner
+ */
+function frageNachOrdner(riesenschein, jetzigerOrdner) {
+  const bekannte = Ordner.alleOrdner(Zustand.hole().riesenscheine)
+    .map((o) => o.name)
+    .filter((n) => n !== jetzigerOrdner)
+
+  const name = window.prompt(
+    `In welchen Ordner soll "${riesenschein.name || 'Ohne Namen'}"?\n\n` +
+      'Ein Ordner ist nur eine Beschriftung. Er besteht, solange ein Riesenschein ' +
+      'darin liegt. Leer lassen nimmt ihn aus seinem Ordner heraus.' +
+      (bekannte.length > 0 ? `\n\nSchon da: ${bekannte.join(', ')}` : ''),
+    jetzigerOrdner
   )
+  if (name === null) return
+  Zustand.setzeOrdner(riesenschein.id, name)
 }
 
 /**
@@ -1057,7 +1290,7 @@ function riesenkopf(riesenschein, stand) {
  * @returns {HTMLElement}
  */
 function ordnerfeld(riesenschein, stand) {
-  const jetzigerOrdner = Ordner.ordnerVon(riesenschein.id)
+  const jetzigerOrdner = Ordner.ordnerVon(riesenschein)
   const bekannte = Ordner.alleOrdner(stand.riesenscheine)
   const listenId = `ordnerliste-${riesenschein.id}`
 
@@ -1071,8 +1304,11 @@ function ordnerfeld(riesenschein, stand) {
       title:
         'Schreib einen Namen hinein, dann liegt dieser Riesenschein in dem Ordner. ' +
         'Gibt es den Namen noch nicht, entsteht der Ordner dabei. Leeren nimmt ihn wieder heraus.',
+      // Geschrieben wird ueber zustand.js, dort wo auch Name und Notiz
+      // geschrieben werden. Der Ordner steht am Riesenschein und wandert mit
+      // ihm in die Datenbank (Projektregel 8).
       onchange: (e) =>
-        Ordner.legeIn(riesenschein.id, /** @type {HTMLInputElement} */ (e.target).value),
+        Zustand.setzeOrdner(riesenschein.id, /** @type {HTMLInputElement} */ (e.target).value),
     }),
     el(
       'datalist',
