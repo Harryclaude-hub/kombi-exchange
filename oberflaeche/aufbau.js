@@ -27,6 +27,72 @@
 import { el } from './werkzeug.js'
 
 /**
+ * Die Zeichen der Stufen. EINZIGE Stelle dafuer.
+ *
+ * Karam am 17.09.2026: "Ordner brauchen ein eigenes Symbol, wenn man
+ * draufklickt. Die Riesenscheine brauchen ein Symbol und die Scheine brauchen
+ * auch ein eigenes Symbol."
+ *
+ * WARUM FUENF UND NICHT VIER
+ *
+ * Weil das Wort "Ordner" auf ZWEI Ebenen vorkommt: in der Ablage ordnen Ordner
+ * PROJEKTE, in der Uebersicht ordnen sie RIESENSCHEINE. Genau davor hatte
+ * Karam Angst. Zwei verschiedene Sachen mit demselben Wort brauchen zwei
+ * verschiedene Zeichen, sonst hilft das Zeichen nicht, sondern taeuscht.
+ *
+ * WO ES AM MEISTEN GEBRAUCHT WIRD, nachgemessen am 17.09.2026: in der Spalte
+ * links stehen Riesenscheine und Scheine beide als laufende Nummer im gleichen
+ * Kasten (oberflaeche/app.js, panelRiesenscheine und panelScheine). Gleiche
+ * Zahl, gleicher Kasten, verschiedene Ebene. Auf dem Telefon ist die Spalte
+ * schmal, und dann ist dieser Kasten fast alles, was zu sehen ist.
+ *
+ * HIER STEHT NUR EIN BUCHSTABE UND EIN MERKMALSWORT (Projektregel 5). Form,
+ * Farbe und Groesse stehen in stil/bauteile.css. Wird stil/ geloescht, bleibt
+ * der Buchstabe stehen: er sagt immer noch, welche Stufe gemeint ist, und
+ * keine einzige Zahl im Programm aendert sich.
+ *
+ * Der Buchstabe ist nicht Zierde, sondern der Rueckfall. Deshalb ist er der
+ * Anfangsbuchstabe der Stufe und nicht irgendein huebsches Zeichen.
+ *
+ * @type {Record<string, {buchstabe: string, name: string}>}
+ */
+export const ZEICHEN = {
+  projekt: { buchstabe: 'P', name: 'Projekt' },
+  'ordner-projekt': { buchstabe: 'O', name: 'Ordner für Projekte' },
+  'ordner-riesenschein': { buchstabe: 'O', name: 'Ordner für Riesenscheine' },
+  riesenschein: { buchstabe: 'R', name: 'Riesenschein' },
+  schein: { buchstabe: 'S', name: 'Einzelner Schein' },
+}
+
+/**
+ * Baut das Zeichen einer Stufe.
+ *
+ * Gebaut wie anbieterzeichen() in oberflaeche/werkzeug.js: das Programm setzt
+ * das Merkmalswort und den Buchstaben, sonst nichts.
+ *
+ * @param {'projekt'|'ordner-projekt'|'ordner-riesenschein'|'riesenschein'|'schein'} stufe
+ * @param {string} [dazu]  Was daneben steht, fuer den Vorlesetext.
+ * @returns {HTMLElement}
+ */
+export function stufenzeichen(stufe, dazu = '') {
+  const z = ZEICHEN[stufe]
+  if (!z) {
+    // Eine unbekannte Stufe bekommt ein Fragezeichen und sagt es. Ein leerer
+    // Fleck saehe aus wie Absicht (Projektregel 1).
+    return el('span.stufenzeichen', {
+      daten: { stufe: 'unbekannt' },
+      title: 'Unbekannte Stufe',
+      text: '?',
+    })
+  }
+  return el('span.stufenzeichen', {
+    daten: { stufe },
+    title: dazu ? `${z.name}: ${dazu}` : z.name,
+    text: z.buchstabe,
+  })
+}
+
+/**
  * Die vier Stufen, von aussen nach innen. Die EINE Quelle fuer diesen Text.
  */
 export const STUFEN = [

@@ -95,6 +95,21 @@
         { name: 'hell, 375 Pixel', farbe: 'hell', breite: 375 },
       ]
 
+      /*
+        ZWEI SEITEN, UND DIE ZWEITE IST DIE WICHTIGERE.
+
+        oberflaeche.html zeigt, was Karam wirklich sieht. Aber was dort gerade
+        nicht gezeichnet ist, wird auch nicht gemessen. Am 17.09.2026 meldete
+        ein Durchgang null Textfehler, und danach wurden trotzdem vier
+        gefunden: der Hauptknopf unter dem Mauszeiger (4,22:1), die
+        Kartennummer in der hellen Fassung (2,98:1), eine berechnete Zahl auf
+        einer Warnflaeche (3,86:1) und ein Anbieterzeichen (4,41:1). Keiner
+        davon war auf der Probeseite zu sehen.
+
+        zustaende.html zeichnet jeden Zustand nebeneinander, auch die seltenen.
+      */
+      const SEITEN = ['oberflaeche.html', 'zustaende.html']
+
       /** Wartet, bis der Rahmen fertig gezeichnet hat. */
       function atme(ms = 350) {
         return new Promise((fertig) => setTimeout(fertig, ms))
@@ -128,8 +143,14 @@
         let fehlerGesamt = 0
         let geprueftGesamt = 0
 
+        for (const seite of SEITEN)
         for (const d of DURCHGAENGE) {
-          stand.textContent = `Messe: ${d.name} ...`
+          stand.textContent = `Messe: ${seite}, ${d.name} ...`
+          if (!rahmen.src.endsWith(seite)) {
+            rahmen.src = seite
+            await new Promise((fertig) => rahmen.addEventListener('load', fertig, { once: true }))
+            await atme(500)
+          }
           rahmen.style.width = `${d.breite}px`
           rahmen.contentDocument.documentElement.setAttribute('data-farbe', d.farbe)
           await atme(400)
@@ -137,7 +158,7 @@
           const kasten = document.createElement('div')
           kasten.className = 'lauf'
           const titel = document.createElement('h2')
-          titel.textContent = d.name
+          titel.textContent = `${seite}: ${d.name}`
           kasten.appendChild(titel)
 
           const zeilen = []

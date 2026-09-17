@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kombi Exchange: alle Zustaende</title>
+    <link rel="stylesheet" href="../../stil/marken.css" />
+    <link rel="stylesheet" href="../../stil/grund.css" />
+    <link rel="stylesheet" href="../../stil/bauteile.css" />
+    <link rel="stylesheet" href="../../stil/logos.css" />
+    <style>
+      /* Nur fuer diese Schau. Gehoert nicht zum Programm. */
+      .schaugruppe { padding: 1rem; border-bottom: 1px solid var(--linie); }
+      .schaugruppe h2 { font-size: var(--text-normal); margin: 0 0 0.5rem; color: var(--schrift); }
+      .schaureihe { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+      .schauzelle { display: flex; flex-direction: column; gap: 0.25rem; }
+      /* --schrift-leise und nicht --schrift-still: die Bildunterschriften
+         dieser Schau sollen den Messer nicht mit eigenen Beanstandungen
+         zumuellen. Ein Messwerkzeug, das sich selbst beanstandet, wird
+         ignoriert. */
+      .schauzelle > small { color: var(--schrift-leise); font-size: var(--text-klein); }
+      .aufflaeche { padding: 0.5rem; background: var(--flaeche); }
+      .aufhoch { padding: 0.5rem; background: var(--flaeche-hoch); }
+      .aufheiss { padding: 0.5rem; background: var(--flaeche-heiss); }
+    </style>
+  </head>
+  <body>
+    <!--
+      WOZU DIESE SEITE
+
+      werkzeug/probe/kontrast.html misst die fertige Oberflaeche. Das ist der
+      richtige Weg, hat aber eine Luecke: was dort gerade nicht gezeichnet ist,
+      wird auch nicht gemessen.
+
+      Am 17.09.2026 hat ein Durchgang ueber die Oberflaeche null Textfehler
+      gemeldet, und danach sind trotzdem vier gefunden worden:
+
+        weisse Schrift auf dem Hauptknopf BEIM ZEIGEN      4,22:1
+        die Kartennummer in der hellen Fassung             2,98:1
+        eine berechnete Zahl auf einer Warnflaeche         3,86:1
+        das Anbieterzeichen von mybookie                   4,41:1
+
+      Keiner davon war auf der Probeseite zu sehen: den einen sieht man nur
+      unter dem Mauszeiger, den zweiten nur in der hellen Fassung mit einer
+      Schnittkarte, den dritten nur bei einer unsicher gelesenen Zahl, den
+      vierten nur bei genau diesem Anbieter.
+
+      Diese Seite zeichnet deshalb JEDEN Zustand nebeneinander, auch die
+      seltenen, und zwar auf allen Flaechen, auf denen sie vorkommen koennen.
+      kontrast.html misst sie mit. Was hier fehlt, wird nicht gemessen: wer ein
+      neues Bauteil mit Zustaenden baut, gehoert hierher.
+    -->
+    <main>
+      <div class="schaugruppe">
+        <h2>Knoepfe, auch im Zeigezustand</h2>
+        <div class="schaureihe" data-auch-heiss="true">
+          <button class="knopf" type="button">Knopf</button>
+          <button class="knopf knopf-haupt" type="button">Hauptknopf</button>
+          <button class="knopf knopf-klein" type="button">Kleiner Knopf</button>
+          <button class="knopf" type="button" disabled>Abgeschaltet</button>
+          <button class="reiter" type="button">Reiter</button>
+          <button class="reiter" type="button" data-aktiv="true">Reiter aktiv</button>
+        </div>
+      </div>
+
+      <div class="schaugruppe">
+        <h2>Zahlfelder: jede Sicherheit mal jede Herkunft</h2>
+        <div class="schaureihe aufflaeche" id="felder"></div>
+      </div>
+
+      <div class="schaugruppe">
+        <h2>Die Zeichen der Stufen</h2>
+        <div class="schaureihe" id="stufen"></div>
+        <div class="schaureihe aufhoch" id="stufen2"></div>
+        <div class="schaureihe aufheiss" id="stufen3"></div>
+      </div>
+
+      <div class="schaugruppe">
+        <h2>Die Zeichen der Anbieter, alle</h2>
+        <div class="schaureihe" id="anbieter"></div>
+      </div>
+
+      <div class="schaugruppe">
+        <h2>Die Nummer auf einer Schnittkarte</h2>
+        <div class="schaureihe">
+          <span class="schnittkarte"><span class="kartennummer">1</span></span>
+          <span class="schnittkarte"><span class="kartennummer">88</span></span>
+        </div>
+      </div>
+
+      <div class="schaugruppe">
+        <h2>Bedeutungsfarben auf ihren eigenen Flaechen</h2>
+        <div class="schaureihe" id="marken"></div>
+      </div>
+    </main>
+
+    <script type="module">
+      import { BUCHMACHER } from '../../kern/buchmacher.js'
+      import { ZEICHEN } from '../../oberflaeche/aufbau.js'
+
+      const el = (was, klasse, text, merkmale = {}) => {
+        const k = document.createElement(was)
+        if (klasse) k.className = klasse
+        if (text !== undefined) k.textContent = text
+        for (const [m, w] of Object.entries(merkmale)) k.setAttribute(m, w)
+        return k
+      }
+      const zelle = (inhalt, bildunterschrift) => {
+        const z = el('div', 'schauzelle')
+        z.appendChild(inhalt)
+        z.appendChild(el('small', '', bildunterschrift))
+        return z
+      }
+
+      // --- Zahlfelder: alle Kombinationen, nicht nur die haeufigen ---
+      const felder = document.getElementById('felder')
+      for (const stufe of ['hoch', 'mittel', 'niedrig', 'keine']) {
+        for (const quelle of ['ocr', 'berechnet', 'hand', 'vorgabe']) {
+          const f = el('input', 'feldeingabe eingabe-zahl', undefined, {
+            'data-stufe': stufe,
+            'data-quelle': quelle,
+            value: '1.234,56',
+            type: 'text',
+            readonly: 'readonly',
+          })
+          felder.appendChild(zelle(f, `${stufe} / ${quelle}`))
+        }
+      }
+
+      // --- Die Stufenzeichen, auf drei verschiedenen Flaechen ---
+      for (const id of ['stufen', 'stufen2', 'stufen3']) {
+        const ziel = document.getElementById(id)
+        for (const [stufe, z] of Object.entries(ZEICHEN)) {
+          const s = el('span', 'stufenzeichen', z.buchstabe, { 'data-stufe': stufe })
+          ziel.appendChild(zelle(s, stufe))
+        }
+        ziel.appendChild(zelle(el('span', 'stufenzeichen', '?', { 'data-stufe': 'unbekannt' }), 'Rueckfall'))
+      }
+
+      // --- Alle Anbieterzeichen, auch die ohne eigene Hausfarbe ---
+      const anbieter = document.getElementById('anbieter')
+      for (const b of BUCHMACHER) {
+        const kuerzel = b.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase()
+        anbieter.appendChild(
+          zelle(el('span', 'anbieterzeichen', kuerzel, { 'data-anbieter': b.schluessel }), b.schluessel)
+        )
+      }
+
+      // --- Bedeutungsfarben ---
+      const marken = document.getElementById('marken')
+      for (const [name, flaeche, schrift] of [
+        ['gut', 'var(--gut)', 'var(--auf-gut)'],
+        ['offen', 'var(--offen)', 'var(--auf-offen)'],
+        ['schlecht', 'var(--schlecht)', 'var(--auf-schlecht)'],
+      ]) {
+        const k = el('span', '', `${name} 1.234,56`)
+        k.style.background = flaeche
+        k.style.color = schrift
+        k.style.padding = '0.25rem 0.5rem'
+        k.style.borderRadius = 'var(--rundung)'
+        k.style.fontSize = 'var(--text-winzig)'
+        k.style.fontWeight = '700'
+        marken.appendChild(zelle(k, `--auf-${name}`))
+      }
+
+      /*
+        DER ZEIGEZUSTAND, ohne ihn irgendwo ein zweites Mal hinzuschreiben.
+
+        :hover laesst sich von aussen nicht ausloesen, und die Farben dafuer
+        noch einmal in diese Datei zu schreiben waere genau die Doppelung, aus
+        der die naechste Drift entsteht (Projektregel 8).
+
+        Stattdessen werden die geladenen Stilvorlagen nach Regeln durchsucht,
+        deren Selektor :hover enthaelt, und deren Erklaerungen auf einen
+        Zwilling gelegt. Kommt spaeter eine neue Zeigeregel dazu, wird sie ohne
+        Zutun mitgemessen.
+      */
+      function zeigezustaendeBauen() {
+        const regeln = []
+        for (const bogen of document.styleSheets) {
+          let liste
+          try {
+            liste = bogen.cssRules
+          } catch {
+            continue // fremde Herkunft, kommt hier nicht vor
+          }
+          for (const regel of liste) {
+            if (regel.selectorText && regel.selectorText.includes(':hover')) regeln.push(regel)
+          }
+        }
+
+        for (const traeger of document.querySelectorAll('[data-auch-heiss="true"]')) {
+          for (const stueck of [...traeger.children]) {
+            if (stueck.hasAttribute('disabled')) continue
+            const zwilling = stueck.cloneNode(true)
+            let getroffen = false
+            for (const regel of regeln) {
+              // Der Selektor ohne :hover muss auf das Stueck passen.
+              const ohne = regel.selectorText.split(',').map((s) => s.replace(/:hover/g, '').trim())
+              if (!ohne.some((s) => s && safeMatch(stueck, s))) continue
+              getroffen = true
+              for (const merkmal of regel.style) {
+                zwilling.style.setProperty(merkmal, regel.style.getPropertyValue(merkmal))
+              }
+            }
+            if (!getroffen) continue
+            zwilling.textContent = `${stueck.textContent} (Zeigen)`
+            traeger.appendChild(zwilling)
+          }
+        }
+      }
+
+      function safeMatch(knoten, selektor) {
+        try {
+          return knoten.matches(selektor)
+        } catch {
+          return false
+        }
+      }
+
+      zeigezustaendeBauen()
+    </script>
+  </body>
+</html>

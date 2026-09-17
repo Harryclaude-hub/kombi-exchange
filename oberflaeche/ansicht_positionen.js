@@ -25,7 +25,7 @@ import * as Dialog from './dialog.js'
 // Projekt, Ordner, Riesenschein, Scheine: der Aufbau steht an EINER Stelle
 // und wird von hier, von der Ausgabe und von der Ablage gezeigt
 // (Projektregel 8). Siehe oberflaeche/aufbau.js.
-import { aufbaukette, aufbaublock } from './aufbau.js'
+import { aufbaukette, aufbaublock, stufenzeichen } from './aufbau.js'
 // Was geteilt wird und was nicht, an einer Stelle formuliert.
 // Siehe oberflaeche/geteilt.js.
 import { geteiltblock, speicherblock, ordnerblock } from './geteilt.js'
@@ -474,7 +474,10 @@ function imOrdner(stand, ordner, gezeigt) {
 
     el('.uebersichtkopf', {}, [
       el('.uebersichttitel', {}, [
-        el('h2', {}, [leer ? null : el('span.ordnersymbol', { text: 'O', 'aria-hidden': 'true' }), name]),
+        // Das Zeichen der Stufe statt eines blossen Buchstabens. Es sagt
+        // ausserdem, WELCHE Art Ordner das ist: die in der Ablage ordnen
+        // Projekte, diese hier Riesenscheine. Siehe oberflaeche/aufbau.js.
+        el('h2', {}, [leer ? null : stufenzeichen('ordner-riesenschein', name), name]),
         el('p.uebersichtunter', {
           text:
             gezeigt.length === 1
@@ -935,7 +938,7 @@ function ordnerkachel(stand, wert, beschriftung, anzahl) {
     },
     [
       el('.ordnerkachelname', {}, [
-        el('span.ordnersymbol', { text: 'O', 'aria-hidden': 'true' }),
+        stufenzeichen('ordner-riesenschein', o.name),
         beschriftung,
       ]),
       el('.ordnerkachelzahl', {

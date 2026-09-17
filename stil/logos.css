@@ -58,10 +58,31 @@
   letter-spacing: 0.02em;
   line-height: 1;
 
-  /* Die Hausfarbe kommt je Anbieter aus den Regeln weiter unten. */
-  --anbieterfarbe: var(--schrift-still);
-  color: #fff;
-  background-color: var(--anbieterfarbe);
+  /*
+    DIE VORGABE IST UMRISSEN, NICHT GEFUELLT.
+
+    Am 17.09.2026 mit werkzeug/probe/zustaende.html gemessen: von den 60
+    Anbietern haben 17 eine eigene Hausfarbe, 43 fielen auf --schrift-still
+    zurueck. Weisse Schrift darauf ergab im dunklen Zustand 2,66:1 bei
+    9 Pixeln fett. 43 von 60 Zeichen waren also unlesbar, und es ist nie
+    aufgefallen, weil auf der Probeseite nur die 17 mit Farbe vorkamen.
+
+    Eine dunklere Vorgabeflaeche loest es nicht: dunkel genug fuer weisse
+    Schrift (#56637a, 6,07:1) heisst gleichzeitig 2,57:1 gegen den dunklen
+    Grund, und dann verschwindet das Zeichen als Ganzes.
+
+    Also traegt die Vorgabe dieselbe Bauweise wie die Stufenzeichen: eigene
+    Flaeche, Umriss und Schrift in --schrift-leise. Gemessen 10,22:1 (dunkel)
+    und 5,91:1 (hell) fuer den Buchstaben, mindestens 6,23:1 fuer den Umriss.
+
+    UND DAS SAGT AUSSERDEM ETWAS WAHRES: gefuellt heisst "die Hausfarbe dieses
+    Anbieters ist bekannt", umrissen heisst "noch nicht hinterlegt". Wer die
+    Liste ansieht, sieht sofort, wo noch etwas fehlt.
+  */
+  --anbieterfarbe: var(--schrift-leise);
+  background-color: var(--grund-tief);
+  border: 1px solid var(--schrift-leise);
+  color: var(--schrift-leise);
 
   /* Vorbereitet fuer echte Bilddateien. Ohne Datei passiert hier nichts. */
   background-position: center;
@@ -71,6 +92,53 @@
   user-select: none;
   vertical-align: middle;
 }
+
+/*
+  Und die 17, deren Hausfarbe bekannt ist, bekommen sie zurueck.
+
+  Die Liste steht hier, weil CSS nicht fragen kann, ob ein Merkmal weiter
+  unten gesetzt wurde. Wer eine neue Hausfarbe eintraegt, traegt den
+  Schluessel auch hier ein. Vergisst er es, bleibt das Zeichen umrissen und
+  lesbar, statt unlesbar zu werden: der harmlosere der beiden Fehler.
+*/
+[data-anbieter="ps3838"],
+[data-anbieter="betway"],
+[data-anbieter="bet365"],
+[data-anbieter="stake"],
+[data-anbieter="betonline"],
+[data-anbieter="pinnacle"],
+[data-anbieter="bovada"],
+[data-anbieter="mybookie"],
+[data-anbieter="betus"],
+[data-anbieter="everygame"],
+[data-anbieter="sportsbetting_ag"],
+[data-anbieter="lowvig"],
+[data-anbieter="xbet"],
+[data-anbieter="heritage"],
+[data-anbieter="betanysports"],
+[data-anbieter="pokerstars"],
+[data-anbieter="rabona"] {
+  background-color: var(--anbieterfarbe);
+  border-color: var(--anbieterfarbe);
+  color: #fff;
+}
+
+/*
+  ACHTUNG, STAERKE.
+
+  Die Sammelregel darueber steht mit Absicht OHNE das vorangestellte
+  .anbieterzeichen und damit auf derselben Staerke wie die Einzelregeln
+  darunter. Mit dem Klassennamen davor waere sie staerker gewesen und haette
+  jede eigene Schriftfarbe ueberschrieben, unabhaengig von der Reihenfolge.
+
+  Genau das ist am 17.09.2026 passiert: betway setzt sich eine dunkle Schrift
+  auf sein helles Gruen und traegt damit 5,94:1. Die staerkere Sammelregel
+  machte Weiss daraus, und der Messer meldete prompt 3,17:1. Der Fehler kam
+  also aus der Berichtigung selbst, nicht aus der Farbe.
+
+  Bei gleicher Staerke gewinnt die spaetere Regel, und die Einzelregeln stehen
+  unten. So darf jeder Anbieter seine Schrift selbst bestimmen.
+*/
 
 /*
   Wo das Zeichen neben einem Text steht, braucht es Luft. Die betroffenen
@@ -131,7 +199,8 @@
 
 [data-anbieter="pinnacle"] { --anbieterfarbe: #e4002b; }
 [data-anbieter="bovada"] { --anbieterfarbe: #cf2030; }
-[data-anbieter="mybookie"] { --anbieterfarbe: #1f8a3b; }
+/* 4,41:1 waren zu wenig fuer 9 Pixel fett. #1c7d36 traegt 5,20:1. */
+[data-anbieter="mybookie"] { --anbieterfarbe: #1c7d36; }
 [data-anbieter="betus"] { --anbieterfarbe: #14477d; }
 [data-anbieter="everygame"] { --anbieterfarbe: #d81f26; }
 [data-anbieter="sportsbetting_ag"] { --anbieterfarbe: #1d4e89; }

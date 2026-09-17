@@ -342,7 +342,7 @@ summary:focus-visible,
   width: 100%;
   padding: var(--luft-3);
   background: var(--grund-tief);
-  border: 1px solid var(--linie-hell);
+  border: 1px solid var(--feldrand);
   border-radius: var(--rundung);
   font-family: var(--schriftart-zahl);
   font-size: var(--text-gross);
@@ -600,7 +600,14 @@ summary:focus-visible,
   min-width: 20px;
   padding: 0 5px;
   background: var(--gut);
-  color: #03150e;
+  /*
+    HIER STAND EINE HARTE FARBE, und sie drehte sich nicht mit dem Thema mit.
+    --gut ist dunkel ein helles Gruen (#18c98a) und hell ein tiefes (#006e4a).
+    Das fast schwarze #03150e ergab darauf dunkel 8,73:1 und hell 2,98:1.
+    In der hellen Fassung war die Nummer auf der Karte also unlesbar.
+    Gemessen am 17.09.2026. Jetzt traegt --auf-gut beide Faelle.
+  */
+  color: var(--auf-gut);
   font-family: var(--schriftart-zahl);
   font-size: var(--text-winzig);
   font-weight: 700;
@@ -1044,6 +1051,25 @@ li[data-schwere="info"] .hinweisart {
   font-style: italic;
   color: var(--betonung);
 }
+
+/*
+  AUF EINER GETOENTEN FLAECHE TRAEGT DIE FLAECHE DAS SIGNAL, NICHT DIE SCHRIFT.
+
+  Ein berechneter Wert steht kursiv und blau. Liegt er zusaetzlich auf der
+  Warnflaeche eines unsicher gelesenen Feldes, wird das Blau zu dunkel:
+  gemessen 4,36:1 auf --stufe-mittel und 3,86:1 auf --stufe-niedrig, beide
+  unter den 4,5 fuer normalen Text. Und das trifft nicht selten zusammen,
+  sondern IMMER, wenn eine unsichere Zahl aus der Rechnung ergaenzt wurde.
+
+  Das Kursiv sagt weiterhin "berechnet", die Toenung sagt weiterhin
+  "unsicher". Nur die Schrift wird lesbar. Dieselbe Regel steht schon in der
+  Uebergabe: landet etwas auf der Grenze, traegt die Flaeche oder die Kante
+  das Signal und die Schrift bleibt --schrift.
+*/
+.feldeingabe[data-stufe="mittel"][data-quelle="berechnet"],
+.feldeingabe[data-stufe="niedrig"][data-quelle="berechnet"] {
+  color: var(--schrift);
+}
 .feldeingabe[data-quelle="hand"] {
   background: var(--betonung-tief);
 }
@@ -1346,7 +1372,7 @@ li[data-schwere="info"] .hinweisart {
   padding: var(--luft-2) var(--luft-3);
   background: transparent;
   border: 1px solid transparent;
-  border-bottom-color: var(--linie);
+  border-bottom-color: var(--feldrand);
   border-radius: var(--rundung);
   font-size: var(--text-gross);
   font-weight: 700;
@@ -2387,7 +2413,7 @@ li[data-schwere="info"] .hinweisart {
   font-size: var(--text-klein);
   color: var(--schrift);
   background: var(--grund-tief);
-  border: 1px solid var(--linie);
+  border: 1px solid var(--feldrand);
   border-radius: var(--rundung);
 }
 
@@ -3126,10 +3152,15 @@ li[data-schwere="info"] .hinweisart {
   width: 22px;
   height: 22px;
   border-radius: var(--rundung);
-  background: rgba(255, 255, 255, 0.18);
   font-family: var(--schriftart-zahl);
   font-size: var(--text-winzig);
   font-weight: 700;
+  /*
+    HIER STAND EINE FLAECHE, die nie jemand gesehen hat: weiter unten in
+    dieser Datei setzt dieselbe Regel Flaeche, Schrift und Rand noch einmal
+    und gewinnt. Am 17.09.2026 entfernt. Eine tote Regel ist schlimmer als
+    keine: der naechste aendert sie und wundert sich, dass nichts passiert.
+  */
 }
 
 .panelname {
@@ -3961,6 +3992,42 @@ li[data-schwere="info"] .hinweisart {
   die einzige Stelle, die dort durchfiel. Ein fester Ton laesst sich
   nachrechnen, ein durchscheinender haengt davon ab, worauf er gerade liegt.
 */
+
+/*
+  DER KASTEN IN DER SPALTE TRAEGT DIE STUFE MIT.
+
+  Karam am 17.09.2026: "die Riesenscheine brauchen ein Symbol und die Scheine
+  brauchen auch ein eigenes Symbol."
+
+  Eingeklappt ist die Spalte 56 Pixel breit. Fuer ein zweites Zeichen neben der
+  Nummer ist dort kein Platz, und die Nummer wegzunehmen waere ein Verlust: sie
+  sagt, das wievielte Stueck man ansieht.
+
+  Also faerbt die Stufe den Kasten, den es ohnehin schon gibt. Dieselben Farben
+  wie bei .stufenzeichen, damit ein Violett im Programm immer dasselbe
+  bedeutet.
+*/
+.panelzeichen[data-stufe="riesenschein"],
+.panelzeichen[data-stufe="ordner-riesenschein"] {
+  background: var(--grund-tief);
+  color: var(--stufe-wette);
+  border-color: var(--stufe-wette);
+}
+
+.panelzeichen[data-stufe="ordner-riesenschein"] {
+  border-style: dashed;
+}
+
+/*
+  Der einzelne Schein ist eine Stufe tiefer und steht oft hundertfach
+  untereinander. Gleiche Farbe, aber leiser: sonst ist die Spalte eine Wand.
+*/
+.panelzeichen[data-stufe="schein"] {
+  background: var(--grund-tief);
+  color: var(--stufe-wette);
+  border-color: var(--stufe-wette);
+  opacity: 0.82;
+}
 .panelzeichen {
   background: var(--knopf-heiss);
   color: var(--knopf-schrift);
@@ -4513,7 +4580,7 @@ li[data-schwere="info"] .hinweisart {
   padding: var(--luft-1) var(--luft-2);
   background: var(--grund-tief);
   color: var(--schrift);
-  border: 1px solid var(--linie);
+  border: 1px solid var(--feldrand);
   border-radius: var(--rundung);
   font: inherit;
   font-size: var(--text-klein);
@@ -5064,7 +5131,7 @@ li[data-schwere="info"] .hinweisart {
   padding: var(--luft-2) var(--luft-3);
   background: var(--grund-tief);
   color: var(--schrift);
-  border: 1px solid var(--linie-hell);
+  border: 1px solid var(--feldrand);
   border-radius: var(--rundung);
   font: inherit;
   font-size: var(--text-normal);
@@ -5493,4 +5560,85 @@ li[data-schwere="info"] .hinweisart {
   font-weight: 700;
   font-size: var(--text-normal);
   color: var(--schrift);
+}
+
+/*
+  DIE ZEICHEN DER VIER STUFEN.
+
+  Karam am 17.09.2026: "Ordner brauchen ein eigenes Symbol, wenn man
+  draufklickt. Die Riesenscheine brauchen ein Symbol und die Scheine brauchen
+  auch ein eigenes Symbol."
+
+  Gebaut wie .anbieterzeichen in stil/logos.css: das Programm setzt nur
+  data-stufe und einen Buchstaben (oberflaeche/aufbau.js, stufenzeichen).
+  Alles Sichtbare steht hier. Faellt stil/ weg, bleibt der Buchstabe stehen,
+  und der sagt immer noch, welche Stufe gemeint ist.
+
+  ZWEI MERKMALE TRAGEN DIE AUSSAGE, nicht eines:
+
+    FARBE    blau  = die Projektseite (P und ihr Ordner)
+             violett = die Wettseite (Riesenschein, Schein und ihr Ordner)
+    STRICH   gestrichelt = haelt andere Sachen (beide Ordner)
+             durchgezogen = ist selbst eine Sache (P, R, S)
+
+  Deshalb sind die beiden Ordner unterscheidbar, obwohl beide ein O tragen:
+  der eine ist blau, der andere violett. Genau diese Verwechslung war Karams
+  ausdrueckliche Sorge.
+
+  DAS ZEICHEN HAT SEINE EIGENE FLAECHE, --grund-tief, und nicht die des
+  Kastens, auf dem es liegt. Sonst haenge der Kontrast des Buchstabens davon
+  ab, wo das Zeichen gerade steht, und in einer Liste steht es auf vier
+  verschiedenen Flaechen. Gemessen auf --grund-tief: 7,03:1 (blau, dunkel),
+  6,16:1 (violett, dunkel), 4,67:1 (blau, hell), 7,63:1 (violett, hell).
+*/
+.stufenzeichen {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: var(--rundung);
+
+  background: var(--grund-tief);
+  border: 1px solid var(--stufenfarbe);
+  color: var(--stufenfarbe);
+
+  font-family: var(--schriftart);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  line-height: 1;
+
+  user-select: none;
+  vertical-align: middle;
+
+  /* Der Rueckfall, falls je ein unbekanntes Merkmalswort ankommt. */
+  --stufenfarbe: var(--schrift-still);
+}
+
+.stufenzeichen[data-stufe="projekt"],
+.stufenzeichen[data-stufe="ordner-projekt"] {
+  --stufenfarbe: var(--betonung);
+}
+
+.stufenzeichen[data-stufe="ordner-riesenschein"],
+.stufenzeichen[data-stufe="riesenschein"],
+.stufenzeichen[data-stufe="schein"] {
+  --stufenfarbe: var(--stufe-wette);
+}
+
+/* Gestrichelt heisst: haelt andere Sachen. */
+.stufenzeichen[data-stufe="ordner-projekt"],
+.stufenzeichen[data-stufe="ordner-riesenschein"] {
+  border-style: dashed;
+}
+
+/*
+  Der einzelne Schein ist die innerste Stufe und kommt am haeufigsten vor,
+  oft hundertfach untereinander. Er wird deshalb etwas leiser gezeichnet:
+  eine Liste aus hundert gleich lauten Zeichen ist keine Hilfe mehr.
+*/
+.stufenzeichen[data-stufe="schein"] {
+  border-style: solid;
+  opacity: 0.82;
 }

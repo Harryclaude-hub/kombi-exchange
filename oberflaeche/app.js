@@ -1393,6 +1393,9 @@ function panelRiesenscheine(stand, schmal) {
       },
       [
         el('span.panelzeichen', {
+          // "Alle" und "ohne Ordner" sind keine Ordner, sondern Filter. Nur
+          // der echte Ordner bekommt das Ordnerzeichen der Wettebene.
+          daten: wert && wert !== Ordner.OHNE_ORDNER ? { stufe: 'ordner-riesenschein' } : {},
           text: wert === null ? '*' : wert === Ordner.OHNE_ORDNER ? '-' : 'O',
         }),
         schmal
@@ -1498,7 +1501,21 @@ function panelRiesenscheine(stand, schmal) {
           },
         },
         [
-          el('span.panelzeichen', { text: String(i + 1) }),
+          /*
+            DIE STUFE STEHT AM ZEICHEN, nicht daneben.
+
+            Am 17.09.2026 nachgemessen: hier und in panelScheine stand
+            dieselbe laufende Nummer im gleichen Kasten, einmal fuer einen
+            Riesenschein und einmal fuer einen einzelnen Schein. Gleiche Zahl,
+            gleicher Kasten, verschiedene Ebene. Eingeklappt ist die Spalte 56
+            Pixel breit, und dann ist dieser Kasten fast alles, was zu sehen
+            ist.
+
+            Ein zweites Zeichen daneben passt dort nicht hin. Also faerbt das
+            Merkmalswort den Kasten selbst ein, und die Nummer bleibt stehen.
+            Welche Farbe dazugehoert, steht in stil/bauteile.css.
+          */
+          el('span.panelzeichen', { daten: { stufe: 'riesenschein' }, text: String(i + 1) }),
           schmal
             ? null
             : el('span.panelwette', {}, [
@@ -1644,7 +1661,9 @@ function panelScheine(stand, riesenschein, schmal) {
             }),
         },
         [
-          el('span.panelzeichen', { text: String(i + 1) }),
+          // Violett und etwas leiser: eine Stufe tiefer als der Riesenschein.
+          // Siehe panelRiesenscheine weiter oben.
+          el('span.panelzeichen', { daten: { stufe: 'schein' }, text: String(i + 1) }),
           /*
             DAS BILD IST AUCH HIER DABEI, wenn auch nur als Daumennagel.
 

@@ -89,7 +89,17 @@
     fuenfzehn gleichen.
   */
   --knopf-haupt: #2468c8;
-  --knopf-haupt-heiss: #2f7ae0;
+  /*
+    BEIM ZEIGEN GEMESSEN, nicht im Ruhezustand: weisse Schrift auf dem alten
+    #2f7ae0 ergab 4,22:1 und lag damit unter den 4,5, die normaler Text
+    braucht. Ausgerechnet der Knopf, auf dem gerade die Maus steht, war der
+    am schlechtesten lesbare. Der Ruhezustand #2468c8 war mit 5,40:1 in
+    Ordnung, deshalb ist es nie aufgefallen.
+
+    #2a6fd2 ergibt 4,88:1 und ist immer noch heller als der Ruhezustand: ein
+    Knopf, auf den man zeigt, muss wacher aussehen, nicht muede.
+  */
+  --knopf-haupt-heiss: #2a6fd2;
   --knopf-haupt-rand: #74b0f5;
   --knopf-haupt-schrift: #ffffff;
 
@@ -98,6 +108,7 @@
     mit dem Thema um: auf dem hellen Bernstein der dunklen Fassung braucht es
     dunkle Schrift, auf dem dunklen Bernstein der hellen Fassung weisse.
   */
+  --auf-gut: #03150e;
   --auf-offen: #0d141f;
   --auf-schlecht: #1a0206;
 
@@ -110,6 +121,39 @@
   --offen-tief: rgba(245, 165, 36, 0.12);
   --betonung: #4da3ff;
   --betonung-tief: rgba(77, 163, 255, 0.14);
+
+  /*
+    DIE FARBE DER WETTEBENE.
+
+    Karam am 17.09.2026: "Ordner brauchen ein eigenes Symbol, die Riesenscheine
+    brauchen ein Symbol und die Scheine brauchen auch ein eigenes Symbol."
+
+    Der Aufbau hat zwei Haelften: oben das Projekt mit seinen Ordnern, unten
+    die Wette mit ihren Scheinen. Das Wort "Ordner" kommt in BEIDEN vor, und
+    genau davor hatte Karam Angst. Zwei verschiedene Sachen mit demselben Wort
+    brauchen zwei verschiedene Farben.
+
+    Oben nimmt --betonung, unten diese hier. KEINE neue Farbfamilie: der
+    Abstand im Farbkreis betraegt in BEIDEN Zustaenden genau 44 Grad, und
+    Saettigung und Helligkeit sind absichtlich gleich gewaehlt:
+
+      dunkel  --betonung    Farbton 211, Saettigung 100%, Helligkeit 65%
+              --stufe-wette Farbton 255, Saettigung 100%, Helligkeit 75%
+      hell    --betonung    Farbton 213, Saettigung  80%, Helligkeit 43%
+              --stufe-wette Farbton 257, Saettigung  80%, Helligkeit 45%
+
+    So ist keine der beiden lauter als die andere. Karam hat ausdruecklich nach
+    der Harmonie der Farben untereinander gefragt, und Harmonie heisst hier:
+    gleicher Abstand, gleiche Lautstaerke.
+
+    NICHT --gut, --schlecht oder --offen: die bedeuten den AUSGANG einer Wette.
+    Eine Farbe, die zwei Dinge bedeutet, bedeutet keins von beiden.
+
+    Gemessen auf --grund-tief, der Flaeche des Zeichens selbst:
+      dunkel  #9f80ff auf #0d141f  6,16:1
+      hell    #4b17cf auf #e8ecf3  7,63:1
+  */
+  --stufe-wette: #9f80ff;
 
   /* ---- Sicherheit der Texterkennung ---- */
   --stufe-hoch: transparent;
@@ -213,6 +257,7 @@
     --offen: #9a5b00;
     --offen-tief: rgba(154, 91, 0, 0.1);
     --betonung: #1667c7;
+    --stufe-wette: #4b17cf;
     --betonung-tief: rgba(22, 103, 199, 0.1);
 
     /*
@@ -232,6 +277,7 @@
     --knopf-haupt-rand: #0a3c79;
     --knopf-haupt-schrift: #ffffff;
 
+    --auf-gut: #ffffff;
     --auf-offen: #ffffff;
     --auf-schlecht: #ffffff;
 
@@ -300,6 +346,7 @@
   --offen: #9a5b00;
   --offen-tief: rgba(154, 91, 0, 0.1);
   --betonung: #1667c7;
+  --stufe-wette: #4b17cf;
   --betonung-tief: rgba(22, 103, 199, 0.1);
 
   /*
@@ -319,6 +366,7 @@
   --knopf-haupt-rand: #0a3c79;
   --knopf-haupt-schrift: #ffffff;
 
+  --auf-gut: #ffffff;
   --auf-offen: #ffffff;
   --auf-schlecht: #ffffff;
 
