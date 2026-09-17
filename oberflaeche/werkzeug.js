@@ -246,14 +246,37 @@ export function anbieterzeichen(name) {
  * @returns {HTMLElement}
  */
 export function ausschnittbild(bild, ausschnitt) {
+  /*
+    KEIN AUSSCHNITT HEISST: DAS GANZE BILD.
+
+    Karam am 18.09.2026: "Wenn mehrere Scheine in einem Bild sind, uebernimmt
+    er das ganze Bild, aber das Bild kommt dann bei jedem Schein einmal vor."
+
+    Genau so ist es gemeint, und bis heute stand hier das Gegenteil: ohne
+    Ausschnitt kam eine leere Leinwand von einem Bildpunkt zurueck. Fuer die
+    oertliche Kette fiel das nie auf, weil sie das Foto zuerst in Karten
+    schneidet und jeder Schein seinen Ausschnitt mitbringt.
+
+    Der KI-Leser schneidet NICHT. Er liest das ganze Foto und gibt mehrere
+    Scheine zurueck, die sich dasselbe Bild teilen. Damit haette ab gestern
+    JEDER von der KI gelesene Schein einen leeren Rahmen getragen.
+
+    Ohne Ausschnitt wird deshalb das ganze Bild gezeichnet. Die Masse kommt
+    aus dem abgelegten Bild; ist auch das nicht da, bleibt es bei der leeren
+    Leinwand, und die sagt wie bisher: hier gehoert ein Bild hin.
+  */
+  const ganz = !ausschnitt && (bild?.bild?.breite ?? 0) > 0 && (bild?.bild?.hoehe ?? 0) > 0
+  const bereich = ausschnitt ?? (ganz ? { x: 0, y: 0, breite: bild.bild.breite, hoehe: bild.bild.hoehe } : null)
+
   const leinwand = /** @type {HTMLCanvasElement} */ (el('canvas.ausschnitt'))
-  const breite = Math.max(1, Math.round(ausschnitt?.breite ?? 1))
-  const hoehe = Math.max(1, Math.round(ausschnitt?.hoehe ?? 1))
+  const breite = Math.max(1, Math.round(bereich?.breite ?? 1))
+  const hoehe = Math.max(1, Math.round(bereich?.hoehe ?? 1))
   leinwand.width = breite
   leinwand.height = hoehe
 
   const kontext = leinwand.getContext('2d')
-  if (!kontext || !ausschnitt) return leinwand
+  if (!kontext || !bereich) return leinwand
+  ausschnitt = bereich
 
   if (bild?.element) {
     kontext.drawImage(bild.element, ausschnitt.x, ausschnitt.y, breite, hoehe, 0, 0, breite, hoehe)
