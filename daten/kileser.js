@@ -151,6 +151,8 @@ const BAUPLAN = {
         type: 'object',
         properties: {
           scheinNr: { type: ['string', 'null'], description: 'Die Wett- oder Schein-Nummer, wie sie dasteht.' },
+          gesetztAm: { type: ['string', 'null'], description: 'Wann der Schein gesetzt wurde, als Text genau wie im Bild, zum Beispiel "Sep 13, 6:39 PM" oder "14.09.26 15:30".' },
+          konto: { type: ['string', 'null'], description: 'Der Kontoname, falls sichtbar, zum Beispiel "Auer" oder "Frohnwieser". Viele Konten beim selben Anbieter sind normal.' },
           buchmacher: { type: ['string', 'null'], description: 'Der Anbieter, wie er im Bild genannt ist.' },
           einsatz: { type: ['number', 'null'], description: 'Der Einsatz als Zahl, ohne Währungszeichen.' },
           quoteDezimal: { type: ['number', 'null'], description: 'Die Gesamtquote als Dezimalzahl. Amerikanische Quoten (-157, +140) hier umrechnen.' },
@@ -162,8 +164,22 @@ const BAUPLAN = {
           eachWay: { type: ['boolean', 'null'], description: 'Steht Each Way dabei? Dann gilt der doppelte Einsatz.' },
           auswahlen: {
             type: 'array',
-            description: 'Die einzelnen Wetten der Kombination, in der Reihenfolge des Bildes.',
-            items: { type: 'string' },
+            description:
+              'Die einzelnen Wetten der Kombination, in der Reihenfolge des Bildes. ' +
+              'ZERLEGT und nicht als ein Satz: nur so kann das Programm dieselbe Wette ' +
+              'bei verschiedenen Anbietern wiedererkennen.',
+            items: {
+              type: 'object',
+              properties: {
+                ereignis: { type: ['string', 'null'], description: 'Die Begegnung, zum Beispiel "Denver Broncos - Kansas City Chiefs".' },
+                tipp: { type: ['string', 'null'], description: 'Worauf gesetzt wurde, meist der Spielername, zum Beispiel "RJ Harvey".' },
+                markt: { type: ['string', 'null'], description: 'Die Wettart, zum Beispiel "Rushing Yards" oder "Anytime Touchdown Scorer".' },
+                richtung: { type: ['string', 'null'], description: 'over, under oder leer. Auf Deutsch über und unter, hier trotzdem over oder under.' },
+                linie: { type: ['number', 'null'], description: 'Die Linie als Zahl, zum Beispiel 18.5. Ohne Linie null.' },
+                quote: { type: ['number', 'null'], description: 'Die Quote dieser einzelnen Wette als Dezimalzahl, falls sie dasteht.' },
+              },
+              required: ['tipp', 'markt', 'richtung', 'linie'],
+            },
           },
           unsicher: {
             type: 'array',
@@ -203,7 +219,14 @@ REGELN, in dieser Reihenfolge:
 
 6. UNSICHER IST KEINE SCHANDE. Jedes Feld, bei dem du zoegerst, gehoert in die Liste unsicher. Das Programm rechnet danach gegen und fragt notfalls den Menschen. Ein stiller Fehler kostet Geld, eine gemeldete Unsicherheit kostet drei Sekunden.
 
-7. DER STAND. offen heisst noch nicht entschieden. cashout heisst vorzeitig ausgezahlt. Steht "Verloren", ist ausgezahlt null und status verloren.`
+7. DIE AUSWAHLEN ZERLEGT. Aus "RJ Harvey under 18,5 Rushing Yards" wird
+   tipp "RJ Harvey", markt "Rushing Yards", richtung "under", linie 18.5. Das
+   ist der wichtigste Teil: nur so erkennt das Programm, dass derselbe Spieler
+   bei BetOnline und bei Stake dieselbe Wette ist, und kann die Einsaetze
+   zusammenzaehlen. Schreib den Spielernamen genau so, wie er dasteht, aber
+   ohne Zusaetze wie die Mannschaft in Klammern.
+
+8. DER STAND. offen heisst noch nicht entschieden. cashout heisst vorzeitig ausgezahlt. Steht "Verloren", ist ausgezahlt null und status verloren.`
 
 /**
  * Laesst ein Bild von der KI lesen.

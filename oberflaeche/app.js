@@ -1965,6 +1965,28 @@ const speichereVerzoegert = verzoegert(async () => {
   // Ohne diese Weitergabe liefe der zweite Schritt gegen den ersten.
   let fassung = stand.fassung
 
+  /*
+    ZUERST DIE GELOESCHTEN, DANN DIE VORHANDENEN.
+
+    speichereScheine schreibt die Liste, die da ist. Ein Schein, der aus der
+    Liste verschwunden ist, verschwindet damit NICHT aus der Datenbank: beim
+    naechsten Laden war er wieder da, und beim Kollegen war er nie weg.
+
+    Zuerst loeschen und dann schreiben, nicht umgekehrt: haette jemand
+    zwischendurch denselben Schein neu angelegt, wuerde ein Loeschen danach
+    ihn wieder mitnehmen.
+
+    Scheitert ein Loeschen, bleibt die Kennung in der Merkliste und der
+    naechste Speicherlauf holt es nach. Deshalb wird nur vergessen, was
+    wirklich weg ist.
+  */
+  const geloescht = []
+  for (const kennung of stand.geloeschteScheine ?? []) {
+    const antwort = await Datenbank.loescheSchein(stand.token, kennung)
+    if (antwort.art !== 'fehler') geloescht.push(kennung)
+  }
+  if (geloescht.length > 0) Zustand.vergissGeloescht(geloescht)
+
   const scheine = await Datenbank.speichereScheine(
     stand.token,
     stand.projekt.id,

@@ -94,29 +94,110 @@ function zuSchein(roh, wo) {
   const status = typeof roh?.status === 'string' ? roh.status.toLowerCase().trim() : 'unbekannt'
   const erlaubt = ['offen', 'gewonnen', 'verloren', 'halb_gewonnen', 'halb_verloren', 'storniert', 'cashout']
 
+  const auswahlen = (Array.isArray(roh?.auswahlen) ? roh.auswahlen : [])
+    .filter((a) => a && typeof a === 'object')
+    .map((a, i) => zuAuswahl(a, i, unsicher))
+
+  /*
+    DIE VOLLE FORM, JEDES FELD.
+
+    Am 18.09.2026 zweimal hintereinander daran gescheitert: erst fehlte
+    auswahl.markt, dann schein.gesetztAm. Beide Male ist kern/gruppierung.js
+    mit einem Fehler stehengeblieben, BEVOR irgendetwas zusammengefasst
+    werden konnte.
+
+    Das ist die schlimmste Stelle fuer so einen Fehler, denn das
+    Zusammenfassen ist Karams eigentliches Ziel. Deshalb steht hier jedes
+    Feld aus kern/typen.js, auch die, die die KI nie liefert: leer, aber
+    vorhanden. Ein fehlendes Feld ist ein Absturz, ein leeres Feld ist eine
+    Luecke mit Warnung (Projektregel 1).
+  */
+  const leer = { wert: null, sicherheit: 0, quelle: /** @type {const} */ ('vorgabe') }
+
   return {
     id: neueKennung(),
+    projektId: wo.projektId,
     bildId: wo.bildId,
-    gruppeId: '',
-    scheinNr: feld(roh?.scheinNr ?? null, u('scheinNr')),
+    gruppeId: null,
     buchmacher: feld(profil?.name ?? anbietername ?? null, u('buchmacher') || !profil),
-    konto: { wert: null, sicherheit: 0, quelle: /** @type {const} */ ('vorgabe') },
+    konto: feld(text(roh?.konto) || null, u('konto')),
+    scheinNr: feld(roh?.scheinNr ?? null, u('scheinNr')),
+    gesetztAm: feld(text(roh?.gesetztAm) || null, u('gesetztAm')),
     einsatz: feld(zahl(roh?.einsatz), u('einsatz')),
+    waehrung: feld(waehrung, u('waehrung')),
     quoteDezimal: feld(zahl(roh?.quoteDezimal), u('quoteDezimal')),
+    quoteAmerikanisch: leer,
     auszahlung: feld(zahl(roh?.auszahlung), u('auszahlung')),
     ausgezahlt: feld(zahl(roh?.ausgezahlt), u('ausgezahlt')),
-    waehrung: feld(waehrung, u('waehrung')),
     status: erlaubt.includes(status) ? status : 'unbekannt',
+    art: auswahlen.length > 1 ? 'kombi' : auswahlen.length === 1 ? 'einzel' : 'unbekannt',
+    auswahlen,
     gratiswette: roh?.gratiswette === true,
     eachWay: roh?.eachWay === true,
-    auswahlen: (Array.isArray(roh?.auswahlen) ? roh.auswahlen : [])
-      .filter((a) => typeof a === 'string' && a.trim() !== '')
-      .map((text) => ({ text: String(text).trim() })),
     ausschnitt: null,
     geaendertAm: jetzt(),
     vonHand: false,
     hinweise: [],
   }
+}
+
+/**
+ * Baut aus einer Auswahl der KI eine Auswahl des Programms.
+ *
+ * DAS IST DAS WICHTIGSTE STUECK DIESER DATEI, und gestern war es falsch.
+ *
+ * Karams Ziel in einem Satz: "Wetten auf einen Spieler zusammenfassen,
+ * Einsatz addieren, pro Buchmacher getrennt." Das Zusammenfassen macht
+ * kern/gruppierung.js, und die erkennt dieselbe Wette an der SIGNATUR, die
+ * kern/kennung.js aus markt, tipp und linie bildet.
+ *
+ * Gestern lieferte diese Stelle `{ text: "RJ Harvey under 18,5 Rushing Yards" }`,
+ * also einen Satz statt zerlegter Felder. bildeKennung() liest davon
+ * auswahl.markt.wert, und das gab es nicht: die Gruppierung waere mit einem
+ * Fehler stehengeblieben, noch bevor irgendetwas zusammengefasst werden
+ * konnte. Genau das, worum es Karam geht, haette nicht funktioniert.
+ *
+ * Deshalb liefert die KI die Auswahl jetzt zerlegt, und hier wird daraus die
+ * Form, die kern/ kennt.
+ *
+ * @param {any} a
+ * @param {number} i
+ * @param {Set<string>} unsicher
+ */
+function zuAuswahl(a, i, unsicher) {
+  const u = unsicher.has('auswahlen')
+  const tipp = text(a?.tipp)
+  const markt = text(a?.markt)
+  const richtung = text(a?.richtung).toLowerCase()
+
+  /*
+    DIE RICHTUNG GEHOERT IN DEN MARKT, nicht in ein eigenes Feld.
+
+    kern/kennung.js kennt kein Feld "richtung". Es liest die Wettart aus
+    markt UND tipp zusammen, weil je nach Anbieter mal das eine und mal das
+    andere sie traegt. "over" und "under" muessen also im Markttext stehen,
+    sonst waeren "ueber 18,5" und "unter 18,5" dieselbe Wette, und das waere
+    der teuerste denkbare Lesefehler.
+  */
+  const marktMitRichtung = richtung && markt
+    ? `${richtung.toUpperCase()} ${markt}`
+    : markt || richtung.toUpperCase()
+
+  return {
+    id: neueKennung(),
+    ereignis: feld(text(a?.ereignis) || null, u),
+    markt: feld(marktMitRichtung || null, u),
+    tipp: feld(tipp || null, u),
+    linie: feld(zahl(a?.linie), u),
+    quoteDezimal: feld(zahl(a?.quote), u),
+    ergebnis: { wert: null, sicherheit: 0, quelle: /** @type {const} */ ('vorgabe') },
+    status: /** @type {const} */ ('unbekannt'),
+  }
+}
+
+/** @param {unknown} w */
+function text(w) {
+  return typeof w === 'string' ? w.trim() : ''
 }
 
 /** @param {unknown} w */

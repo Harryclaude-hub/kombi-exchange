@@ -511,6 +511,65 @@ export function rechne(scheine) {
     })
     .sort((a, b) => b.einsatz - a.einsatz)
 
+  /*
+    ---- Und dasselbe je KONTO. ----
+
+    Karam am 18.09.2026 hat seine Excel-Tabelle geschickt, und dort steht:
+
+        Stake Auer          -3.266,55
+        Stake Frohnwieser   -7.174,65
+        PS3838 Ferdi        -7.059,65
+        Berger                -371,08
+
+    Also EINE ZEILE JE KONTO, nicht je Anbieter. Er hat bei Stake mehrere
+    Konten, und die sind fuer ihn verschiedene Zeilen: proBuchmacher wirft sie
+    in eine Zeile mit 10.441,20 zusammen, und damit sieht er nicht mehr, wie
+    viel auf welchem Konto steht.
+
+    proBuchmacher BLEIBT daneben bestehen. Beides ist richtig, nur fuer
+    verschiedene Fragen: "wie viel liegt bei Stake" und "wie viel liegt auf
+    Auer". Die Ausgabe nimmt, was gebraucht wird.
+
+    Ein Schein ohne Kontonamen bekommt keine erfundene Zuordnung, sondern
+    steht unter dem Anbieter allein (Projektregel 1).
+  */
+  /** @type {Map<string, import('./typen.js').Schein[]>} */
+  const nachKonto = new Map()
+  for (const schein of mitEinsatz) {
+    const anbieter = schein.buchmacher.wert ?? 'Unbekannt'
+    const konto = typeof schein.konto.wert === 'string' ? schein.konto.wert.trim() : ''
+    const schluessel = konto ? `${anbieter}\u0000${konto}` : anbieter
+    const liste = nachKonto.get(schluessel) ?? []
+    liste.push(schein)
+    nachKonto.set(schluessel, liste)
+  }
+
+  const proKonto = [...nachKonto.entries()]
+    .map(([schluessel, liste]) => {
+      const [anbieter, konto] = schluessel.split('\u0000')
+      const einsatz = summe(liste.map(barEinsatz))
+      const posten = liste
+        .filter((s) => s.quoteDezimal.wert !== null && barEinsatz(s) > 0)
+        .map((s) => ({ einsatz: barEinsatz(s), quote: s.quoteDezimal.wert ?? 0 }))
+      return {
+        buchmacher: anbieter,
+        konto: konto ?? '',
+        // Was in der Tabelle vorne steht: "Stake Auer".
+        name: konto ? `${anbieter} ${konto}` : anbieter,
+        anzahl: liste.length,
+        einsatz,
+        anteil: einsatzGesamt > 0 ? einsatz / einsatzGesamt : 0,
+        auszahlungMoeglich: summe(
+          liste.map((s) => {
+            if (istEntschieden(s.status)) return realisierterRueckfluss(s).wert
+            return offenePotenzialauszahlung(s).wert
+          })
+        ),
+        quoteSchnitt: effektiveQuote(posten),
+      }
+    })
+    .sort((a, b) => b.einsatz - a.einsatz)
+
   const alleKonten = [
     ...new Set(gueltige.map((s) => s.konto.wert).filter((k) => typeof k === 'string' && k !== '')),
   ].sort()
@@ -602,6 +661,7 @@ export function rechne(scheine) {
     gewinnschwelle,
 
     proBuchmacher,
+    proKonto,
     proStatus,
     hinweise,
   }

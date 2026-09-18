@@ -154,6 +154,27 @@ const stand = {
   arbeit: { laeuft: false, text: '', anteil: 0 },
   meldungen: [],
   einstellungen: { gruendlich: true, sprachen: 'eng', bewegung: 1 },
+
+  /*
+    WELCHE SCHEINE GELOESCHT WURDEN UND ES NOCH NICHT IN DIE DATENBANK
+    GESCHAFFT HABEN.
+
+    Karam am 18.09.2026: "Bitte stell sicher, bevor wir morgen losschiessen,
+    dass alles gespeichert bleibt. Es soll auf jedem Geraet das gleiche
+    angezeigt werden."
+
+    Bis heute war das beim LOESCHEN nicht so. speichereScheine schreibt die
+    Liste, die gerade da ist; ein Schein, der aus der Liste verschwindet,
+    verschwindet damit NICHT aus der Datenbank. Beim naechsten Laden war er
+    wieder da, und auf dem Geraet des Kollegen war er nie weg.
+
+    Die Kennungen werden hier gesammelt und erst beim Speichern wirklich
+    geloescht. Das ist mit Absicht getrennt: das Loeschen selbst muss sofort
+    zu sehen sein, auch ohne Netz, und die Datenbank wird nachgezogen, sobald
+    es geht. Geht es nicht, bleibt die Kennung stehen und der naechste
+    Speicherlauf holt es nach.
+  */
+  geloeschteScheine: [],
 }
 
 /** @type {Set<(stand: Stand) => void>} */
@@ -785,7 +806,32 @@ export function entferneSchein(scheinId) {
   const vorher = stand.scheine.length
   const scheine = stand.scheine.filter((s) => s.id !== scheinId)
   if (scheine.length === vorher) return
+  merkeGeloescht([scheinId])
   ordneNeu(scheine)
+}
+
+/**
+ * Merkt sich Kennungen, die beim naechsten Speichern aus der Datenbank
+ * verschwinden muessen. Siehe geloeschteScheine im Arbeitsstand.
+ *
+ * @param {string[]} kennungen
+ */
+export function merkeGeloescht(kennungen) {
+  const schon = new Set(stand.geloeschteScheine)
+  const dazu = kennungen.filter((k) => k && !schon.has(k))
+  if (dazu.length === 0) return
+  aendere({ geloeschteScheine: [...stand.geloeschteScheine, ...dazu] })
+}
+
+/**
+ * Nimmt Kennungen aus der Merkliste, nachdem sie wirklich geloescht wurden.
+ *
+ * @param {string[]} kennungen
+ */
+export function vergissGeloescht(kennungen) {
+  if (kennungen.length === 0) return
+  const weg = new Set(kennungen)
+  aendere({ geloeschteScheine: stand.geloeschteScheine.filter((k) => !weg.has(k)) })
 }
 
 /**
@@ -806,6 +852,8 @@ export function entferneBild(bildId) {
   const betroffen = stand.scheine.filter((s) => s.bildId === bildId)
   aendere({ bilder })
   if (betroffen.length > 0) {
+    // Auch diese Scheine muessen aus der Datenbank, nicht nur aus der Liste.
+    merkeGeloescht(betroffen.map((s) => s.id))
     ordneNeu(stand.scheine.filter((s) => s.bildId !== bildId))
   }
   return betroffen.length
