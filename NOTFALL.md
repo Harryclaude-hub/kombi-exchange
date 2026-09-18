@@ -53,7 +53,7 @@ Die Seite ist auch vom Anmeldefenster aus erreichbar, unter
 
 Dann setzt du den Code direkt in der Datenbank neu.
 
-1. Supabase oeffnen, Projekt **`appload`** (Kennung `eybwhnvjavovcxvimtxr`).
+1. Supabase oeffnen, Projekt **`immo-check und kombi Tafel`** (Kennung `mqmevpyatjsambervgtu`).
 2. Links auf **SQL Editor**.
 3. Diese Zeile einfuegen, `DEIN-NEUER-CODE` durch deinen eigenen ersetzen, dann
    ausfuehren:

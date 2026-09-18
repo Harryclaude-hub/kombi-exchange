@@ -283,7 +283,7 @@ function zeichneTor() {
           ]),
           el('p', {
             text:
-              'Wer es lieber von Hand macht: im Supabase SQL-Editor des Projekts appload einmal ' +
+              'Wer es lieber von Hand macht: im Supabase SQL-Editor des Projekts "immo-check und kombi Tafel" einmal ' +
               'diese Zeile ausführen und DEIN-NEUER-CODE durch einen eigenen ersetzen, ' +
               'mindestens zwölf Zeichen, keine Leerzeichen.',
           }),

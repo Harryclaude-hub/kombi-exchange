@@ -102,7 +102,7 @@ Das Programm ZEIGT diesen Stand an, in der Uebersicht, gemessen statt behauptet:
 |---|---|
 | Quelltext | `https://github.com/Harryclaude-hub/kombi-exchange` (oeffentlich!) |
 | Seite | `https://harryclaude-hub.github.io/kombi-exchange/` |
-| Datenbank | Supabase, Projekt `appload`, Kennung `eybwhnvjavovcxvimtxr` |
+| Datenbank | Supabase, Projekt `immo-check und kombi Tafel`, Kennung `mqmevpyatjsambervgtu` |
 | Zugangscode | **steht nirgends im Quelltext.** Karam fragen. |
 | Karams Fotos | `FOTOS_KARAM.md`: 36 Scheine aus 13 Bildschirmfotos, nachgerechnet. Die BILDDATEIEN gibt es nicht auf der Platte. |
 
@@ -120,10 +120,21 @@ Gespraech verlangt.
 Dort wuerfelt sein Browser einen neuen und baut den SQL-Befehl darum; der Wert
 laeuft nirgends durch, wo er nicht hingehoert.
 
-**Die Datenbank gehoert Karam.** In dieser Sitzung wurde NICHTS gegen sie
-ausgefuehrt. Der MCP-Zugang dieser Umgebung fuehrt auf ein anderes Konto,
-`eybwhnvjavovcxvimtxr` ist von hier nicht erreichbar. Migrationen werden
-geschrieben und von Karam ausgefuehrt, ueber `werkzeug/datenbank_erweitern.html`.
+**Die Datenbank gehoert Karam.** Der MCP-Zugang dieser Umgebung erreicht sein
+eigenes Konto (`saifokaram1@gmail.com's Org`); eine aeltere Fassung dieser Datei
+behauptete das Gegenteil, das war falsch. Alle neun Wanderungen liegen seit dem
+18.09.2026 im Projekt `immo-check und kombi Tafel` (`mqmevpyatjsambervgtu`), im
+eigenen Schema `kombi`.
+
+Was dabei herauskam, ist der eigentliche Fund: die vorher eingetragene Adresse
+`eybwhnvjavovcxvimtxr.supabase.co` gab es gar nicht. Kein Eintrag im
+Namensverzeichnis, "Failed to fetch" von der Seite aus. Deshalb hat Karam das
+Projekt in Supabase nie gefunden, und deshalb ist nie etwas gespeichert
+geblieben: nicht ein Fehler beim Schreiben, sondern gar keine Gegenstelle.
+
+**Die Zugangscodetabelle bleibt ausgenommen.** Gegen `kombi.zugangscodes` wird
+von hier aus nichts ausgefuehrt, weder Anlegen noch Aendern. Den Code setzt
+Karam selbst ueber `werkzeug/code_setzen.html`.
 
 ---
 
@@ -1729,11 +1740,11 @@ nicht nur 0001.**
 `kombi_riesenscheine_lesen` braucht nichts: es gibt `setof kombi.riesenscheine`
 zurueck und waehlt mit `*`, traegt die neue Spalte also von selbst mit.
 
-**DIE MIGRATION IST NICHT AUSGEFUEHRT.** Der MCP-Zugang dieser Sitzung fuehrt
-auf ein anderes Supabase-Konto; `eybwhnvjavovcxvimtxr` ist von hier aus nicht
-erreichbar, und ein lokales Postgres gibt es in diesem Container nicht. Das SQL
-ist also **an keiner Datenbank gelaufen**. Karam fuehrt es selbst aus, ueber
-`werkzeug/datenbank_erweitern.html`.
+**Die Migration ist ausgefuehrt** (18.09.2026), zusammen mit den acht davor,
+in `mqmevpyatjsambervgtu`. Danach von aussen nachgesehen: die vierzehn Tueren
+`public.kombi_*` sind da, `kombi_projekte_lesen` ohne Sitzungsschluessel
+antwortet mit `28000`, und `/rest/v1/scheine` findet die Tabelle nicht. Genau
+so soll es sein.
 
 ### werkzeug/datenbank_erweitern.html
 
@@ -2043,15 +2054,16 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 ## Was offen ist
 
-0. **Migration 0009 AUSFUEHREN.** Geschrieben ist sie
-   (`supabase/migrations/0009_riesenschein_ordner.sql`), das Programm ist darauf
-   vorbereitet, und die Seite `werkzeug/datenbank_erweitern.html` haelt den
-   Befehl fertig zum Kopieren. **Gelaufen ist sie nicht**: der MCP-Zugang dieser
-   Sitzung fuehrt auf ein anderes Supabase-Konto, `eybwhnvjavovcxvimtxr` ist von
-   hier aus nicht erreichbar, und ein lokales Postgres gibt es im Container
-   nicht. Das SQL ist also an keiner Datenbank geprueft worden, nur gelesen.
-   Karam fuehrt es aus; bis dahin steht in der Uebersicht ein Kasten, der sagt,
-   dass die Ordner noch nicht geteilt werden, und der von selbst verschwindet.
+0. **Den Zugangscode setzen.** Das ist der einzige Schritt, der noch fehlt,
+   und er gehoert Karam allein. `werkzeug/code_setzen.html` wuerfelt den Code in
+   seinem Browser und baut den SQL-Befehl darum; er fuegt ihn im SQL-Editor ein.
+   Die Tabelle `kombi.zugangscodes` ist noch leer, deshalb baut die Seite seit
+   dem 18.09.2026 zwei Befehle: einen, der eine vorhandene Zeile aendert, und
+   einen, der sie anlegt, falls es keine gibt. Vorher kommt niemand hinein,
+   auch er nicht.
+
+   Alle neun Wanderungen sind gelaufen. Der Kasten in der Uebersicht, der sagte,
+   dass die Ordner noch nicht geteilt werden, verschwindet damit von selbst.
 
 1. **Karams echte Fotos.** Der eigentliche Auftrag. Der Weg dahin steht, ist
    im Browser durchgemessen und wartet nur noch auf die Bilder.

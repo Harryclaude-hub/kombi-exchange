@@ -92,15 +92,17 @@
         <div class="schrittnr">SCHRITT 2</div>
         <h2>Den Befehl in Supabase ausfuehren</h2>
         <p>
-          Der Knopf unten oeffnet den SQL-Editor deines Projekts <strong>appload</strong>
-          in einem neuen Fenster. Dort den Befehl einfuegen und auf <strong>Run</strong>
-          druecken. Es muss <strong>UPDATE 1</strong> zurueckkommen.
+          Der Knopf unten oeffnet den SQL-Editor deines Projekts
+          <strong>immo-check und kombi Tafel</strong> in einem neuen Fenster. Dort den
+          ganzen Befehl einfuegen und auf <strong>Run</strong> druecken. Es kommt
+          entweder <strong>UPDATE 1</strong> oder <strong>INSERT 0 1</strong> zurueck,
+          je nachdem ob es schon einen Code gab. Beides ist richtig.
         </p>
         <div class="befehl" id="befehl">wird gebaut ...</div>
         <div class="kasten">
           <button class="knopf knopf-haupt" type="button" id="befehlKopieren">Befehl kopieren</button>
           <a class="knopf" id="supabase" target="_blank" rel="noopener noreferrer"
-             href="https://supabase.com/dashboard/project/eybwhnvjavovcxvimtxr/sql/new">SQL-Editor oeffnen</a>
+             href="https://supabase.com/dashboard/project/mqmevpyatjsambervgtu/sql/new">SQL-Editor oeffnen</a>
         </div>
         <p class="gemerkt" id="meldung2"></p>
         <p>
@@ -119,8 +121,9 @@
           <a class="knopf knopf-haupt" href="../index.html">Kombi Exchange oeffnen</a>
         </div>
         <p>
-          Kommt in Supabase <strong>UPDATE 0</strong> statt UPDATE 1 zurueck, gibt es keine
-          aktive Codezeile. Dann ist es ein anderer Fall, siehe NOTFALL.md.
+          <strong>UPDATE 0</strong> allein ist kein Fehler: dann gab es noch keinen Code,
+          und der zweite Befehl hat ihn angelegt. Kommt weder UPDATE 1 noch INSERT 0 1
+          zurueck, siehe NOTFALL.md.
         </p>
       </div>
     </div>
@@ -140,12 +143,29 @@
       function baue() {
         code = wuerfleCode()
         codeEl.textContent = code
+        /*
+          ZWEI BEFEHLE, NICHT EINER.
+
+          Der erste aendert die vorhandene Codezeile. Gibt es noch gar keine,
+          aendert er nichts und meldet UPDATE 0. Genau dieser Fall ist beim
+          Anlegen einer frischen Datenbank der normale, und bis heute stand
+          Karam dann vor einer Seite, die ihn auf NOTFALL.md verwies.
+
+          Der zweite legt die Zeile an, aber nur wenn es wirklich keine gibt.
+          Lief der erste durch, tut der zweite nichts. Zusammen enden sie
+          immer bei genau einer aktiven Zeile mit seinem Code, beim ersten Mal
+          wie beim hundertsten.
+        */
+        const z = String.fromCharCode(10)
+        const hash = "extensions.crypt('" + code + "', extensions.gen_salt('bf', 12))"
         befehlEl.textContent =
-          'update kombi.zugangscodes' +
-          String.fromCharCode(10) +
-          "   set code_hash = extensions.crypt('" + code + "', extensions.gen_salt('bf', 12))" +
-          String.fromCharCode(10) +
-          ' where aktiv;'
+          'update kombi.zugangscodes' + z +
+          '   set code_hash = ' + hash + z +
+          ' where aktiv;' + z +
+          z +
+          'insert into kombi.zugangscodes (code_hash, name, aktiv)' + z +
+          'select ' + hash + ", 'Hauptcode', true" + z +
+          ' where not exists (select 1 from kombi.zugangscodes where aktiv);'
         m1.textContent = ''
         m2.textContent = ''
       }

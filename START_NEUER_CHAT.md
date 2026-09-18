@@ -31,7 +31,7 @@ an zu arbeiten, bevor du sie gelesen hast.
 |---|---|
 | Quelltext | `https://github.com/Harryclaude-hub/kombi-exchange` (**oeffentlich**) |
 | Die Seite, die ich benutze | `https://harryclaude-hub.github.io/kombi-exchange/` |
-| Datenbank | Supabase, Projekt `appload`, Kennung `eybwhnvjavovcxvimtxr` |
+| Datenbank | Supabase, Projekt `immo-check und kombi Tafel`, Kennung `mqmevpyatjsambervgtu` |
 | Zugangscode | **steht nirgends im Quelltext.** Frag mich. |
 | Stand heute | Fassung `2026-09-17-r`, oeffentlich ausgeliefert |
 
