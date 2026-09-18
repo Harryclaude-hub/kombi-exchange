@@ -68,10 +68,21 @@ function feld(wert, unsicher) {
 /**
  * Baut aus einem Schein der KI einen Schein des Programms.
  *
+ * NACH AUSSEN GEGEBEN, damit es eine Probe dafuer geben kann.
+ *
+ * Nicht aus Bequemlichkeit: an genau dieser Umwandlung sind bis zum 18.09.2026
+ * drei Fehler hintereinander aufgetreten, und jeder einzelne hat entweder das
+ * Zusammenfassen zum Absturz gebracht oder Geldbetraege verfaelscht (siehe die
+ * Erklaerung bei zahl()). Alle drei liefen unter 316 gruenen Proben durch, weil
+ * diese Umwandlung von aussen nicht erreichbar war und nur ueber leseMitKI
+ * lief, das ohne echten Schluessel nicht laeuft.
+ *
+ * Eine Stelle, die dreimal falsch war, braucht eine eigene Probe.
+ *
  * @param {any} roh
  * @param {{bildId: string, projektId: string}} wo
  */
-function zuSchein(roh, wo) {
+export function zuSchein(roh, wo) {
   const unsicher = new Set(Array.isArray(roh?.unsicher) ? roh.unsicher : [])
   const u = (name) => unsicher.has(name)
 
@@ -200,9 +211,59 @@ function text(w) {
   return typeof w === 'string' ? w.trim() : ''
 }
 
-/** @param {unknown} w */
+/**
+ * Macht aus dem, was die KI geschickt hat, eine Zahl oder eine Luecke.
+ *
+ * HIER STAND DER TEUERSTE FEHLER DIESES PROGRAMMS, und er sah harmlos aus:
+ *
+ *     const n = typeof w === 'number' ? w : Number(w)
+ *     return Number.isFinite(n) ? n : null
+ *
+ * Number(null) ist 0, und Number.isFinite(0) ist true. Aus jedem null wurde
+ * also eine Null. Number('') ist auch 0, Number([]) ist 0, Number(false) ist 0.
+ *
+ * Und null schickt die KI nicht versehentlich, sondern auf Befehl: der Bauplan
+ * in daten/kileser.js fuehrt einsatz, quoteDezimal und auszahlung unter
+ * required mit dem Typ ['number','null'], und die ANWEISUNG sagt woertlich
+ * "Steht ein Wert nicht im Bild, ist er null". Bei PS3838 steht auf dem Schein
+ * ueberhaupt keine Auszahlung, sondern nur der Gewinn, also MUSS dort null
+ * stehen.
+ *
+ * Am 18.09.2026 mit node nachgestellt, mit Karams neun echten PS3838-Scheinen:
+ *
+ *     richtig    Einsatz 17.717,48   moeglich 20.222,73   bestenfalls  +2.505,25
+ *     gerechnet  Einsatz 17.717,48   moeglich      0,00   bestenfalls -17.717,48
+ *
+ * Auf dem Schirm stuende also, er verliere bestenfalls seinen vollen Einsatz.
+ * Schlimmer noch: ein gewonnener Schein, dessen Auszahlung die KI nicht lesen
+ * konnte, wurde als Totalverlust gebucht, und rechne() meldete dazu "Alle
+ * haben die Gegenrechnung bestanden". Kein Hinweis, keine Warnung. Die
+ * Sicherung in kern/rechnung.js prueft auf !== null, und 0 ist nicht null: die
+ * Null ging an jeder Pruefung vorbei, weil sie wie ein abgelesener Wert aussah.
+ *
+ * Es traf auch das Zusammenfassen, also Karams eigentliches Ziel: aus
+ * "Ohne Linie null" wurde linie 0, und vergleicheKennung() gab derselben Wette
+ * dann nur noch 0,8 statt 1,0 Punkte, einmal von der KI gelesen und einmal
+ * oertlich. Dieselbe Wette waere nicht mehr sicher zusammengefasst worden.
+ *
+ * Deshalb jetzt umgekehrt herum: NUR eine echte Zahl oder eine Zeichenkette,
+ * in der wirklich eine Zahl steht, kommt durch. Alles andere ist eine Luecke,
+ * und eine Luecke mit Warnung ist besser als ein erfundener Wert
+ * (Projektregel 1).
+ *
+ * Eine Zeichenkette mit Komma, also "1,854" statt "1.854", ergibt NaN und
+ * damit ebenfalls eine Luecke. Das ist gewollt: lieber nachfragen als eine
+ * Quote um den Faktor tausend verschieben.
+ *
+ * @param {unknown} w
+ * @returns {number|null}
+ */
 function zahl(w) {
-  const n = typeof w === 'number' ? w : Number(w)
+  if (typeof w === 'number') return Number.isFinite(w) ? w : null
+  if (typeof w !== 'string') return null
+  const roh = w.trim()
+  if (roh === '') return null
+  const n = Number(roh)
   return Number.isFinite(n) ? n : null
 }
 

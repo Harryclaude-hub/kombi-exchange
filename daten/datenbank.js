@@ -39,6 +39,58 @@ export const WIDERSPRUCH = 'K0409'
 export const PROJEKT_WEG = 'K0404'
 
 /**
+ * Die Vorsilbe, die JEDE Tuer dieses Programms tragen muss.
+ *
+ * DAS IST DIE GRENZE ZWISCHEN DEN PROGRAMMEN, und sie steht hier, weil hier
+ * die einzige Stelle ist, an der dieses Programm die Datenbank beruehrt.
+ *
+ * Karam am 18.09.2026: "Mach klare Trennungen zwischen den Projekten in der
+ * Datenbank. Ich will nie, dass sich irgendwas mischt. Und auch fuer die neuen
+ * Chats, wenn ich da was arbeite und mit der Datenbank mache, muss das wirklich
+ * klar getrennt sein, keine Fehler, kein Durcheinander."
+ *
+ * In derselben Supabase-Datenbank liegen drei Programme:
+ *
+ *   Kombi Exchange   Schema kombi, Tueren public.kombi_*   (dieses hier)
+ *   Kombi Tafel      public.kt_*                            22 Tabellen
+ *   immo-check       public, ohne Vorsilbe                  13 Tabellen
+ *
+ * Am 18.09.2026 in der laufenden Datenbank nachgemessen: keine einzige
+ * kombi-Funktion greift nach draussen, keine fremde Funktion greift nach
+ * kombi, und ueber die Schemagrenze laeuft kein einziger Fremdschluessel.
+ * Kombi Exchange benutzt nicht einmal die Anmeldung von Supabase, sondern den
+ * eigenen Sperrcode. Die Trennung ist heute vollstaendig.
+ *
+ * Sie bleibt es aber nicht von selbst. Ein spaeterer Chat, der schnell etwas
+ * nachsehen will, schreibt rufe('kt_wetten_lesen') und hat die Grenze
+ * uebertreten, ohne es zu merken. Eine Anleitung in einer Datei haette das
+ * nicht verhindert, denn Anleitungen werden ueberlesen. Diese Wand nicht.
+ */
+export const VORSILBE = 'kombi_'
+
+/**
+ * Laesst nur Namen durch, die zu diesem Programm gehoeren.
+ *
+ * Wirft mit Absicht, statt einen Fehler zurueckzugeben. Ein falscher Name ist
+ * kein Betriebsfall wie ein Netzausfall, sondern ein Fehler im Quelltext. Der
+ * muss beim ersten Versuch krachen und nicht als stille rote Meldung
+ * durchrutschen, die man fuer ein Netzproblem haelt.
+ *
+ * @param {string} name
+ */
+function verlangeEigeneTuer(name) {
+  if (typeof name === 'string' && /^kombi_[a-z][a-z0-9_]*$/.test(name)) return
+
+  throw new Error(
+    `"${name}" ist keine Tuer von Kombi Exchange. In dieser Datenbank liegen ` +
+      'mehrere Programme nebeneinander: Kombi Exchange spricht ausschliesslich ' +
+      'Funktionen an, die mit "kombi_" beginnen. Alles andere gehoert Kombi Tafel ' +
+      '(kt_) oder immo-check und wird von hier aus nie angefasst. Wenn du wirklich ' +
+      'eine neue Tuer brauchst, leg sie in supabase/migrations/ als public.kombi_... an.'
+  )
+}
+
+/**
  * @param {unknown} wert
  * @returns {number|null}
  */
@@ -55,6 +107,8 @@ function zahlOderNull(wert) {
  * @returns {Promise<{art: 'daten'|'leer'|'fehler', daten: any, meldung: string, code: string}>}
  */
 export async function rufe(name, argumente = {}) {
+  verlangeEigeneTuer(name)
+
   const abbruch = new AbortController()
   const wecker = setTimeout(() => abbruch.abort(), WARTEZEIT)
 

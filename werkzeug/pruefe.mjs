@@ -540,6 +540,214 @@ for (const datei of dateien) {
   }
 }
 
+/*
+  DIE GRENZE ZWISCHEN DEN PROGRAMMEN IN DERSELBEN DATENBANK.
+
+  Karam am 18.09.2026: "Mach klare Trennungen zwischen den Projekten in der
+  Datenbank. Ich will nie, dass sich irgendwas mischt. Und auch fuer die neuen
+  Chats, wenn ich da was arbeite und mit der Datenbank mache, muss das wirklich
+  klar getrennt sein, keine Fehler, kein Durcheinander."
+
+  In einer Supabase-Datenbank liegen drei Programme:
+
+    Kombi Exchange   Schema kombi, Tueren public.kombi_*    7 Tabellen, 25 Funktionen
+    Kombi Tafel      public.kt_*                           22 Tabellen, 15 Funktionen
+    immo-check       public, ohne Vorsilbe                 13 Tabellen,  6 Funktionen
+
+  Im Programm steht die Wand in daten/datenbank.js: rufe() nimmt nur Namen an,
+  die mit kombi_ beginnen. Die Wanderungen erreicht sie aber nicht, denn die
+  laufen nicht durch rufe(), sondern werden von Hand in den SQL-Editor
+  eingefuegt. Genau dort ist der Schaden am groessten, weil ein "drop table
+  scheine" ohne Schema in public landet und dort etwas Fremdes treffen kann.
+
+  Deshalb hier die zweite Haelfte derselben Grenze. Vier Fragen an jede
+  Wanderung, und alle vier muessen mit nein beantwortet sein:
+
+    1. Kommt darin ein Name eines fremden Programms vor?
+    2. Wird etwas in public angelegt, das nicht kombi_ heisst?
+    3. Wird ein Objekt ohne Schema angesprochen, das also dort landet, wohin
+       der Suchpfad gerade zeigt?
+    4. Wird ein fremdes Schema angefasst?
+
+  DIE KOMMENTARE MUESSEN VORHER WEG. Beim ersten Lauf hat diese Regel den
+  eigenen Erklaerungstext beanstandet, in dem die Tabellennamen der anderen
+  Programme als Beispiel stehen. Ein Beispiel in einem Kommentar ist kein
+  Zugriff. Dieselbe Falle wie bei der Regel fuer tote Bildadressen.
+*/
+
+const WANDERUNGEN = path.join(wurzel, 'supabase', 'migrations')
+
+/** Namen, die anderen Programmen in derselben Datenbank gehoeren. */
+const FREMDE_NAMEN = [
+  // immo-check. Tabellen ohne Vorsilbe, deshalb einzeln aufgezaehlt.
+  'categories', 'criteria', 'inspection_items', 'inspection_notes',
+  'inspection_plans', 'inspections', 'paper_sheets', 'profiles', 'properties',
+  'property_photos', 'template_criteria', 'templates', 'units',
+  'is_active_user', 'is_admin', 'handle_new_user', 'touch_updated_at',
+  'auto_confirm_email', 'guard_profile_update',
+]
+
+/**
+ * Schemata, die eine Wanderung von Kombi Exchange nennen darf.
+ *
+ * extensions, weil dort pgcrypto liegt: crypt, gen_salt, digest und
+ * gen_random_bytes. public nur mit der Vorsilbe, und das prueft Frage 2.
+ */
+const ERLAUBTE_SCHEMATA = new Set(['kombi', 'public', 'extensions', 'pg_catalog'])
+
+/**
+ * Schneidet Kommentare heraus, ohne Zeichenketten zu zerschneiden.
+ *
+ * Ein doppelter Strich innerhalb von Anfuehrungszeichen ist kein Kommentar. In
+ * den Wanderungen stehen deutsche Meldungstexte, und eine Regel, die in einen
+ * Meldungstext hineinschneidet, meldet danach Unsinn.
+ *
+ * @param {string} text
+ */
+function ohneKommentare(text) {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .split(/\r?\n/)
+    .map((zeile) => {
+      const stelle = zeile.indexOf('--')
+      if (stelle < 0) return zeile
+      const davor = zeile.slice(0, stelle)
+      // Ungerade Zahl an Anfuehrungszeichen davor heisst: wir stehen mitten in
+      // einer Zeichenkette, der Strich gehoert zum Text.
+      const hochkommas = (davor.match(/'/g) ?? []).length
+      return hochkommas % 2 === 1 ? zeile : davor
+    })
+    .join('\n')
+}
+
+/** @type {string[]} */
+let wanderungen = []
+try {
+  wanderungen = fs.readdirSync(WANDERUNGEN).filter((d) => d.endsWith('.sql')).sort()
+} catch {
+  beanstandungen.push({
+    art: 'grenze',
+    datei: 'supabase/migrations',
+    text: 'Der Ordner mit den Wanderungen liess sich nicht lesen.',
+  })
+}
+
+if (wanderungen.length < 9) {
+  beanstandungen.push({
+    art: 'grenze',
+    datei: 'supabase/migrations',
+    text: `Es liegen ${wanderungen.length} Wanderungen da. Erwartet werden mindestens neun, 0001 bis 0009.`,
+  })
+}
+
+for (const name of wanderungen) {
+  const pfad = `supabase/migrations/${name}`
+
+  /*
+    "if not exists" wird vor allem anderen herausgeschnitten.
+
+    Sonst braucht jeder folgende Ausdruck eine Wahlgruppe, und ein Ausdruck mit
+    Wahlgruppe springt zurueck: bei "drop function if exists public.kombi_x"
+    ueberliest er die Gruppe und faengt stattdessen das Wort "if" als
+    Objektnamen. Beim ersten Lauf kamen so dreissig Beanstandungen der Form
+    "spricht if ohne Schema an", alle falsch.
+  */
+  const sql = ohneKommentare(fs.readFileSync(path.join(WANDERUNGEN, name), 'utf8'))
+    .toLowerCase()
+    .replace(/\bif\s+(?:not\s+)?exists\b/g, ' ')
+
+  // --- Frage 1: ein fremder Name? ---
+  for (const fremd of FREMDE_NAMEN) {
+    if (new RegExp(`\\b${fremd}\\b`).test(sql)) {
+      beanstandungen.push({
+        art: 'grenze',
+        datei: pfad,
+        text:
+          `nennt "${fremd}". Das gehoert einem anderen Programm in derselben Datenbank. ` +
+          'Kombi Exchange fasst nur kombi.* und public.kombi_* an.',
+      })
+    }
+  }
+  const tafel = [...new Set(sql.match(/\bkt_[a-z0-9_]+/g) ?? [])]
+  if (tafel.length > 0) {
+    beanstandungen.push({
+      art: 'grenze',
+      datei: pfad,
+      text: `nennt ${tafel.join(', ')}. Das gehoert Kombi Tafel und wird von hier aus nie angefasst.`,
+    })
+  }
+
+  // --- Frage 2: etwas in public ohne die Vorsilbe? ---
+  const inPublic =
+    /\b(?:create|drop|alter)\s+(?:or\s+replace\s+)?(?:unique\s+)?(?:table|view|function|procedure|trigger|type|sequence|index)\s+public\.([a-z0-9_]+)/g
+  for (const fund of sql.matchAll(inPublic)) {
+    if (!fund[1].startsWith('kombi_')) {
+      beanstandungen.push({
+        art: 'grenze',
+        datei: pfad,
+        text:
+          `legt public.${fund[1]} an oder aendert es. In public darf Kombi Exchange nur ` +
+          'Namen mit der Vorsilbe kombi_ anfassen, sonst trifft es ein anderes Programm.',
+      })
+    }
+  }
+
+  /*
+    --- Frage 3: ein Objekt ohne Schema? ---
+
+    Ohne Schemaangabe entscheidet der Suchpfad, und der ist beim Einfuegen in
+    den SQL-Editor nicht leer, sondern zeigt auf public. Ein "create table
+    scheine" landete also in public, direkt neben kt_scheine.
+
+    Der Nachblick (?![a-z0-9_.]) sortiert die richtig geschriebenen Faelle aus:
+    bei "create table kombi.projekte" steht hinter kombi ein Punkt, das ist
+    also bereits ein Schemaname und keine nackte Tabelle.
+
+    Indizes stehen nicht in der Liste: ein Index wohnt im Schema seiner
+    Tabelle, und "create index projekte_ordner_idx on kombi.projekte" ist
+    richtig geschrieben.
+  */
+  const ohneSchema =
+    /\b(?:create|drop|alter)\s+(?:or\s+replace\s+)?(?:table|view|function|procedure|type|sequence)\s+([a-z0-9_]+)(?![a-z0-9_.])/g
+  for (const fund of sql.matchAll(ohneSchema)) {
+    beanstandungen.push({
+      art: 'grenze',
+      datei: pfad,
+      text:
+        `spricht "${fund[1]}" ohne Schema an. Dann entscheidet der Suchpfad, wo es landet, ` +
+        `und im SQL-Editor zeigt der auf public. Immer kombi.${fund[1]} schreiben.`,
+    })
+  }
+
+  /*
+    --- Frage 4: ein fremdes Schema? ---
+
+    Zwei Ausdruecke, weil ein Schema auf zwei Arten auftaucht: als Aufruf
+    (extensions.crypt(...)) und als Tabelle hinter from, join, into, update
+    oder references.
+
+    Nicht nach jedem "wort.wort" suchen: in den Wanderungen stehen ueberall
+    Tabellenkuerzel wie s.id, z.aktiv und t.e, und die waeren alle falsche
+    Treffer.
+  */
+  const fremdeSchemata = new Set()
+  for (const fund of sql.matchAll(/\b([a-z][a-z0-9_]*)\.[a-z][a-z0-9_]*\s*\(/g)) {
+    if (!ERLAUBTE_SCHEMATA.has(fund[1])) fremdeSchemata.add(fund[1])
+  }
+  for (const fund of sql.matchAll(
+    /\b(?:from|join|into|update|references)\s+([a-z][a-z0-9_]*)\.[a-z][a-z0-9_]*/g
+  )) {
+    if (!ERLAUBTE_SCHEMATA.has(fund[1])) fremdeSchemata.add(fund[1])
+  }
+  for (const schema of fremdeSchemata) {
+    beanstandungen.push({
+      art: 'grenze',
+      datei: pfad,
+      text: `greift auf das Schema "${schema}" zu. Erlaubt sind nur ${[...ERLAUBTE_SCHEMATA].join(', ')}.`,
+    })
+  }
+}
+
 // --- Bericht ---
 
 console.log(`${geprueft} Dateien geprueft.`)
