@@ -12,8 +12,8 @@
  */
 
 export const DATENBANK = {
-  adresse: 'https://eybwhnvjavovcxvimtxr.supabase.co',
-  schluessel: 'sb_publishable_D9sQTI9o_wa24RutdGYRgg_gVxwHno5',
+  adresse: 'https://mqmevpyatjsambervgtu.supabase.co',
+  schluessel: 'sb_publishable_cqJplDQVi9DFUxXrmo-IIw_1WlhGUKP',
 }
 
 /** Wie lange ein Sitzungsschluessel im Browser bleibt, bevor er neu geprueft wird. */
@@ -41,4 +41,4 @@ export const EINSTELLUNG_SCHLUESSEL = 'kombi.einstellungen'
  * WICHTIG: dieser Wert und fassung.json muessen uebereinstimmen. werkzeug/pruefe.mjs
  * prueft das bei jedem Durchlauf, damit die beiden nicht auseinanderlaufen.
  */
-export const PROGRAMM_FASSUNG = '2026-09-18-b'
+export const PROGRAMM_FASSUNG = '2026-09-18-c'
