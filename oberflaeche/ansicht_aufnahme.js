@@ -65,6 +65,17 @@ export function zeichne(ziel) {
         ])
       : el('.bildliste', {}, bilder.map((eintrag) => bildkarte(eintrag))),
     bilder.length > 0 ? leseleiste(bilder) : null,
+    /*
+      DER SCHLUESSELKASTEN STEHT AUCH OHNE FOTOS DA.
+
+      Bis zum 19.09.2026 stand er nur in der Leseleiste, und die gibt es erst,
+      wenn ein Bild da ist. Wer den Anthropic-Schluessel einrichten wollte,
+      BEVOR das erste Foto kommt (genau Karams naechster Schritt), fand den
+      Kasten nirgends. Jetzt steht er im leeren Zustand unter der Flaeche;
+      sobald Bilder da sind, gehoert er wie bisher zur Leseleiste, nicht
+      doppelt (Projektregel 8: er wird von genau einer Stelle gebaut).
+    */
+    bilder.length === 0 ? schluesselkasten(() => Zustand.aendere({})) : null,
   ])
 }
 

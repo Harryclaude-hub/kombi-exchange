@@ -103,7 +103,10 @@ export function zuSchein(roh, wo) {
     : (profil?.waehrung ?? null)
 
   const status = typeof roh?.status === 'string' ? roh.status.toLowerCase().trim() : 'unbekannt'
-  const erlaubt = ['offen', 'gewonnen', 'verloren', 'halb_gewonnen', 'halb_verloren', 'storniert', 'cashout']
+  // Alle Staende aus kern/status.js, die auf einem Schein stehen koennen.
+  // push fehlte hier bis zum 19.09.2026: ein Unentschieden mit Einsatz
+  // zurueck waere als "unbekannt" gelandet und haette wie offen gezaehlt.
+  const erlaubt = ['offen', 'gewonnen', 'verloren', 'halb_gewonnen', 'halb_verloren', 'push', 'storniert', 'cashout']
 
   const auswahlen = (Array.isArray(roh?.auswahlen) ? roh.auswahlen : [])
     .filter((a) => a && typeof a === 'object')

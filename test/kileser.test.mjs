@@ -193,3 +193,62 @@ test('nur bekannte Modelle werden angenommen', () => {
   KI.setzeModell('irgendwas-erfundenes')
   assert.equal(KI.modell(), 'claude-haiku-4-5-20251001', 'das Unbekannte wurde nicht uebernommen')
 })
+
+test('die Anfrage traegt Haltepunkt, strengen Bauplan und genug Platz', async () => {
+  /*
+    Drei Zusagen vom 19.09.2026, jede an einem echten Loch:
+
+    - cache_control an der Anweisung: ohne den Haltepunkt speichert die API
+      gar nichts, und der Zwischenspeicher war nur eine Behauptung.
+    - strict am Werkzeug: die API prueft die Antwort selbst gegen den
+      Bauplan, ein erfundenes Feld kommt gar nicht erst an.
+    - max_tokens weit ueber 2000: neun Kombischeine auf einem Foto passen in
+      2000 Ausgabetoken nicht, und was abgeschnitten wird, fehlt STILL.
+  */
+  KI.setzeSchluessel('sk-ant-probe-0000')
+  const { hole, gerufen } = holeMit({ content: [{ type: 'tool_use', input: { scheine: [] } }] })
+  await KI.leseBild(BILD, { hole })
+
+  const koerper = JSON.parse(gerufen[0].wahl.body)
+  assert.deepEqual(
+    koerper.messages[0].content[0].cache_control,
+    { type: 'ephemeral' },
+    'der Haltepunkt sitzt an der festen Anweisung'
+  )
+  assert.equal(koerper.tools[0].strict, true)
+  assert.ok(koerper.max_tokens >= 8000, `max_tokens ist ${koerper.max_tokens}`)
+  assert.equal(koerper.tool_choice.name, 'scheine_melden')
+})
+
+test('eine abgeschnittene Antwort gilt NICHT als Erfolg', async () => {
+  // stop_reason max_tokens heisst: es fehlen Scheine, und was fehlt, faellt
+  // in keiner Summe auf. Lieber gar nichts uebernehmen und laut sagen warum.
+  KI.setzeSchluessel('sk-ant-probe-0000')
+  const { hole } = holeMit({
+    stop_reason: 'max_tokens',
+    content: [{ type: 'tool_use', input: { scheine: [{ einsatz: 500 }] } }],
+  })
+  const ergebnis = await KI.leseBild(BILD, { hole })
+
+  assert.equal(ergebnis.gelungen, false)
+  assert.equal(ergebnis.scheine.length, 0, 'nichts halb uebernehmen')
+  assert.match(ergebnis.meldung, /abgeschnitten/)
+})
+
+test('jedes Feld des Bauplans steht unter required, sonst greift strict nicht', async () => {
+  KI.setzeSchluessel('sk-ant-probe-0000')
+  const { hole, gerufen } = holeMit({ content: [{ type: 'tool_use', input: { scheine: [] } }] })
+  await KI.leseBild(BILD, { hole })
+
+  const bauplan = JSON.parse(gerufen[0].wahl.body).tools[0].input_schema
+  const schein = bauplan.properties.scheine.items
+  assert.equal(schein.additionalProperties, false)
+  assert.deepEqual(
+    [...schein.required].sort(),
+    Object.keys(schein.properties).sort(),
+    'strict verlangt: alles was es gibt, steht unter required'
+  )
+  const auswahl = schein.properties.auswahlen.items
+  assert.equal(auswahl.additionalProperties, false)
+  assert.deepEqual([...auswahl.required].sort(), Object.keys(auswahl.properties).sort())
+})

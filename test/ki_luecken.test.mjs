@@ -185,3 +185,18 @@ test('true, false und eine leere Liste sind keine Zahlen', () => {
     assert.equal(schein.einsatz.wert, null, `${JSON.stringify(unsinn)} ist kein Einsatz`)
   }
 })
+
+test('push kommt als push an, nicht als unbekannt', () => {
+  /*
+    push fehlte bis zum 19.09.2026 in der Liste der erlaubten Staende. Ein
+    Unentschieden mit Einsatz zurueck waere als "unbekannt" gelandet und
+    haette in der Rechnung wie ein offener Schein gezaehlt: der zurueck-
+    gezahlte Einsatz haette gefehlt, und das Risiko waere zu hoch gewesen.
+  */
+  const schein = zuSchein(ps3838({ status: 'push', ausgezahlt: 500 }), WO)
+  assert.equal(schein.status, 'push')
+
+  const rechnung = rechne([schein])
+  assert.equal(rechnung.auszahlungRealisiert, 500, 'der Einsatz kam zurueck')
+  assert.equal(rechnung.ergebnisRealisiert, 0)
+})

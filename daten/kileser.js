@@ -143,12 +143,14 @@ export function schluesselkurz() {
  */
 const BAUPLAN = {
   type: 'object',
+  additionalProperties: false,
   properties: {
     scheine: {
       type: 'array',
       description: 'Jeder Wettschein auf dem Bild, einer je Eintrag. Auch wenn mehrere nebeneinander stehen.',
       items: {
         type: 'object',
+        additionalProperties: false,
         properties: {
           scheinNr: { type: ['string', 'null'], description: 'Die Wett- oder Schein-Nummer, wie sie dasteht.' },
           gesetztAm: { type: ['string', 'null'], description: 'Wann der Schein gesetzt wurde, als Text genau wie im Bild, zum Beispiel "Sep 13, 6:39 PM" oder "14.09.26 15:30".' },
@@ -159,7 +161,7 @@ const BAUPLAN = {
           auszahlung: { type: ['number', 'null'], description: 'Die mögliche Auszahlung EINSCHLIESSLICH Einsatz.' },
           ausgezahlt: { type: ['number', 'null'], description: 'Was wirklich zurückkam, falls der Schein entschieden ist.' },
           waehrung: { type: ['string', 'null'], description: 'EUR, USD, GBP, CHF oder das Kürzel der Kryptowährung.' },
-          status: { type: ['string', 'null'], description: 'offen, gewonnen, verloren, halb_gewonnen, halb_verloren, storniert oder cashout.' },
+          status: { type: ['string', 'null'], description: 'offen, gewonnen, verloren, halb_gewonnen, halb_verloren, push, storniert oder cashout.' },
           gratiswette: { type: ['boolean', 'null'], description: 'Steht Freebet, Gratiswette oder Bonus dabei?' },
           eachWay: { type: ['boolean', 'null'], description: 'Steht Each Way dabei? Dann gilt der doppelte Einsatz.' },
           auswahlen: {
@@ -170,6 +172,7 @@ const BAUPLAN = {
               'bei verschiedenen Anbietern wiedererkennen.',
             items: {
               type: 'object',
+              additionalProperties: false,
               properties: {
                 ereignis: { type: ['string', 'null'], description: 'Die Begegnung, zum Beispiel "Denver Broncos - Kansas City Chiefs".' },
                 tipp: { type: ['string', 'null'], description: 'Worauf gesetzt wurde, meist der Spielername, zum Beispiel "RJ Harvey".' },
@@ -178,7 +181,7 @@ const BAUPLAN = {
                 linie: { type: ['number', 'null'], description: 'Die Linie als Zahl, zum Beispiel 18.5. Ohne Linie null.' },
                 quote: { type: ['number', 'null'], description: 'Die Quote dieser einzelnen Wette als Dezimalzahl, falls sie dasteht.' },
               },
-              required: ['tipp', 'markt', 'richtung', 'linie'],
+              required: ['ereignis', 'tipp', 'markt', 'richtung', 'linie', 'quote'],
             },
           },
           unsicher: {
@@ -187,7 +190,15 @@ const BAUPLAN = {
             items: { type: 'string' },
           },
         },
-        required: ['einsatz', 'quoteDezimal', 'auszahlung', 'waehrung', 'status', 'auswahlen', 'unsicher'],
+        // Mit strict: true (unten am Werkzeug) prueft die API jede Antwort
+        // gegen genau diesen Bauplan. Dafuer muss JEDES Feld unter required
+        // stehen; wo nichts im Bild steht, ist der Wert null, nie fehlend.
+        required: [
+          'scheinNr', 'gesetztAm', 'konto', 'buchmacher',
+          'einsatz', 'quoteDezimal', 'auszahlung', 'ausgezahlt',
+          'waehrung', 'status', 'gratiswette', 'eachWay',
+          'auswahlen', 'unsicher',
+        ],
       },
     },
   },
@@ -209,24 +220,38 @@ REGELN, in dieser Reihenfolge:
 
 1. LIES AB, WAS DASTEHT. Steht ein Wert nicht im Bild, ist er null. Ein erfundener Wert ist schlimmer als eine Luecke, weil er nie wieder auffaellt.
 
-2. MEHRERE SCHEINE JE BILD SIND NORMAL. Manche Anbieter stellen vier Scheine in zwei Spalten nebeneinander. Gib jeden einzeln zurueck.
+2. MEHRERE SCHEINE JE BILD SIND NORMAL. Manche Anbieter stellen vier Scheine in zwei Spalten nebeneinander, andere neun Zeilen in einer Tabelle. Jeder Schein wird ein eigener Eintrag. Woran du die Grenze erkennst: eine eigene Scheinnummer, ein eigener Rahmen oder eine Karte, oder dieselbe Beschriftung mehrfach (steht zweimal "Einsatz" im Bild, sind es zwei Scheine). Lass keinen aus, auch nicht am Rand angeschnittene: die bekommen unsicher-Eintraege statt geraten zu werden.
 
-3. DIE AUSZAHLUNG IST MIT EINSATZ. Steht auf dem Schein nur der Gewinn ohne Einsatz, rechne ihn NICHT dazu, sondern gib die Auszahlung als null und schreib "auszahlung" in unsicher. Welcher Anbieter es wie meint, entscheidet das Programm.
+3. DER ANBIETER. Nenne den Anbieter, wie er im Bild steht: Logo, Kopfzeile oder Wortmarke (zum Beispiel BetOnline, PS3838, Betway, bet365, Stake). Steht nirgends einer, gib null; rate nicht aus dem Aussehen. Der Kontoname daneben (etwa "Auer" oder "Frohnwieser") gehoert in konto, nicht in buchmacher.
 
-4. QUOTEN. Amerikanische Quoten rechnest du um: -157 wird 1.637, +140 wird 2.40. Bruchquoten ebenso: 7/4 wird 2.75. Steht die Gesamtquote nicht da, gib null, auch wenn du sie aus den Einzelquoten multiplizieren koenntest. Das tut das Programm.
+4. DATUM UND UHRZEIT. gesetztAm ist der Zeitpunkt, an dem die Wette abgegeben wurde, als Text GENAU wie im Bild ("Sep 13, 6:39 PM" oder "14.09.26 15:30"). Nichts umrechnen, keine Zeitzone raten. Steht nur die Anstosszeit des Spiels da, gehoert die NICHT in gesetztAm; sie kann im ereignis-Text bleiben.
 
-5. ZAHLEN OHNE TRENNZEICHEN. Gib 1234.56, nicht "1.234,56" und nicht "$1,234.56". Achte auf das Gebiet: "1.250" heisst deutsch tausendzweihundertfuenfzig und englisch eins Komma zwei fuenf. Bist du unsicher, schreib das Feld in unsicher.
+5. DIE AUSZAHLUNG IST MIT EINSATZ. Steht auf dem Schein nur der Gewinn ohne Einsatz, rechne ihn NICHT dazu, sondern gib die Auszahlung als null und schreib "auszahlung" in unsicher. Welcher Anbieter es wie meint, entscheidet das Programm.
 
-6. UNSICHER IST KEINE SCHANDE. Jedes Feld, bei dem du zoegerst, gehoert in die Liste unsicher. Das Programm rechnet danach gegen und fragt notfalls den Menschen. Ein stiller Fehler kostet Geld, eine gemeldete Unsicherheit kostet drei Sekunden.
+6. QUOTEN. Amerikanische Quoten rechnest du um: -157 wird 1.637, +140 wird 2.40. Bruchquoten ebenso: 7/4 wird 2.75. Steht die Gesamtquote nicht da, gib null, auch wenn du sie aus den Einzelquoten multiplizieren koenntest. Das tut das Programm.
 
-7. DIE AUSWAHLEN ZERLEGT. Aus "RJ Harvey under 18,5 Rushing Yards" wird
+7. ZAHLEN OHNE TRENNZEICHEN. Gib 1234.56, nicht "1.234,56" und nicht "$1,234.56". Achte auf das Gebiet: "1.250" heisst deutsch tausendzweihundertfuenfzig und englisch eins Komma zwei fuenf. Krypto-Betraege mit acht Nachkommastellen ("5,000.00000000") liest du vollstaendig ab. Bist du unsicher, schreib das Feld in unsicher.
+
+8. UNSICHER IST KEINE SCHANDE. Jedes Feld, bei dem du zoegerst, gehoert in die Liste unsicher. Das Programm rechnet danach gegen und fragt notfalls den Menschen. Ein stiller Fehler kostet Geld, eine gemeldete Unsicherheit kostet drei Sekunden.
+
+9. EINZEL ODER KOMBI. Eine Kombination (Kombi, Parlay, Accumulator, Mehrfachwette) hat MEHRERE Eintraege in auswahlen, eine Einzelwette genau einen. Jede Zeile der Kombination wird ein eigener Eintrag, in der Reihenfolge des Bildes. Zaehle nichts zusammen und lass keine Zeile aus: an der Zahl der Auswahlen erkennt das Programm die Kombination.
+
+10. DIE AUSWAHLEN ZERLEGT. Aus "RJ Harvey under 18,5 Rushing Yards" wird
    tipp "RJ Harvey", markt "Rushing Yards", richtung "under", linie 18.5. Das
    ist der wichtigste Teil: nur so erkennt das Programm, dass derselbe Spieler
    bei BetOnline und bei Stake dieselbe Wette ist, und kann die Einsaetze
    zusammenzaehlen. Schreib den Spielernamen genau so, wie er dasteht, aber
-   ohne Zusaetze wie die Mannschaft in Klammern.
+   ohne Zusaetze wie die Mannschaft in Klammern. Die Begegnung mit beiden
+   Mannschaften gehoert in ereignis.
 
-8. DER STAND. offen heisst noch nicht entschieden. cashout heisst vorzeitig ausgezahlt. Steht "Verloren", ist ausgezahlt null und status verloren.`
+11. DER STAND. offen heisst noch nicht entschieden. gewonnen und verloren wie beschriftet ("DU HAST GEWONNEN", "WIN", "Verlust", "LOSE"). push heisst unentschieden mit Einsatz zurueck. storniert heisst annulliert oder erstattet ("UNGUELTIG", "Refunded", "Void"). cashout heisst vorzeitig ausgezahlt. Steht "Verloren", ist ausgezahlt null und status verloren.
+
+12. EIGENHEITEN, die diese Anbieter wirklich haben; lies trotzdem ab, was dasteht:
+   - BetOnline: amerikanische Quoten, GERUNDET angezeigt. Verlorene Scheine haben gar keine Returns-Spalte.
+   - PS3838: eine TABELLE, keine Karten. "Risk: 500.00" ist der Einsatz, die Spalte Win/Loss ist der GEWINN ohne Einsatz (also auszahlung null, Regel 5), der Formatbuchstabe D oder A steht hinter der Quote.
+   - Betway: deutsch. "Umsetzen" ist der Einsatz, die Quote steht hinter einem @-Zeichen im Kopf, Beschriftung und Wert stehen oft in getrennten Zeilen.
+   - bet365: deutsch. "Gewinn" ist dort die Auszahlung MIT Einsatz.
+   - Stake: Krypto mit acht Nachkommastellen, in der Anzeige manchmal abgeschnitten ("..."). Quote deutsch geschrieben (1,90), Betraege englisch (2,000.00), im selben Schein. "Quoten" ist die Beschriftung der Quote.`
 
 /**
  * Laesst ein Bild von der KI lesen.
@@ -259,8 +284,14 @@ export async function leseBild(bild, wahl = {}) {
   const hole = wahl.hole ?? fetch
 
   // Alles Feste zuerst, das Bild zuletzt. Siehe ANWEISUNG.
+  //
+  // DER ZWISCHENSPEICHER WIRD ANGEFORDERT, NICHT NUR ERHOFFT: cache_control
+  // an der Anweisung setzt den Haltepunkt. Ohne diese Marke speichert die
+  // API gar nichts, und der Satz "ab dem zweiten Foto ein Zehntel" oben
+  // waere eine Behauptung. Ob es greift, steht in marken.ausSpeicher, und
+  // die Oberflaeche zeigt es an.
   const teile = [
-    { type: 'text', text: ANWEISUNG },
+    { type: 'text', text: ANWEISUNG, cache_control: { type: 'ephemeral' } },
   ]
   if (wahl.merkliste && wahl.merkliste.length > 0) {
     teile.push({
@@ -292,12 +323,25 @@ export async function leseBild(bild, wahl = {}) {
       },
       body: JSON.stringify({
         model: modell(),
-        max_tokens: 2000,
+        /*
+          16000 UND NICHT 2000. Auf Karams Fotos stehen bis zu neun
+          Kombischeine; deren Antwort passt in 2000 Ausgabetoken nicht, und
+          eine abgeschnittene Antwort verliert Scheine STILL, denn was fehlt,
+          faellt in keiner Summe auf. 16000 ist eine Obergrenze, kein
+          Verbrauch: bezahlt wird nur, was wirklich geschrieben wird.
+          Zusaetzlich wird unten stop_reason geprueft, damit ein Abschneiden
+          nie als Erfolg gilt.
+        */
+        max_tokens: 16000,
         tools: [
           {
             name: 'scheine_melden',
             description: 'Gib die abgelesenen Wettscheine zurück.',
             input_schema: BAUPLAN,
+            // strict laesst die API selbst pruefen, dass die Antwort genau
+            // dem Bauplan entspricht. Ein erfundenes Feld oder ein falscher
+            // Typ kommt damit gar nicht erst hier an.
+            strict: true,
           },
         ],
         tool_choice: { type: 'tool', name: 'scheine_melden' },
@@ -310,6 +354,19 @@ export async function leseBild(bild, wahl = {}) {
     }
 
     const roh = await antwort.json()
+
+    // Eine abgeschnittene Antwort ist KEIN Erfolg. Bei max_tokens fehlen
+    // Scheine, und was fehlt, faellt in keiner Summe auf (stiller Verlust).
+    if (roh?.stop_reason === 'max_tokens') {
+      return {
+        ...leer,
+        meldung:
+          'Die Antwort der KI war laenger als erlaubt und wurde abgeschnitten. ' +
+          'Es wurde NICHTS uebernommen, damit kein Schein still fehlt. ' +
+          'Bitte das Foto in kleinere Ausschnitte teilen und noch einmal lesen lassen.',
+      }
+    }
+
     const werkzeug = (roh?.content ?? []).find((t) => t?.type === 'tool_use')
     if (!werkzeug?.input?.scheine) {
       return { ...leer, meldung: 'Die Antwort enthielt keine Scheine.' }

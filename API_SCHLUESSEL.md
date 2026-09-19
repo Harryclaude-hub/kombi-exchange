@@ -69,10 +69,12 @@ Links **API keys**, dann **Create Key**. Nenn ihn zum Beispiel
 ### 5. In das Programm eintragen
 
 Auf `https://harryclaude-hub.github.io/kombi-exchange/`, Reiter **Aufnahme**.
-Lad mindestens ein Foto hoch, dann erscheint der Kasten **"KI-Leser
-einrichten"**. Schlüssel hineinkopieren, **Schlüssel speichern**.
+Dort steht der Kasten **"KI-Leser einrichten"**, auch wenn noch kein Foto da
+ist. Schlüssel hineinkopieren, **Schlüssel speichern**.
 
 Danach steht dort **"KI-Leser bereit"** und zeigt nur noch `sk-ant-...1234`.
+Als Modell ist **Sonnet 5** vorgewählt; das bleibt so, außer du wählst im
+selben Kasten bewusst etwas anderes.
 
 ### 6. Lesen
 
