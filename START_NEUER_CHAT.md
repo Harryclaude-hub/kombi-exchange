@@ -64,7 +64,7 @@ an zu arbeiten, bevor du sie gelesen hast.
 | Die Seite, die ich benutze | `https://harryclaude-hub.github.io/kombi-exchange/` |
 | Datenbank | Supabase, Projekt `immo-check und kombi Tafel`, Kennung `mqmevpyatjsambervgtu` |
 | Zugangscode | **steht nirgends im Quelltext.** Frag mich. |
-| Stand heute | Fassung `2026-09-19-d`, oeffentlich ausgeliefert |
+| Stand heute | Fassung `2026-09-19-h`, oeffentlich ausgeliefert |
 | Trennung in der Datenbank | **`supabase/TRENNUNG.md` lesen, bevor du irgendetwas an der Datenbank machst.** |
 
 ## Meine Regeln. Die sind nicht verhandelbar.

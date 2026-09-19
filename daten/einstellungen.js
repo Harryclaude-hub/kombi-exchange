@@ -41,4 +41,4 @@ export const EINSTELLUNG_SCHLUESSEL = 'kombi.einstellungen'
  * WICHTIG: dieser Wert und fassung.json muessen uebereinstimmen. werkzeug/pruefe.mjs
  * prueft das bei jedem Durchlauf, damit die beiden nicht auseinanderlaufen.
  */
-export const PROGRAMM_FASSUNG = '2026-09-19-g'
+export const PROGRAMM_FASSUNG = '2026-09-19-h'

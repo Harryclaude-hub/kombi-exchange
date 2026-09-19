@@ -264,6 +264,9 @@
 .pfadschritt:focus-visible,
 .dialogsymbol:focus-visible,
 .dialogwahl:focus-visible,
+.suchtreffer:focus-visible,
+.startweg:focus-visible,
+.startwette:focus-visible,
 a:focus-visible,
 summary:focus-visible,
 [tabindex]:focus-visible {
@@ -3851,6 +3854,108 @@ li[data-schwere="info"] .hinweisart {
   font-size: var(--text-klein);
   line-height: 1.5;
   opacity: 0.9;
+}
+
+/* ============================================ Die grosse Suche der Uebersicht */
+
+/*
+  Karam am 19.09.2026: "da noch eine Suchleiste, da kann ich nach Quoten,
+  nach Datum, nach Name, nach Emoji suchen. Ganz rechts kann ich mir den
+  Ordner und das Projekt aussuchen."
+
+  Die Leiste bricht auf schmalen Bildschirmen um: erst das Feld in voller
+  Breite, darunter die beiden Auswahlfelder. Nichts ragt seitlich heraus.
+*/
+.startsuchleiste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--luft-2);
+}
+
+.startsuchwahl {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+.suchstand {
+  margin: var(--luft-3) 0 0;
+  font-size: var(--text-klein);
+  font-weight: 700;
+  color: var(--schrift-leise);
+}
+
+.suchhinweis {
+  margin: var(--luft-2) 0 0;
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.suchfehler {
+  color: var(--schlecht);
+}
+
+.suchtrefferliste {
+  display: grid;
+  gap: var(--luft-2);
+  margin-top: var(--luft-3);
+}
+
+.suchtreffer {
+  display: flex;
+  align-items: center;
+  gap: var(--luft-3);
+  padding: var(--luft-2) var(--luft-3);
+  min-height: var(--bedienhoehe);
+  background: var(--flaeche);
+  border: 1px solid var(--feldrand);
+  border-radius: var(--rundung);
+  color: var(--schrift);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.suchtreffer:hover {
+  border-color: var(--schrift-leise);
+  background: var(--knopf);
+}
+
+.suchtrefferkern {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.suchtreffername {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suchtrefferort {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Wo das Suchwort stand. Auf schmalen Bildschirmen faellt die Spalte weg,
+   der Ort am Treffer bleibt; das Feld ist eine Zugabe, kein Muss. */
+.suchtrefferwo {
+  font-size: var(--text-winzig, var(--text-klein));
+  color: var(--schrift-still);
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .suchtrefferwo {
+    display: none;
+  }
 }
 
 /* ============================================ Der Kopf eines Riesenscheins */

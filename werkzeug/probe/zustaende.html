@@ -176,6 +176,55 @@
       </div>
 
       <div class="schaugruppe">
+        <h2>Die grosse Suche: Leiste, Treffer, Hinweise</h2>
+        <!--
+          Neu am 19.09.2026: die Suchmaschine der Uebersicht. Hier stehen
+          alle drei Trefferarten, der Hinweis und der Fehlerhinweis, denn
+          im Programm erscheinen sie erst nach dem Tippen, und was auf
+          dieser Seite fehlt, wird nicht gemessen.
+        -->
+        <div class="startsuchleiste">
+          <input class="suchfeld startsuche" type="search" value="1,84 spieltag" aria-label="Im Programm suchen" />
+          <select class="feldwahl startsuchwahl" aria-label="In welchem Projekt gesucht wird">
+            <option>Dieses Projekt: Saison 2026</option>
+          </select>
+          <select class="feldwahl startsuchwahl" aria-label="In welchem Ordner gesucht wird">
+            <option>Alle Ordner</option>
+          </select>
+          <button class="knopf knopf-klein" type="button">Suchen</button>
+        </div>
+        <p class="suchstand">3 Treffer</p>
+        <p class="suchhinweis">Die anderen Projekte sind noch nicht geladen. Drücke Suchen, dann sind sie dabei.</p>
+        <p class="suchhinweis suchfehler">Ließ sich nicht laden: Saison 2025: keine Verbindung.</p>
+        <div class="suchtrefferliste" data-auch-heiss="true">
+          <button class="suchtreffer" type="button" data-art="ordner">
+            <span class="stufenzeichen" data-stufe="ordner-riesenschein">O</span>
+            <span class="suchtrefferkern">
+              <span class="suchtreffername">Spieltag 3</span>
+              <span class="suchtrefferort">Saison 2026</span>
+            </span>
+            <span class="suchtrefferwo">gefunden in: Name</span>
+          </button>
+          <button class="suchtreffer" type="button" data-art="riesenschein">
+            <span class="stufenzeichen" data-stufe="riesenschein">R</span>
+            <span class="suchtrefferkern">
+              <span class="suchtreffername">🔥 Gibbs Anytime</span>
+              <span class="suchtrefferort">Saison 2026 &gt; Spieltag 3</span>
+            </span>
+            <span class="suchtrefferwo">gefunden in: Name, Ordner</span>
+          </button>
+          <button class="suchtreffer" type="button" data-art="schein">
+            <span class="stufenzeichen" data-stufe="schein">S</span>
+            <span class="suchtrefferkern">
+              <span class="suchtreffername">DraftKings</span>
+              <span class="suchtrefferort">Saison 2026 &gt; Spieltag 3 &gt; 🔥 Gibbs Anytime</span>
+            </span>
+            <span class="suchtrefferwo">gefunden in: Quote, Datum</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="schaugruppe">
         <h2>Die Kennfarben an der Riesenschein-Karte, alle acht, und was sie schlaegt</h2>
         <!--
           Neu am 19.09.2026: die Karte traegt den Ton ihres Ordners, sonst den

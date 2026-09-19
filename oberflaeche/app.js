@@ -1051,7 +1051,7 @@ async function ladeProjektinhalt(projektId) {
   const riesenscheine = await Datenbank.holeRiesenscheine(stand.token, projektId)
   const rohe = Array.isArray(riesenscheine.daten) ? riesenscheine.daten : []
   Zustand.aendere({
-    riesenscheine: rohe.map(ausDatenbankRiesenschein),
+    riesenscheine: rohe.map(Datenbank.riesenscheinAusZeile),
     ordnerGeteilt: ordnerWerdenGeteilt(rohe),
   })
   await stelleHuelleWiederHer(projektId)
@@ -1694,6 +1694,8 @@ function panelScheine(stand, riesenschein, schmal) {
 function panelSchnellzugriff(stand, schmal) {
   const angeheftet = Nadeln.alle()
   const angehefteteWetten = stand.riesenscheine.filter((r) => angeheftet.includes(r.id))
+  const ordnerliste = Ordner.alleOrdner(stand.riesenscheine)
+  const ohneOrdner = Ordner.anzahlOhneOrdner(stand.riesenscheine)
 
   return el('.panelgruppe', {}, [
     schmal ? null : el('.panelgruppentitel', { text: 'Angeheftet' }),
@@ -1732,19 +1734,165 @@ function panelSchnellzugriff(stand, schmal) {
             text: `${stand.riesenscheine.length} Riesenscheine, ${stand.scheine.length} Scheine`,
           }),
         ]),
+
+    /*
+      DIE ORDNER DES PROJEKTS, DIREKT UNTER IHM.
+
+      Karam am 19.09.2026: "der aktive Projekt bei der linken Panel, da
+      muessen einfach drunter die Ordner angezeigt werden."
+
+      Ein Klick fuehrt in die Riesenschein-Uebersicht mit genau diesem
+      Ordner offen, derselbe Zustand wie ein Klick auf die Ordnerkachel
+      dort (Projektregel 8: ein Weg, nicht zwei Wahrheiten).
+    */
+    ...ordnerliste.map((o) =>
+      el(
+        'button.panelknopf.panelknopf-ordner',
+        {
+          type: 'button',
+          title: `Den Ordner "${o.name}" in den Riesenscheinen aufmachen`,
+          daten: { ton: Ordner.tonFuer(o.name) },
+          onclick: () =>
+            Zustand.aendere({
+              ansicht: 'positionen',
+              ordnerFilter: o.name,
+              auswahl: null,
+              scheinAuswahl: null,
+            }),
+        },
+        [
+          el('span.panelzeichen', { daten: { stufe: 'ordner-riesenschein' }, text: 'O' }),
+          schmal
+            ? null
+            : el('span.panelwette', {}, [
+                el('span.panelname', { text: o.name }),
+                el('span.panelzahl', { text: String(o.anzahl) }),
+              ]),
+        ]
+      )
+    ),
+    // Nur neben echten Ordnern: gibt es keinen, liegt ALLES ohne Ordner, und
+    // die Zeile stuende als Wiederholung der Projektzahl direkt darueber.
+    ordnerliste.length > 0 && ohneOrdner > 0
+      ? el(
+          'button.panelknopf.panelknopf-ordner',
+          {
+            type: 'button',
+            title: 'Die Riesenscheine, die in keinem Ordner liegen',
+            onclick: () =>
+              Zustand.aendere({
+                ansicht: 'positionen',
+                ordnerFilter: Ordner.OHNE_ORDNER,
+                auswahl: null,
+                scheinAuswahl: null,
+              }),
+          },
+          [
+            el('span.panelzeichen', { text: '-' }),
+            schmal
+              ? null
+              : el('span.panelwette', {}, [
+                  el('span.panelname', { text: 'Ohne Ordner' }),
+                  el('span.panelzahl', { text: String(ohneOrdner) }),
+                ]),
+          ]
+        )
+      : null,
+    ordnerliste.length === 0 && !schmal
+      ? el('p.panelleer', { text: 'Noch kein Ordner in diesem Projekt.' })
+      : null,
+
+    /*
+      DAS PLUS LEGT EINEN ORDNER AN, KEIN FOTO MEHR.
+
+      Karam am 19.09.2026: "dieses Pluszeichen bitte nicht fuer Foto
+      hinzufuegen, sondern um einen Ordner hinzuzufuegen. Fotos werden nur
+      in Riesenscheine hinzugefuegt." Der Weg zum Foto bleibt, wo Fotos
+      hingehoeren: im Reiter Aufnahme und am offenen Riesenschein.
+    */
     el(
       'button.panelknopf',
       {
         type: 'button',
-        title: 'Ein Foto aufnehmen und daraus einen Schein machen',
-        onclick: () => Zustand.aendere({ ansicht: 'aufnahme' }),
+        title: 'Einen neuen Ordner anlegen',
+        onclick: () => neuerOrdnerAnlegen(),
       },
       [
         el('span.panelzeichen', { text: '+' }),
-        schmal ? null : el('span.panelname', { text: 'Foto hinzufügen' }),
+        schmal ? null : el('span.panelname', { text: 'Neuer Ordner' }),
       ]
     ),
   ])
+}
+
+/**
+ * Fragt nach Name und erstem Inhalt eines neuen Ordners und legt ihn an.
+ *
+ * EIN ORDNER BESTEHT, SOBALD ETWAS DARIN LIEGT, das ist im ganzen Programm
+ * so (der Ordner ist eine Beschriftung am Riesenschein, siehe ordner.js).
+ * Ein leerer Ordner haette keinen Ort, an dem er gespeichert werden koennte.
+ * Deshalb fragt der Dialog gleich mit, WAS hinein soll: ein bestehender
+ * Riesenschein, oder ein neuer leerer, der sofort mit entsteht.
+ */
+async function neuerOrdnerAnlegen() {
+  const stand = Zustand.hole()
+
+  const antwort = await Dialog.frage({
+    titel: 'Neuer Ordner',
+    text: 'Ein Ordner ordnet die Riesenscheine dieses Projekts. Er besteht, sobald etwas darin liegt.',
+    felder: [
+      {
+        name: 'name',
+        beschriftung: 'Name des Ordners',
+        platzhalter: 'Zum Beispiel Spieltag 4',
+        symbole: ['📌', '🔥', '⭐', '✅', '💰', '🏈', '📅', '🗄️'],
+        hilfe: 'Ein Zeichen vorn im Namen ist erlaubt und wandert überallhin mit.',
+      },
+      {
+        name: 'inhalt',
+        beschriftung: 'Was soll hinein?',
+        wert: '@neu',
+        auswahl: [
+          {
+            wert: '@neu',
+            name: 'Ein neuer, leerer Riesenschein',
+            zusatz: 'entsteht sofort und nimmt neue Fotos auf',
+          },
+          ...stand.riesenscheine.map((r) => ({
+            wert: r.id,
+            name: r.name || 'Ohne Namen',
+            zusatz: Ordner.ordnerVon(r) ? `bisher im Ordner ${Ordner.ordnerVon(r)}` : undefined,
+          })),
+        ],
+        hilfe: 'Weitere Riesenscheine legst du danach über ihr Ordnerfeld hinein.',
+      },
+    ],
+    ja: 'Ordner anlegen',
+  })
+  if (!antwort) return
+
+  const name = Ordner.sauberName(antwort.name ?? '')
+  if (!name) {
+    Zustand.melde('warnung', 'Ohne Namen entsteht kein Ordner.')
+    return
+  }
+
+  const inhalt = antwort.inhalt || '@neu'
+  if (inhalt === '@neu') {
+    // macheHuelleAuf setzt die Auswahl auf den neuen Riesenschein; danach
+    // fuehrt der Ordnerfilter in die Uebersicht des frischen Ordners.
+    Zustand.macheHuelleAuf('', name)
+  } else {
+    Zustand.setzeOrdner(inhalt, name)
+  }
+
+  Zustand.aendere({
+    ansicht: 'positionen',
+    ordnerFilter: name,
+    auswahl: null,
+    scheinAuswahl: null,
+  })
+  Zustand.melde('erfolg', `Ordner "${name}" angelegt.`)
 }
 
 function zeichneArbeit() {
@@ -1818,7 +1966,7 @@ async function ladeAlles() {
   const riesenscheine = await Datenbank.holeRiesenscheine(stand.token, projekt.id)
   const roheRiesenscheine = Array.isArray(riesenscheine.daten) ? riesenscheine.daten : []
   /** @type {import('../kern/typen.js').Riesenschein[]} */
-  const geladeneRiesenscheine = roheRiesenscheine.map(ausDatenbankRiesenschein)
+  const geladeneRiesenscheine = roheRiesenscheine.map(Datenbank.riesenscheinAusZeile)
 
   Zustand.aendere({
     riesenscheine: geladeneRiesenscheine,
@@ -2259,26 +2407,13 @@ function ausDatenbankProjekt(zeile) {
   }
 }
 
-/**
- * @param {any} zeile
- * @returns {import('../kern/typen.js').Riesenschein}
- */
-function ausDatenbankRiesenschein(zeile) {
-  return {
-    id: String(zeile.id),
-    projektId: String(zeile.projekt_id ?? ''),
-    name: String(zeile.name ?? ''),
-    signatur: String(zeile.signatur ?? ''),
-    scheinIds: Array.isArray(zeile.schein_ids) ? zeile.schein_ids.map(String) : [],
-    notiz: String(zeile.notiz ?? ''),
-    // Vor supabase/migrations/0009 gibt es die Spalte nicht. Dann steht hier
-    // ein leerer Text, und ordner.js greift auf die alte Zuordnung im Browser
-    // zurueck, damit nichts verloren geht.
-    ordner: String(zeile.ordner ?? ''),
-    angelegtAm: String(zeile.angelegt_am ?? ''),
-    geaendertAm: String(zeile.geaendert_am ?? ''),
-  }
-}
+/*
+  ausDatenbankRiesenschein ist umgezogen: sie heisst jetzt riesenscheinAusZeile
+  und lebt in daten/datenbank.js, weil seit dem 19.09.2026 auch die grosse
+  Suche (oberflaeche/suchdienst.js) fremde Projekte liest und dieselbe
+  Umwandlung braucht. Zwei Fassungen derselben Zuordnung waeren genau die
+  Drift, vor der Projektregel 8 warnt.
+*/
 
 /**
  * Ob die Ordner wirklich geteilt werden, GEMESSEN statt geraten.

@@ -406,6 +406,34 @@ export function holeRiesenscheine(token, projektId) {
 }
 
 /**
+ * Macht aus einer Datenbankzeile einen Riesenschein des Programms.
+ *
+ * Lebt HIER und nicht mehr privat in app.js, weil seit dem 19.09.2026 zwei
+ * Stellen laden: app.js fuer das offene Projekt und oberflaeche/suchdienst.js
+ * fuer die grosse Suche ueber fremde Projekte. Zwei Fassungen derselben
+ * Zuordnung wuerden auseinanderlaufen (Projektregel 8).
+ *
+ * @param {any} zeile
+ * @returns {import('../kern/typen.js').Riesenschein}
+ */
+export function riesenscheinAusZeile(zeile) {
+  return {
+    id: String(zeile.id),
+    projektId: String(zeile.projekt_id ?? ''),
+    name: String(zeile.name ?? ''),
+    signatur: String(zeile.signatur ?? ''),
+    scheinIds: Array.isArray(zeile.schein_ids) ? zeile.schein_ids.map(String) : [],
+    notiz: String(zeile.notiz ?? ''),
+    // Vor supabase/migrations/0009 gibt es die Spalte nicht. Dann steht hier
+    // ein leerer Text, und ordner.js greift auf die alte Zuordnung im Browser
+    // zurueck, damit nichts verloren geht.
+    ordner: String(zeile.ordner ?? ''),
+    angelegtAm: String(zeile.angelegt_am ?? ''),
+    geaendertAm: String(zeile.geaendert_am ?? ''),
+  }
+}
+
+/**
  * @param {string} token
  * @param {string} projektId
  * @param {import('../kern/typen.js').Riesenschein[]} liste

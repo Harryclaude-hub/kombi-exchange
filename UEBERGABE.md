@@ -1,6 +1,6 @@
 # Uebergabe an die naechste Sitzung
 
-**Stand: 19.09.2026 abends, Fassung 2026-09-19-d, oeffentlich ausgeliefert.**
+**Stand: 19.09.2026 spaet abends, Fassung 2026-09-19-h, oeffentlich ausgeliefert.**
 
 Diese Datei ist so geschrieben, dass jemand ohne jede Vorgeschichte weiterarbeiten
 kann. Zuerst lesen, dann anfangen. Sie ist lang; die ersten fuenf Abschnitte
@@ -66,13 +66,14 @@ gh run list --limit 1
 curl -s "https://harryclaude-hub.github.io/kombi-exchange/fassung.json?t=$(date +%s%N)"
 ```
 
-**BEIDE Fassungskennungen hochsetzen**, sonst beanstandet es `werkzeug/pruefe.mjs`:
-`fassung.json` und `PROGRAMM_FASSUNG` in `daten/einstellungen.js`.
+**ALLE DREI Fassungskennungen hochsetzen**, sonst beanstandet es `werkzeug/pruefe.mjs`:
+`fassung.json`, `PROGRAMM_FASSUNG` in `daten/einstellungen.js` und
+`const FASSUNG` in `dienstarbeiter.js`.
 
 **Vor jedem Commit:**
 ```
-npm test                 (das sind 343 Faelle)
-node werkzeug/pruefe.mjs (119 Dateien)
+npm test                 (das sind 396 Faelle, 1 planmaessig uebersprungen)
+node werkzeug/pruefe.mjs (130 Dateien)
 ```
 
 **Und dann im Browser nachsehen.** Gruene Tests sind nicht fertig (Regel 2).
@@ -1616,7 +1617,61 @@ Und der Browserlauf hat einen Fehler gefunden, den kein Test hatte:
 
 ## Was am 19.09.2026 abends gebaut wurde
 
-Fassungen 2026-09-19-b bis -d, Commits `7f42cb2`, `afc0243` und der Design-Commit danach.
+Fassungen 2026-09-19-b bis -h, Commits `7f42cb2`, `afc0243` und die danach.
+
+### 3d. Die grosse Suche und das neue Panel der Uebersicht (Fassung -h)
+
+Karams Auftrag vom 19.09.2026 spaet abends, sein letzter vor dem
+API-Schluessel:
+
+- **Im linken Panel der Uebersicht stehen unter "Dieses Projekt" jetzt alle
+  Ordner des Projekts** (mit Kennfarbe und Anzahl, dazu "Ohne Ordner", sobald
+  es echte Ordner gibt). Ein Klick oeffnet den Ordner in den Riesenscheinen,
+  derselbe Zustand wie die Ordnerkachel dort.
+- **Das Pluszeichen im Panel legt einen ORDNER an, kein Foto mehr.** Karam:
+  "Fotos werden nur in Riesenscheine hinzugefuegt." Der Dialog fragt Name
+  (mit Symbolreihe) und, weil ein Ordner nur besteht, solange etwas darin
+  liegt, gleich mit, WAS hinein soll: ein bestehender Riesenschein oder ein
+  neuer leerer (der als Huelle entsteht und neue Fotos aufnimmt, das steht
+  im Fenster dabei). Danach steht man im frischen Ordner.
+- **Die grosse Suche auf der Uebersicht** (`kern/suche.js` rein und getestet,
+  `oberflaeche/suchdienst.js` beschafft, `ansicht_start.js` zeichnet):
+  findet Scheine, Riesenscheine und Ordner nach Name, Emoji, Quote (beide
+  Schreibweisen und amerikanisch), Datum (17.09.2026, 17.09., roh), Anbieter,
+  Scheinnummer, Konto, Einsatz (5481 und 5.481,00), Notiz und Auswahlen.
+  Jeder Treffer nennt Ort (Projekt > Ordner > Riesenschein) und Fundfeld,
+  ein Klick springt genau dorthin. Hoechstens 100 Zeilen, und wenn es mehr
+  Treffer gibt, steht das dabei.
+- **Ganz rechts die Bereichswahl**: dieses Projekt (mit Ordnerwahl bis
+  hinunter zu "Ohne Ordner"), ein bestimmtes anderes Projekt, oder alle
+  Projekte. Fremde Projekte werden NUR auf den Knopf "Suchen" gelesen (reine
+  Lesewege, nie schreibend), danach tippt man live gegen den Schnappschuss;
+  "Neu laden" holt frisch. Was sich nicht laden liess, steht namentlich als
+  Fehler da. Ein Treffer aus einem fremden Projekt wechselt das Projekt
+  ueber dasselbe Ereignis wie die Ablage (`kombi-projekt-oeffnen`) und
+  oeffnet dann die Stelle.
+- Der Suchtext der grossen Suche ist ABSICHTLICH ein eigenes Feld
+  (`startsuche`), nicht `suche`: die kleine Suche filtert die
+  Riesenschein-Uebersicht, und ein geteiltes Feld risse beim Tippen auf der
+  Startseite die andere Ansicht mit um.
+- `ausDatenbankRiesenschein` ist dafuer als `riesenscheinAusZeile` nach
+  `daten/datenbank.js` umgezogen (eine Stelle statt zwei, Projektregel 8).
+- Gemessen: 12 neue Faelle in `test/suche.test.mjs` (396 gesamt, 395 gruen,
+  1 planmaessig uebersprungen), 130 Dateien ohne Beanstandung, Kontrast
+  ueber alle vier Durchgaenge 11130 Stellen ohne Beanstandung (die neuen
+  Suchbauteile stehen auf `werkzeug/probe/zustaende.html`), Ueberlauf bei
+  375 Pixeln null. Im Browser an der Probeseite durchgespielt: Live-Suche
+  mit Fokus-Erhalt, Quote 1,64 mit 7 Treffern, Emoji-Suche, Ordner
+  angelegt (mit Symbol und bestehendem Riesenschein), Panel-Ordnerliste,
+  Ordner-Eingrenzung (im Ordner nach 1,64: nichts; nach 50: genau der eine
+  Schein), Trefferklicks bis Ebene 3 und der Fernsuch-Weg samt ehrlicher
+  Fehlermeldung.
+
+**Was davon nur Karam beweisen kann:** die Fernsuche gegen die ECHTEN
+Projekte und der Projektwechsel per Treffer brauchen seine Anmeldung; die
+Probeseite ist absichtlich abgemeldet und kann nichts speichern. Genauso der
+erste "Neuer Ordner" am echten Bestand (der Speicherweg dahinter,
+`setzeOrdner` und die Huelle, ist derselbe wie bisher).
 
 ### 1. Die Fehlersuche vom 17.09. komplett abgearbeitet
 
@@ -2486,6 +2541,13 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
    gefaelschten Bildschirmstrom durchgemessen, aber noch nie von ihm an seinen
    drei Monitoren mit einem echten Buchmacherfenster benutzt. Was dabei
    auffaellt, gehoert als Erstes behoben.
+
+0d. **Karam prueft die grosse Suche am echten Bestand** (Fassung -h): die
+   Fernsuche ueber "Alle Projekte" samt Projektwechsel per Treffer und der
+   erste "Neuer Ordner" ueber das Panel-Plus. Beides ist an der abgemeldeten
+   Probeseite durchgespielt (die nichts speichern kann); die echten Wege
+   brauchen seine Anmeldung. Details im Abschnitt "Was am 19.09.2026 abends
+   gebaut wurde", Punkt 3d.
 
 0c. **Kombi Tafel steht offen, und Karam hat noch nicht entschieden.**
    `kt_wetten` (648 Zeilen), `kt_saetze` (23) und `kt_profilfoto` sind mit dem

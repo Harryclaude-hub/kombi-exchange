@@ -51,6 +51,10 @@ import * as Ordner from './ordner.js'
  * @property {string|null} scheinAuswahl
  * @property {string|null} ordnerFilter
  * @property {string} suche
+ * @property {string} startsuche
+ * @property {string|null} sucheProjekt
+ * @property {string} sucheOrdner
+ * @property {{stand: 'laedt'|'fertig', schluessel: string, bestaende: any[], fehler: string[]}|null} fernBestaende
  * @property {boolean|null} ordnerGeteilt
  * @property {'neueste'|'alphabetisch'|'meisteGeld'|'wenigsteGeld'|'zuletztGeoeffnet'} sortierung
  * @property {{id: string, name: string, ordner?: string}|null} huelle
@@ -131,6 +135,31 @@ const stand = {
     die Mitte dieselben Treffer zeigen muessen (Projektregel 8).
   */
   suche: '',
+  /*
+    DIE GROSSE SUCHE AUF DER UEBERSICHT, seit dem 19.09.2026.
+
+    Karam: "da kann ich nach Quoten, nach Datum, nach Name, nach Emoji suchen,
+    nach den Scheinen und nach den Ordnern. Ganz rechts kann ich mir den
+    Ordner und das Projekt aussuchen, oder ich suche ohne Ordner und ohne
+    Projekt: er sucht im ganzen Programm."
+
+    startsuche ist der Suchtext. Er ist bewusst NICHT dasselbe Feld wie
+    suche: die kleine Suche filtert die Riesenschein-Uebersicht, die grosse
+    findet auch Scheine, Ordner und fremde Projekte. Teilten sie ein Feld,
+    risse jeder Tipp auf der Startseite die Riesenschein-Ansicht mit um.
+
+    sucheProjekt: null heisst dieses Projekt, '*' heisst alle Projekte,
+    sonst die Kennung eines bestimmten. sucheOrdner: leer heisst alle Ordner.
+
+    fernBestaende sind die zuletzt geladenen Daten FREMDER Projekte, als
+    Schnappschuss mit dem Bereichsschluessel, zu dem sie gehoeren. Getippt
+    wird dann live gegen den Schnappschuss; neu geladen wird erst, wenn
+    Karam wieder auf Suchen drueckt. null heisst: noch nichts geladen.
+  */
+  startsuche: '',
+  sucheProjekt: null,
+  sucheOrdner: '',
+  fernBestaende: null,
   /*
     OB DIE ORDNER WIRKLICH GETEILT WERDEN.
 
