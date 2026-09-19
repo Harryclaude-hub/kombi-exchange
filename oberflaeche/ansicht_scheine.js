@@ -173,12 +173,43 @@ function resttopf(stand) {
             ? el('button.knopf.knopf-klein', {
                 type: 'button',
                 text: 'trotzdem mitzählen',
-                onclick: () => {
-                  Zustand.setzeFeld(r.scheinId, 'scheinNr', `${schein.scheinNr.wert ?? ''}-b`)
-                  Zustand.melde(
-                    'info',
-                    'Die Scheinnummer wurde ergänzt, damit der Schein als eigener Schein zählt.'
-                  )
+                title:
+                  'Nimmt den Schein aus dem Resttopf heraus, damit sein Einsatz wieder in den Summen steht.',
+                onclick: async () => {
+                  /*
+                    C1 der Fehlersuche vom 17.09.2026: dieser Knopf haengte
+                    "-b" an die Scheinnummer und meldete Erfolg. Der Schein
+                    blieb im Resttopf, zaehlte in keine Summe, und die Nummer
+                    war jetzt auch noch falsch: der haeufigste Grund im
+                    Resttopf ist "keine Auswahl erkannt", und daran aendert
+                    eine andere Nummer nichts.
+
+                    In den Resttopf kommt, was die Automatik keiner Wette
+                    zuordnen kann. "Trotzdem mitzaehlen" heisst deshalb: der
+                    Mensch entscheidet, und der Schein bekommt seinen EIGENEN
+                    Riesenschein (Handgruppe, wird nie wieder aufgebrochen),
+                    genau wie ueber die Spalte "Riesenschein". War der Schein
+                    ausgeschlossen, wird der Ausschluss aufgehoben, denn das
+                    war der Grund.
+                  */
+                  const ja = await Dialog.bestaetige({
+                    titel: 'Diesen Schein trotzdem mitzählen?',
+                    punkte: [
+                      `Grund im Resttopf: ${r.grund}`,
+                      schein.ausgeschlossen
+                        ? 'Der Ausschluss wird aufgehoben, der Schein zählt wieder in allen Summen.'
+                        : 'Der Schein bekommt einen eigenen Riesenschein und zählt damit in allen Summen.',
+                      'Wenn der Schein wirklich doppelt erfasst ist, zählt sein Einsatz danach doppelt. Dann besser das doppelte Foto löschen.',
+                    ],
+                    ja: 'Mitzählen',
+                  })
+                  if (!ja) return
+                  if (schein.ausgeschlossen) {
+                    Zustand.setzeFeld(r.scheinId, 'ausgeschlossen', false)
+                    Zustand.melde('erfolg', 'Der Ausschluss ist aufgehoben, der Schein zählt wieder mit.')
+                  } else {
+                    Zustand.neuerRiesenschein(r.scheinId)
+                  }
                 },
               })
             : null,

@@ -62,7 +62,7 @@
   drei bei jedem Durchlauf, damit sie nicht auseinanderlaufen.
 */
 
-const FASSUNG = '2026-09-19-a'
+const FASSUNG = '2026-09-19-b'
 const SPEICHER = `kombi-${FASSUNG}`
 
 /*

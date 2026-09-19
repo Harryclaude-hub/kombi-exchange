@@ -127,13 +127,56 @@ function fehlerVon(fehler) {
 }
 
 /**
- * Legt ein Bild ab.
+ * Legt ein Bild ab, samt allem, was der Mensch daran eingestellt hat.
  *
- * @param {{id: string, projektId: string, dateiname: string, pruefsumme: string, breite: number, hoehe: number, inhalt: Blob}} bild
+ * B5 der Fehlersuche vom 17.09.2026: abgelegt wurden nur Datei, Masse und
+ * Pruefsumme. Kartengrenzen, der gezogene Rahmen und der von Hand gesetzte
+ * Anbieter lebten allein im Arbeitsstand. Nach einem Neuladen stand bei jedem
+ * Bild "0 Scheine erkannt", und ohne die Grenzen liess sich aus dem Foto
+ * nichts mehr lesen. Deshalb wandern diese Angaben jetzt MIT dem Bild in die
+ * Ablage und kommen in oberflaeche/app.js wieder heraus.
+ *
+ * @param {{id: string, projektId: string, dateiname: string, pruefsumme: string, breite: number, hoehe: number, inhalt: Blob, karten?: import('../kern/typen.js').Rechteck[], hinweise?: string[], bereich?: import('../kern/typen.js').Rechteck|null, buchmacher?: any, konto?: any}} bild
  * @returns {Promise<void>}
  */
 export async function legeBildAb(bild) {
   await imLager(LAGER_BILDER, 'readwrite', (lager) => lager.put(bild))
+}
+
+/**
+ * Traegt geaenderte Angaben an einem schon abgelegten Bild nach.
+ *
+ * Lesen und Schreiben laufen in EINEM Vorgang, damit ein zweites Fenster
+ * nicht dazwischenschreibt, und die Datei selbst wird nicht angefasst.
+ *
+ * Gibt es das Bild im Browser nicht (der Speicher war beim Hochladen voll,
+ * das Foto liegt nur im Plattenordner), kommt false zurueck. Die laute
+ * Meldung dazu gab es schon beim Hochladen; die Aufrufer warnen deshalb
+ * hoechstens einmal je Sitzung, statt bei jedem Handgriff.
+ *
+ * @param {string} id
+ * @param {Partial<{karten: import('../kern/typen.js').Rechteck[], hinweise: string[], bereich: import('../kern/typen.js').Rechteck|null, buchmacher: any, konto: any}>} angaben
+ * @returns {Promise<boolean>} ob es das Bild gab und nachgetragen wurde
+ */
+export async function aktualisiereBildAngaben(id, angaben) {
+  const db = await oeffne()
+  return new Promise((erfuellen, ablehnen) => {
+    const vorgang = db.transaction(LAGER_BILDER, 'readwrite')
+    const lager = vorgang.objectStore(LAGER_BILDER)
+    const anfrage = lager.get(id)
+    let gefunden = false
+
+    anfrage.onsuccess = () => {
+      const eintrag = anfrage.result
+      if (!eintrag) return
+      gefunden = true
+      lager.put({ ...eintrag, ...angaben })
+    }
+    // Der Abschluss zaehlt, nicht die einzelne Anfrage. Siehe imLager.
+    vorgang.oncomplete = () => erfuellen(gefunden)
+    vorgang.onerror = () => ablehnen(fehlerVon(vorgang.error))
+    vorgang.onabort = () => ablehnen(fehlerVon(vorgang.error))
+  })
 }
 
 /**

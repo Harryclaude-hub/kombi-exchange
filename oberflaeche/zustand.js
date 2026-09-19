@@ -371,8 +371,14 @@ export function setzeOrdner(riesenscheinId, ordner) {
 
 /**
  * Schliesst die offene Huelle. Neue Scheine werden danach wieder automatisch
- * zugeordnet. Hat die Huelle schon Scheine, bleibt sie als Riesenschein
- * bestehen, sie nimmt nur nichts Neues mehr auf.
+ * zugeordnet.
+ *
+ * Der Riesenschein selbst BLEIBT, auch wenn er noch leer ist (B4): er wurde
+ * bewusst angelegt und meist benannt, und die Datenbank kennt kein Loeschen
+ * einzelner Riesenscheine. Wuerde er hier oertlich verworfen, kaeme er beim
+ * naechsten Laden aus der Datenbank zurueck, und ein Ding, das mal weg ist
+ * und mal wieder da, ist schlimmer als eines, das sichtbar stehen bleibt
+ * (Projektregel 9).
  */
 export function schliesseHuelle() {
   if (!stand.huelle) return
@@ -496,6 +502,32 @@ export function ordneNeu(scheine) {
       geaendertAm: jetzt(),
     }
   })
+
+  /*
+    JEDER BEWUSST LEER ANGELEGTE RIESENSCHEIN UEBERLEBT DAS NEUORDNEN.
+
+    B4 der Fehlersuche vom 17.09.2026: gruppiere() baut die Liste vollstaendig
+    aus den Scheinen, ein Riesenschein ohne Scheine kommt darin nie vor. Wer
+    "Neuer Riesenschein" drueckte, ihn benannte und dann den naechsten anlegte
+    oder neu lud, fand ihn nicht wieder: Name weg, Ordner weg, ohne Meldung.
+
+    Zurueckgeholt wird NUR, was schon vorher leer war, also mit leerer
+    scheinIds-Liste im alten Stand oder in der Datenbank stand. Eine Gruppe,
+    deren Scheine geloescht wurden, hatte Kennungen in scheinIds und faellt
+    weiterhin heraus, sonst kaeme jeder geloeschte Riesenschein wieder.
+
+    Die gerade offene Huelle wird hier uebersprungen: sie bekommt gleich
+    darunter ihren Platz GANZ VORNE, weil an ihr gearbeitet wird.
+  */
+  {
+    const schonDrin = new Set(riesenscheine.map((r) => r.id))
+    for (const alt of stand.riesenscheine) {
+      if (alt.scheinIds.length !== 0) continue
+      if (alt.id === stand.huelle?.id) continue
+      if (schonDrin.has(alt.id)) continue
+      riesenscheine.push(alt)
+    }
+  }
 
   /*
     DIE LEERE HUELLE UEBERLEBT DAS NEUORDNEN.
@@ -626,10 +658,9 @@ export function rechnungVon(riesenscheinId) {
 export function setzeFeld(scheinId, feldname, wert) {
   const scheine = stand.scheine.map((schein) => {
     if (schein.id !== scheinId) return schein
+    if (feldname === 'status') return mitNeuemStatus(schein, wert)
     const kopie = { ...schein, geaendertAm: jetzt(), vonHand: true }
-    if (feldname === 'status') {
-      kopie.status = wert
-    } else if (feldname === 'gratiswette' || feldname === 'eachWay' || feldname === 'ausgeschlossen') {
+    if (feldname === 'gratiswette' || feldname === 'eachWay' || feldname === 'ausgeschlossen') {
       /** @type {any} */ (kopie)[feldname] = Boolean(wert)
     } else {
       /** @type {any} */ (kopie)[feldname] = {
@@ -642,6 +673,40 @@ export function setzeFeld(scheinId, feldname, wert) {
     return kopie
   })
   ordneNeu(scheine)
+}
+
+/**
+ * Setzt den Stand eines Scheins von Hand und raeumt weg, was nur fuer den
+ * ALTEN Stand galt.
+ *
+ * DER FUND (A1 der Fehlersuche vom 17.09.2026): ein als verloren gelesener
+ * Schein traegt ausgezahlt = 0 aus dem Parser. Wer ihn danach auf "Gewonnen"
+ * stellte, behielt die Null: kern/rechnung.js sah einen BEKANNTEN Rueckfluss
+ * von null Euro, der Knopf versprach 1.800,00 und heraus kamen 900,00, ohne
+ * jede Meldung. Und weil die Null als bekannt galt, schwieg ausgerechnet der
+ * Hinweis realisiert_unklar.
+ *
+ * ausgezahlt gehoert zu dem Stand, unter dem es bestimmt wurde. Wechselt der
+ * Stand von Hand, wird ein NICHT von Hand eingetragener Betrag deshalb
+ * geleert, und kern/rechnung.js rechnet aus dem neuen Stand frisch: verloren
+ * gibt 0, gewonnen Einsatz mal Quote, cashout eine sichtbare Warnung statt
+ * einer Zahl. Nur eine Handeingabe bleibt stehen, die wird nie ueberschrieben.
+ *
+ * @param {import('../kern/typen.js').Schein} schein
+ * @param {import('../kern/typen.js').Status} status
+ * @returns {import('../kern/typen.js').Schein}
+ */
+function mitNeuemStatus(schein, status) {
+  const kopie = { ...schein, status, geaendertAm: jetzt(), vonHand: true }
+  if (schein.status !== status && schein.ausgezahlt?.quelle !== 'hand') {
+    kopie.ausgezahlt = {
+      wert: null,
+      sicherheit: 0,
+      quelle: 'vorgabe',
+      roh: schein.ausgezahlt?.roh ?? '',
+    }
+  }
+  return kopie
 }
 
 /**
@@ -690,7 +755,7 @@ export function setzeAusgangFuerRiesenschein(riesenscheinId, status) {
     if (!gehoertDazu.has(schein.id)) return schein
     if (schein.status === status) return schein
     geaendert += 1
-    return { ...schein, status, geaendertAm: jetzt(), vonHand: true }
+    return mitNeuemStatus(schein, status)
   })
 
   if (geaendert > 0) ordneNeu(scheine)

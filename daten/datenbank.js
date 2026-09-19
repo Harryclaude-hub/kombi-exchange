@@ -360,11 +360,33 @@ export async function speichereScheine(token, projektId, scheine, fassung = null
     }
     // Jedes Haeppchen zaehlt die Fassung hoch. Die neue muss ins naechste,
     // sonst laeuft der eigene Speichervorgang gegen sich selbst.
-    stand = zahlOderNull(antwort.daten?.fassung)
+    stand = fassungAus(antwort.daten?.fassung)
     gesamt += Number(antwort.daten?.anzahl ?? teil.length)
   }
 
   return { gelungen: true, anzahl: gesamt, fassung: stand, widerspruch: false, meldung: '' }
+}
+
+/**
+ * Liest die Fassung aus einer Antwort. Alles Unlesbare wird null, nie 0:
+ * eine geratene Fassung wuerde beim naechsten Speichern einen Widerspruch
+ * ausloesen, der keiner ist.
+ *
+ * GEFUNDEN AM 19.09.2026: hier stand ein Aufruf von zahlOderNull, und diese
+ * Funktion gibt es in dieser Datei gar nicht (sie ist eine PRIVATE Funktion
+ * von kern/quoten.js). Das Speichern warf deshalb nach dem ersten
+ * erfolgreichen Haeppchen einen ReferenceError, der im verzoegert-Wecker als
+ * unbehandelte Ablehnung verschwand: das Haeppchen lag in der Datenbank, das
+ * Programm behielt die alte Fassung, und jeder weitere Lauf waere als
+ * "zweites Fenster" abgelehnt worden. test/datenbank_speichern.test.mjs
+ * stellt genau das nach.
+ *
+ * @param {unknown} wert
+ * @returns {number|null}
+ */
+function fassungAus(wert) {
+  const zahl = Number(wert)
+  return Number.isFinite(zahl) ? zahl : null
 }
 
 /**

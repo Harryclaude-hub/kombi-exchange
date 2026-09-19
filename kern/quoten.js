@@ -465,7 +465,13 @@ export function versoehne(eingabe) {
   }
 
   if (dezimal !== null && amerikanisch === null) {
-    amerikanisch = dezimalNachAmerikanisch(dezimal)
+    // Hier entsteht der ANZEIGEwert fuer den Schein, nicht eine Rechengroesse:
+    // gerechnet wird ueberall mit der Dezimalquote. Buchmacher runden die
+    // amerikanische Anzeige gegen den Wettenden (1,64 wird -157, nicht -156),
+    // und genau das soll auch hier stehen, sonst passt der Wert im Programm
+    // nie zu dem auf dem Bildschirm des Anbieters. Fund E der Fehlersuche vom
+    // 17.09.2026: anzeigeAmerikanisch war fertig gebaut und nie angeschlossen.
+    amerikanisch = anzeigeAmerikanisch(dezimal)
   }
 
   // Geldbetraege auf ganze Cent bringen, und zwar genau einmal, hier am Ausgang.

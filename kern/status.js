@@ -103,16 +103,28 @@ export function erwarteterRueckfluss(status, einsatz, dezimal, einsatzWirdZuruec
       if (dezimal === null || !Number.isFinite(dezimal)) {
         return { wert: null, bekannt: false, grund: 'Halb gewonnen, aber keine Quote bekannt.' }
       }
-      // Halber Einsatz kommt zurueck, halber Einsatz gewinnt.
-      return {
-        wert: einsatz / 2 + (einsatz / 2) * dezimal,
-        bekannt: true,
-        grund: 'Halber Einsatz zurück, halber Einsatz gewonnen.',
-      }
+      // Halber Einsatz kommt zurueck, halber Einsatz gewinnt. Bei einer
+      // Gratiswette war der Einsatz nie eigenes Geld (A3 der Fehlersuche vom
+      // 17.09.2026): zurueck kommt nur der Gewinn der gewonnenen Haelfte.
+      return einsatzWirdZurueckgezahlt
+        ? {
+            wert: einsatz / 2 + (einsatz / 2) * dezimal,
+            bekannt: true,
+            grund: 'Halber Einsatz zurück, halber Einsatz gewonnen.',
+          }
+        : {
+            wert: (einsatz / 2) * (dezimal - 1),
+            bekannt: true,
+            grund: 'Gratiswette: nur der Gewinn der gewonnenen Hälfte.',
+          }
     }
 
     case 'halb_verloren':
-      return { wert: einsatz / 2, bekannt: true, grund: 'Halber Einsatz zurück.' }
+      // Auch hier: die zurueckgegebene Haelfte einer Gratiswette war nie
+      // eigenes Geld und darf nicht als Rueckfluss zaehlen (A3).
+      return einsatzWirdZurueckgezahlt
+        ? { wert: einsatz / 2, bekannt: true, grund: 'Halber Einsatz zurück.' }
+        : { wert: 0, bekannt: true, grund: 'Gratiswette: die halbe Rückgabe war nie eigenes Geld.' }
 
     case 'cashout':
       return {

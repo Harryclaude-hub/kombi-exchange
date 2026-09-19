@@ -100,7 +100,13 @@ function ablegeflaeche() {
       onclick: (e) => {
         // Ein Klick auf einen der Knoepfe darf nicht zusaetzlich den
         // Dateidialog aufreissen.
-        if (/** @type {HTMLElement} */ (e.target).closest('.aufnahmeknopf')) return
+        //
+        // C6 der Fehlersuche vom 17.09.2026: hier stand '.aufnahmeknopf', und
+        // diese Klasse gibt es seit fotoknoepfe.js in keiner .js-Datei mehr.
+        // Der Schutz griff nie, und der Dateiwaehler der Knopfreihe riss
+        // zusaetzlich den zweiten Dateiwaehler der Flaeche auf. Geschuetzt
+        // wird jetzt die ganze Knopfreihe ueber ihre echte Huelle.
+        if (/** @type {HTMLElement} */ (e.target).closest('.fotoknoepfe')) return
         eingabe.click()
       },
     },

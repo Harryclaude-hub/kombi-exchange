@@ -106,27 +106,11 @@ export function formatiereQuote(dezimal, art = 'dezimal', gebiet = 'de') {
   }).format(runde(dezimal, 2))
 }
 
-/**
- * Das Zahlenformat fuer Excel je Waehrung.
- * Excel braucht das Format als Zeichenkette, damit die Zelle eine echte Zahl bleibt
- * und nicht als Text abgelegt wird.
- *
- * @param {Waehrung} waehrung
- * @param {'de'|'en'} [gebiet]
- * @returns {string}
- */
-export function excelFormat(waehrung, gebiet = 'de') {
-  const grund = gebiet === 'de' ? '#,##0.00' : '#,##0.00'
-  switch (waehrung) {
-    case 'USD':
-      return gebiet === 'de' ? `${grund} "$"` : `"$"${grund}`
-    case 'EUR':
-      return gebiet === 'de' ? `${grund} "€"` : `"€"${grund}`
-    case 'GBP':
-      return gebiet === 'de' ? `${grund} "£"` : `"£"${grund}`
-    case 'CHF':
-      return `${grund} "CHF"`
-    default:
-      return grund
-  }
-}
+/*
+  Hier stand excelFormat(), eine zweite Fassung der Excel-Zahlenformate.
+
+  GELOESCHT am 19.09.2026 (Fund E der Fehlersuche vom 17.09.2026): kein
+  Aufrufer, und sie wich schon von den wirklich benutzten Formaten ab. Die
+  Excel-Formate leben an genau EINER Stelle, in FORMAT oben in
+  ausgabe/excel.js (Projektregel 8). Wer hier eines braucht, nimmt das dort.
+*/

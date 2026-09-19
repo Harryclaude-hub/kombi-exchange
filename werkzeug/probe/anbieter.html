@@ -51,7 +51,7 @@
     <div id="proben"></div>
 
     <script type="module">
-      import { zerlege } from '../../bild/segmentierung.js'
+      import { zerlege, findeSpalten } from '../../bild/segmentierung.js'
       import { ladeBild, bereiteVor } from '../../bild/vorverarbeitung.js'
       import { starteLeser } from '../../lesen/ocr.js'
       import { leseSchein } from '../../kern/parser.js'
@@ -115,8 +115,13 @@
         {
           name: 'Stake, vier Karten in ZWEI Spalten',
           hinweis:
-            'Bekannte Luecke: die Zerlegung trennt die zwei Spalten noch nicht. ' +
-            'Erwartet werden deshalb weniger Karten als Wetten.',
+            'Seit dem 19.09.2026 laeuft diese Seite denselben Weg wie das Programm: ' +
+            'findeSpalten, dann zerlege je Spalte (Fund E der Fehlersuche). ' +
+            'GEMESSEN: an DIESEM Nachbau trennt findeSpalten die zwei Spalten nicht. ' +
+            'Die Doppelspalte faellt dafuer LAUT auf (zwei_karten_in_einer), nichts ' +
+            'geht still in eine Summe. Ob die Trennung an echten Stake-Fotos greift, ' +
+            'entscheiden echte Pixel in .arbeit/fotos/; am Nachbau wird nicht ' +
+            'geschraubt (siehe bild/segmentierung.js).',
           umgebung: STAKE,
           bauen: () =>
             baueStake({
@@ -127,7 +132,14 @@
                 { quote: 1.69, einsatz: 2165, auszahlung: 3660.804995, gewonnen: true },
               ],
             }),
-          soll: null,
+          // Reihenfolge nach dem Spaltensplit: erst die linke Spalte von oben
+          // nach unten, dann die rechte (sortiert nach x, dann y).
+          soll: [
+            { einsatz: 5000, auszahlung: 9175.9955 },
+            { einsatz: 5100, auszahlung: 5151 },
+            { einsatz: 2000 },
+            { einsatz: 2165, auszahlung: 3660.804995 },
+          ],
         },
         {
           name: 'BetOnline, drei Karten, amerikanische Quoten',
@@ -177,7 +189,30 @@
         for (const fall of faelle) {
           const leinwand = fall.bauen()
           const bild = await alsBild(leinwand)
-          const zerlegt = zerlege(bild)
+
+          // DERSELBE Weg wie im Programm (oberflaeche/aufnahme.js): erst die
+          // Spalten suchen, dann jede Spalte einzeln zerlegen, dann nach x und
+          // y ordnen. Vorher rief die Seite zerlege() direkt und lief damit an
+          // der Spaltentrennung vorbei, die das Programm laengst hat.
+          const spalten = findeSpalten(bild, {
+            x: 0,
+            y: 0,
+            breite: bild.naturalWidth,
+            hoehe: bild.naturalHeight,
+          })
+          const karten = []
+          const zerlegeHinweise = []
+          for (const spalte of spalten) {
+            const teil = zerlege(bild, {
+              bereich: { x: spalte.von, y: 0, breite: spalte.bis - spalte.von, hoehe: bild.naturalHeight },
+            })
+            karten.push(...teil.karten)
+            zerlegeHinweise.push(...teil.hinweise)
+          }
+          const zerlegt = {
+            karten: karten.sort((a, b) => a.x - b.x || a.y - b.y),
+            hinweise: zerlegeHinweise,
+          }
 
           const kasten = document.createElement('div')
           kasten.className = 'probe'

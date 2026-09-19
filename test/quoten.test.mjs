@@ -224,3 +224,23 @@ test('nahBei arbeitet mit absoluter und relativer Grenze', () => {
   assert.equal(nahBei(100, 100.5, 0.02, 0), false)
   assert.equal(nahBei(1000, 1001, 0.02, 0.002), true)
 })
+
+test('die abgeleitete amerikanische Quote rundet wie der Buchmacher, nicht kaufmaennisch', () => {
+  /*
+    Fund E der Fehlersuche vom 17.09.2026: anzeigeAmerikanisch war fertig
+    gebaut und nie angeschlossen. Aus Dezimalquote 1,64 wurde deshalb -156
+    (kaufmaennisch) statt der -157, die BetOnline wirklich anzeigt, und
+    kern/typen.js behauptete das Gegenteil. Der Wert ist reine ANZEIGE:
+    gerechnet wird ueberall mit der Dezimalquote.
+
+    Der Fall ist Karams echter BetOnline-Schein: 181 Einsatz, 296,84 Returns,
+    also genau 1,64. Der Schirm des Anbieters zeigt -157.
+  */
+  const v = versoehne({ einsatz: 181, auszahlung: 296.84, status: 'gewonnen' })
+  gleich(v.dezimal, 1.64, 6)
+  assert.equal(v.amerikanisch, -157)
+
+  // Eine GELESENE amerikanische Quote bleibt, wie sie gelesen wurde.
+  const gelesen = versoehne({ einsatz: 100, amerikanisch: -115, status: 'offen' })
+  assert.equal(gelesen.amerikanisch, -115)
+})

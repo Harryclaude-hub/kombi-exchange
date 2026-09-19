@@ -78,9 +78,27 @@ export function realisierterRueckfluss(schein) {
   if (schein.ausgezahlt.wert !== null && Number.isFinite(schein.ausgezahlt.wert)) {
     return { wert: schein.ausgezahlt.wert, bekannt: true, grund: 'Aus dem Bild gelesen.' }
   }
+  /*
+    EACH WAY VOR DER RECHNUNG VERDOPPELN, nicht danach.
+
+    A2 der Fehlersuche vom 17.09.2026: offenePotenzialauszahlung verdoppelte
+    bei Each Way, erwarteterRueckfluss kannte Each Way nicht. Einsatz 1000 zu
+    Quote 2,0: offen standen 4.000 da, nach dem Umstellen auf gewonnen kamen
+    2.000, und der Gewinn von 2.000 verschwand beim Klick. Beide Seiten waren
+    in sich stimmig, deshalb schlug keine Gegenprobe an.
+
+    Der Aufwand wird oben in barEinsatz schon verdoppelt (der angezeigte
+    Einsatz wird doppelt abgebucht). Also bekommt auch der Rueckfluss den
+    doppelten Einsatz: jede Formel in erwarteterRueckfluss ist linear im
+    Einsatz, damit stimmen gewonnen, push, storniert und die halben Ausgaenge
+    alle im selben Verhaeltnis.
+  */
+  const einsatz = schein.einsatz.wert
+  const effektiverEinsatz =
+    einsatz !== null && Number.isFinite(einsatz) && schein.eachWay ? einsatz * 2 : einsatz
   return erwarteterRueckfluss(
     schein.status,
-    schein.einsatz.wert,
+    effektiverEinsatz,
     schein.quoteDezimal.wert,
     !schein.gratiswette
   )
@@ -170,16 +188,25 @@ export function rechne(scheine) {
   }
 
   // ---- Waehrung. Es wird niemals ueber Waehrungen hinweg summiert. ----
+  //
+  // A6 der Fehlersuche vom 17.09.2026: genau unter dieser Ueberschrift wurde
+  // UNBEKANNT aus der Menge herausgefiltert. Damit galt der Bestand als
+  // einwaehrig, und ein Schein OHNE erkannte Waehrung zaehlte stillschweigend
+  // in die Summe der anderen. Ob seine Zahl EUR oder USD ist, weiss aber
+  // niemand. Jetzt gilt: steht ein Schein ohne Waehrung neben Scheinen mit
+  // einer, ist der Bestand gemischt, mit eigenem Hinweis. Nur ein Bestand,
+  // der GANZ ohne erkannte Waehrung ist, bleibt in sich stimmig.
   const waehrungen = new Set(
     gueltige.map((s) => s.waehrung.wert ?? 'UNBEKANNT').filter((w) => w !== 'UNBEKANNT')
   )
-  const waehrungGemischt = waehrungen.size > 1
+  const ohneWaehrung = gueltige.filter((s) => (s.waehrung.wert ?? 'UNBEKANNT') === 'UNBEKANNT')
+  const waehrungGemischt = waehrungen.size > 1 || (waehrungen.size >= 1 && ohneWaehrung.length > 0)
   /** @type {import('./typen.js').Waehrung} */
   const waehrung = waehrungGemischt
     ? 'UNBEKANNT'
     : /** @type {import('./typen.js').Waehrung} */ ([...waehrungen][0] ?? 'UNBEKANNT')
 
-  if (waehrungGemischt) {
+  if (waehrungen.size > 1) {
     hinweise.push({
       code: 'waehrung_gemischt',
       schwere: 'fehler',
@@ -188,6 +215,17 @@ export function rechne(scheine) {
         `Dieser Riesenschein enthaelt ${waehrungen.size} verschiedene Währungen ` +
         `(${[...waehrungen].join(', ')}). Die Summen darunter sind deshalb nicht aussagekräftig. ` +
         'Bitte die Scheine nach Währung trennen.',
+    })
+  }
+  if (waehrungen.size >= 1 && ohneWaehrung.length > 0) {
+    hinweise.push({
+      code: 'waehrung_unbekannt',
+      schwere: 'fehler',
+      feld: 'waehrung',
+      text:
+        `${ohneWaehrung.length} Schein(e) haben keine erkannte Währung und stehen neben ` +
+        `Scheinen in ${[...waehrungen].join(' und ')}. Ob es dieselbe Währung ist, weiß niemand, ` +
+        'deshalb sind die Summen nicht aussagekräftig. Bitte die Währung von Hand setzen.',
     })
   }
 

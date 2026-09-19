@@ -1,4 +1,4 @@
-// @ts-check
+﻿// @ts-check
 /**
  * Fotos hinzufuegen, von ueberall aus.
  *
@@ -22,7 +22,10 @@
 
 import { el } from './werkzeug.js'
 import * as Zustand from './zustand.js'
-import { nimmAuf } from './aufnahme.js'
+// nimmAufUndLiesSofort statt nimmAuf: ausserhalb des Reiters Aufnahme wird
+// sofort gelesen, sonst tat der Knopf sichtbar nichts (C2, Fehlersuche vom
+// 17.09.2026). Im Reiter Aufnahme bleibt der Ablauf mit "Jetzt lesen".
+import { nimmAufUndLiesSofort } from './aufnahme.js'
 import {
   kannBildschirmAufnehmen,
   kannZwischenablageLesen,
@@ -78,7 +81,7 @@ export async function bildschirmAusschneiden() {
       dateien.push(await alsDatei(ausschnitte[i], `schnipsel-${String(i + 1).padStart(2, '0')}`))
     }
 
-    await nimmAuf(dateien)
+    await nimmAufUndLiesSofort(dateien)
   } catch (fehler) {
     // Ein Abbruch im Auswahlfenster des Browsers ist kein Fehler, sondern eine
     // Entscheidung. Er darf deshalb nicht rot gemeldet werden.
@@ -108,7 +111,7 @@ export async function ausZwischenablageHolen() {
       Zustand.melde('info', 'Bild verworfen.')
       return
     }
-    await nimmAuf([await alsDatei(ausschnitt, 'zwischenablage')])
+    await nimmAufUndLiesSofort([await alsDatei(ausschnitt, 'zwischenablage')])
   } catch (fehler) {
     Zustand.melde(
       'fehler',
@@ -144,7 +147,7 @@ export function fotoknoepfe(einstellungen = {}) {
     multiple: 'multiple',
     onchange: async (e) => {
       const ziel = /** @type {HTMLInputElement} */ (e.target)
-      if (ziel.files && ziel.files.length > 0) await nimmAuf(ziel.files)
+      if (ziel.files && ziel.files.length > 0) await nimmAufUndLiesSofort(ziel.files)
       // Zuruecksetzen, sonst laesst sich dieselbe Datei nicht zweimal waehlen.
       ziel.value = ''
     },

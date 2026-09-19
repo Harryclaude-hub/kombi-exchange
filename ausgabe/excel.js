@@ -16,7 +16,7 @@
 
 import { formatiere } from '../kern/geld.js'
 import { runde } from '../kern/zahlen.js'
-import { barEinsatz, realisierterRueckfluss, offenePotenzialauszahlung } from '../kern/rechnung.js'
+import { barEinsatz, realisierterRueckfluss } from '../kern/rechnung.js'
 import { istEntschieden } from '../kern/status.js'
 import { statusText } from '../bild/mosaik.js'
 
@@ -182,7 +182,6 @@ function baueScheineBlatt(mappe, eintraege, gebiet) {
 
     const aufwand = runde(barEinsatz(s), 2)
     const rueckfluss = realisierterRueckfluss(s)
-    const potenzial = offenePotenzialauszahlung(s)
 
     const zeile = blatt.addRow({
       nr,
@@ -239,9 +238,13 @@ function baueScheineBlatt(mappe, eintraege, gebiet) {
         formula: `Q${zeilennummer}-J${zeilennummer}`,
         result: runde(rueckfluss.wert - aufwand, 2),
       }
-    } else if (!istEntschieden(s.status) && potenzial.bekannt && potenzial.wert !== null) {
-      zelle(blatt, zeilennummer, 'auszahlungGelesen').value = runde(potenzial.wert, 2)
     }
+    // A5 der Fehlersuche vom 17.09.2026: hier wurde "Auszahlung gelesen" bei
+    // offenen Scheinen noch einmal mit der GERECHNETEN Potenzialauszahlung
+    // ueberschrieben, waehrend die Abweichungsformel N-O schon auf der Spalte
+    // sass. Nach dem ersten Neuberechnen zeigte die Abweichung eine Zahl, die
+    // es nicht gibt. In "gelesen" steht nur, was gelesen wurde; die gerechnete
+    // Zahl hat ihre eigene Spalte O.
 
     for (const schluessel of ['einsatz', 'aufwand', 'auszahlungGelesen', 'auszahlungGerechnet', 'abweichung', 'zurueck', 'ergebnis']) {
       zelle(blatt, zeilennummer, schluessel).numFmt = geldformat
@@ -346,8 +349,14 @@ function baueRiesenscheinBlatt(mappe, posten, letzteScheinZeile, gebiet) {
     })
 
     // Die abgeleiteten Zahlen als Formel, damit der Zusammenhang sichtbar bleibt.
+    //
+    // A4 der Fehlersuche vom 17.09.2026: hier stand I-E, also moegliche
+    // Auszahlung minus GESAMTeinsatz. Das Programm zieht den Einsatz der
+    // unklaren Scheine (vorzeitig ausgezahlt, Betrag fehlt) auf beiden Seiten
+    // ab. Der Gewinn ist deshalb dieselbe Rechnung wie Bestenfalls: Ergebnis
+    // bisher plus (moegliche Auszahlung minus bisher zurueck minus Risiko).
     zelle(blatt, zeilennummer, 'gewinn').value = {
-      formula: `I${zeilennummer}-E${zeilennummer}`,
+      formula: `L${zeilennummer}+I${zeilennummer}-K${zeilennummer}-M${zeilennummer}`,
       result: runde(r.gewinnMoeglich, 2),
     }
     zelle(blatt, zeilennummer, 'bestenfalls').value = {
@@ -626,7 +635,7 @@ function baueUebersichtBlatt(mappe, posten, einstellungen, letzteScheinZeile, ge
     ['Gesamteinsatz', 'einsatzGesamt', 'Summe aller Einsaetze, Gratiswetten zählen nicht mit'],
     ['Davon noch offen', 'einsatzOffen', 'Einsatz der Scheine, die noch nicht entschieden sind'],
     ['Mögliche Auszahlung', 'auszahlungMoeglich', 'Was zurueckkaeme, wenn alles Offene gewinnt'],
-    ['Möglicher Gewinn', 'gewinnMoeglich', 'Mögliche Auszahlung minus Gesamteinsatz'],
+    ['Möglicher Gewinn', 'gewinnMoeglich', 'Was am Ende mehr da wäre, wenn alles Offene gewinnt. Vorzeitig ausgezahlte Scheine ohne Betrag stehen auf beiden Seiten draußen'],
     ['Bisher zurück', 'auszahlungRealisiert', 'Aus bereits entschiedenen Scheinen'],
     ['Ergebnis bisher', 'ergebnisRealisiert', 'Nur entschiedene Scheine, auf beiden Seiten der Rechnung'],
     ['Noch im Risiko', 'imRisiko', 'Der Einsatz, der noch verloren gehen kann'],

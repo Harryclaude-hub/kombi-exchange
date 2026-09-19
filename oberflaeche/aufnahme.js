@@ -26,7 +26,7 @@ import {
   BUCHMACHER_NACH_SCHLUESSEL,
   schluesselFuerName,
 } from '../kern/buchmacher.js'
-import { pruefsumme, legeBildAb, loescheBild } from '../daten/ablage.js'
+import { pruefsumme, legeBildAb, loescheBild, aktualisiereBildAngaben } from '../daten/ablage.js'
 // Der Ordner auf der Platte, in den jedes Foto sofort mitgeschrieben wird.
 // Siehe daten/plattenspeicher.js.
 import * as Platte from '../daten/plattenspeicher.js'
@@ -38,17 +38,37 @@ import * as Zustand from './zustand.js'
 let leser = null
 /** @type {Promise<any>|null} */
 let leserStartet = null
+/** Mit welchen Einstellungen der laufende Leser gestartet wurde. */
+/** @type {{sprachen: string, gruendlich: boolean}|null} */
+let leserEinstellungen = null
 
 /**
  * Startet den Leser einmalig und gibt ihn danach immer wieder zurueck.
  *
+ * C3 der Fehlersuche vom 17.09.2026: die Einstellungen wurden nur beim
+ * ALLERERSTEN Start gelesen, und beendeLeser rief niemand. Wer den Haken
+ * "Geldfelder einzeln nachlesen" umstellte, las trotzdem bis zum Schliessen
+ * des Fensters mit der alten Einstellung. Jetzt wird verglichen: haben sich
+ * Gruendlichkeit oder Sprachen geaendert, wird der Leser beendet und mit den
+ * neuen Einstellungen frisch gestartet.
+ *
  * @returns {Promise<Awaited<ReturnType<typeof starteLeserGruppe>>>}
  */
 export async function holeLeser() {
+  const jetzige = Zustand.hole().einstellungen
+  if (
+    leser &&
+    leserEinstellungen &&
+    (leserEinstellungen.gruendlich !== jetzige.gruendlich ||
+      leserEinstellungen.sprachen !== jetzige.sprachen)
+  ) {
+    await beendeLeser()
+  }
   if (leser) return leser
   if (leserStartet) return leserStartet
 
-  const einstellungen = Zustand.hole().einstellungen
+  const einstellungen = jetzige
+  leserEinstellungen = { sprachen: einstellungen.sprachen, gruendlich: einstellungen.gruendlich }
   // Eine GRUPPE von Lesern, nicht einer. Am Lesen selbst aendert das nichts,
   // es laufen nur mehrere Karten gleichzeitig. Gemessen: 3,74 mal schneller,
   // hundert Scheine in 2,6 statt 9,6 Minuten. Siehe lesen/ocr.js.
@@ -99,26 +119,28 @@ function uebersetzeSchritt(schritt) {
  * Nimmt Dateien entgegen und bereitet sie vor, ohne sie schon zu lesen.
  *
  * @param {FileList|File[]} dateien
- * @returns {Promise<{aufgenommen: number, uebersprungen: number}>}
+ * @returns {Promise<{aufgenommen: number, uebersprungen: number, neueIds: string[]}>}
  */
 export async function nimmAuf(dateien) {
   const stand = Zustand.hole()
   const projektId = stand.projekt?.id ?? ''
   if (!projektId) {
     Zustand.melde('fehler', 'Es ist kein Projekt geöffnet.')
-    return { aufgenommen: 0, uebersprungen: 0 }
+    return { aufgenommen: 0, uebersprungen: 0, neueIds: [] }
   }
 
   const liste = [...dateien].filter((d) => d.type.startsWith('image/'))
   if (liste.length === 0) {
     Zustand.melde('warnung', 'Darunter war kein Bild. Bitte Bildschirmfotos hochladen.')
-    return { aufgenommen: 0, uebersprungen: 0 }
+    return { aufgenommen: 0, uebersprungen: 0, neueIds: [] }
   }
 
   const bekannt = new Set([...stand.bilder.values()].map((b) => b.bild.pruefsumme))
   const bilder = new Map(stand.bilder)
   let aufgenommen = 0
   let uebersprungen = 0
+  /** @type {string[]} */
+  const neueIds = []
 
   for (let i = 0; i < liste.length; i++) {
     const datei = liste[i]
@@ -199,6 +221,14 @@ export async function nimmAuf(dateien) {
           breite: element.naturalWidth,
           hoehe: element.naturalHeight,
           inhalt: datei,
+          // B5: die Zerlegung und alles spaeter von Hand Eingestellte gehen
+          // mit in die Ablage, sonst steht nach einem Neuladen "0 Scheine
+          // erkannt" und die Handarbeit an den Grenzen ist weg.
+          karten,
+          hinweise,
+          bereich: null,
+          buchmacher: { wert: null, sicherheit: 0, quelle: 'vorgabe' },
+          konto: { wert: null, sicherheit: 0, quelle: 'vorgabe' },
         })
       } catch (fehler) {
         imBrowser = false
@@ -244,6 +274,7 @@ export async function nimmAuf(dateien) {
         hinweise,
       })
       aufgenommen++
+      neueIds.push(id)
     } catch (fehler) {
       Zustand.melde(
         'fehler',
@@ -254,7 +285,32 @@ export async function nimmAuf(dateien) {
 
   Zustand.aendere({ bilder })
   Zustand.arbeite(false)
-  return { aufgenommen, uebersprungen }
+  return { aufgenommen, uebersprungen, neueIds }
+}
+
+/**
+ * Nimmt Dateien auf und liest sie SOFORT, wenn der Reiter Aufnahme nicht
+ * offen ist.
+ *
+ * C2 der Fehlersuche vom 17.09.2026: "Foto hinzufuegen" ausserhalb des
+ * Reiters Aufnahme tat sichtbar nichts. nimmAuf bereitet nur vor, und
+ * leseBilder wurde im ganzen Programm nur vom Knopf "Jetzt lesen" im Reiter
+ * Aufnahme gerufen. Wer den Knopf am Riesenschein drueckte, lud hoch und sah
+ * nichts: kein Schein, keine Meldung, kein Wechsel. Dabei verspricht genau
+ * diese Stelle, dass der gelesene Schein unten in der Liste auftaucht.
+ *
+ * Im Reiter Aufnahme bleibt es beim alten Ablauf: dort richtet der Mensch
+ * erst Rahmen und Anbieter ein und drueckt dann selbst auf "Jetzt lesen".
+ *
+ * @param {FileList|File[]} dateien
+ * @returns {Promise<{aufgenommen: number, uebersprungen: number, neueIds: string[]}>}
+ */
+export async function nimmAufUndLiesSofort(dateien) {
+  const ergebnis = await nimmAuf(dateien)
+  if (ergebnis.neueIds.length === 0) return ergebnis
+  if (Zustand.hole().ansicht === 'aufnahme') return ergebnis
+  await leseBilder(ergebnis.neueIds)
+  return ergebnis
 }
 
 /**
@@ -485,6 +541,12 @@ export async function leseBilder(bildIds, einstellungen = {}) {
         quelle: 'ocr',
         roh: kopf.konto.quelleMuster,
       }
+      // Was der Kopf ergeben hat, gehoert mit ins abgelegte Bild (B5), sonst
+      // steht der Anbieter nach einem Neuladen wieder auf "nicht erkannt".
+      trageBildAngabenNach(bildId, {
+        buchmacher: eintrag.bild.buchmacher,
+        konto: eintrag.bild.konto,
+      })
 
       if (!profil) {
         Zustand.melde(
@@ -634,6 +696,32 @@ export async function entferneBildGanz(bildId) {
   return mitGegangen
 }
 
+/*
+  B5: Nachtragen in die Ablage, ohne die Arbeit anzuhalten.
+
+  Scheitert es, wird EINMAL je Sitzung gewarnt, nicht bei jedem Handgriff:
+  der haeufigste Grund ist ein Bild, das der volle Browser beim Hochladen gar
+  nicht angenommen hat, und dafuer gab es dort schon die laute Meldung.
+*/
+let bildangabenWarnungGezeigt = false
+
+/**
+ * @param {string} bildId
+ * @param {Parameters<typeof aktualisiereBildAngaben>[1]} angaben
+ */
+function trageBildAngabenNach(bildId, angaben) {
+  aktualisiereBildAngaben(bildId, angaben).catch((fehler) => {
+    if (bildangabenWarnungGezeigt) return
+    bildangabenWarnungGezeigt = true
+    Zustand.melde(
+      'warnung',
+      'Die Einstellungen am Bild ließen sich nicht auf dem Gerät merken: ' +
+        `${fehler instanceof Error ? fehler.message : String(fehler)} ` +
+        'Nach einem Neuladen gelten dort wieder die alten.'
+    )
+  })
+}
+
 /**
  * Setzt die Kartengrenzen eines Bildes neu, nachdem der Nutzer sie verschoben hat.
  *
@@ -647,6 +735,7 @@ export function setzeKarten(bildId, karten) {
   if (!eintrag) return
   bilder.set(bildId, { ...eintrag, karten })
   Zustand.aendere({ bilder })
+  trageBildAngabenNach(bildId, { karten })
 }
 
 /**
@@ -725,6 +814,7 @@ export async function setzeBereich(bildId, bereich) {
     bereich: bereich ? gewaehlt : null,
   })
   Zustand.aendere({ bilder })
+  trageBildAngabenNach(bildId, { karten, hinweise, bereich: bereich ? gewaehlt : null })
 
   if (bereich) {
     Zustand.melde(
@@ -755,4 +845,5 @@ export function setzeBuchmacher(bildId, schluessel) {
   }
   bilder.set(bildId, { ...eintrag })
   Zustand.aendere({ bilder })
+  trageBildAngabenNach(bildId, { buchmacher: eintrag.bild.buchmacher })
 }

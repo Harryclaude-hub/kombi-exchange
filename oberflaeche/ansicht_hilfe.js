@@ -58,6 +58,23 @@ export function zeichne(ziel) {
     if (ziel2 && typeof ziel2.scrollIntoView === 'function') {
       ziel2.scrollIntoView({ block: 'start' })
     }
+    /*
+      C4 der Fehlersuche vom 17.09.2026: dieser Sprung lief bei JEDEM
+      Neuzeichnen. Die Seite zeichnet sich aber auch, wenn im Hintergrund
+      eine Meldung verschwindet oder gespeichert wird, und dann riss es
+      Karam beim Lesen mitten aus einem anderen Abschnitt zurueck.
+
+      Der Sprung wird deshalb VERBRAUCHT: einmal springen, dann das Merkmal
+      leeren. Der Erklaerungsknopf im Kopf setzt es bei jedem Druck neu,
+      also springt jeder neue Aufruf wieder an die richtige Stelle.
+
+      In einem Warteschritt und nicht sofort: dieses Zeichnen laeuft gerade
+      innerhalb der Zuhoererrunde von aendere(), und eine Runde in der Runde
+      wuerde alles doppelt zeichnen.
+    */
+    queueMicrotask(() => {
+      if (Zustand.hole().hilfeZu === herkunft) Zustand.aendere({ hilfeZu: null })
+    })
   }
 }
 
@@ -348,22 +365,27 @@ const BEREICHE = [
       'Stehen mehrere Währungen in einer Gruppe, gibt es keine Gesamtsumme. Euro, Dollar und ' +
       'Krypto werden nie zusammengezählt und nie umgerechnet.',
   },
+  /*
+    D3 der Fehlersuche vom 17.09.2026: hier stand eine "Vorschau der
+    Tabelle", die es nie gab, und kein Wort vom Bild zum Verschicken. Die
+    Seite hat seit dem 17.09.2026 drei nummerierte Schritte, und genau die
+    stehen jetzt auch hier.
+  */
   {
     schluessel: 'ausgabe',
     reiter: 'Ausgabe',
     wofuer:
-      'Deine Zahlen aus dem Programm herausholen: als Excel-Mappe zum Aufheben und Weiterrechnen.',
+      'Deine Zahlen aus dem Programm herausholen: als Bild zum Verschicken, als Excel-Mappe zum Aufheben und Weiterrechnen, als Rohdaten.',
     bild: [
-      { x: 8, y: 8, b: 148, h: 34, name: 'Excel: dieser Riesenschein', betont: true },
-      { x: 164, y: 8, b: 148, h: 34, name: 'Excel: ganzes Projekt', betont: true },
-      { x: 8, y: 50, b: 304, h: 90, name: 'Vorschau der Tabelle' },
+      { x: 8, y: 8, b: 304, h: 40, name: '1 Das Bild zum Verschicken', betont: true },
+      { x: 8, y: 54, b: 304, h: 40, name: '2 Die Tabelle zum Nachrechnen', betont: true },
+      { x: 8, y: 100, b: 304, h: 40, name: '3 Die Rohdaten' },
     ],
     machen: [
       'WOFÜR DAS GUT IST: das Programm behält deine Zahlen, aber es ist kein Archiv für die Steuer und kein Werkzeug zum Weiterrechnen. Die Excel-Mappe ist beides. Du kannst sie aufheben, verschicken und eigene Spalten daneben rechnen.',
-      'Ein Knopf für den gerade gewählten Riesenschein, einer für das ganze Projekt.',
-      'Die Mappe hat mehrere Blätter: jeder einzelne Schein eine Zeile, jede zusammengefasste Wette eine Zeile, dazu ein Blatt je Anbieter und eines mit allen Hinweisen.',
-      'CSV ist dasselbe als einfache Textdatei, für Programme, die kein Excel lesen.',
-      'Die Vorschau darunter zeigt, was in der Datei stehen wird, bevor du sie herunterlädst.',
+      'Schritt 1 baut ein Bild des Riesenscheins mit den Scheinfotos darin, zum Verschicken. Davor steht, zu wie vielen Scheinen das Foto noch vorliegt.',
+      'Schritt 2 ist die Excel-Mappe, für den gewählten Riesenschein oder das ganze Projekt. Sie hat mehrere Blätter: jeder Schein eine Zeile, jede Wette eine Zeile, dazu Anbieter, Beleg und alle Hinweise.',
+      'Schritt 3 sind die Rohdaten: CSV für Programme, die kein Excel lesen.',
     ],
     achtung:
       'Die Summenzeile ist nur bei einer einzigen Währung aussagekräftig. Steht eine Warnung ' +

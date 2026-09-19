@@ -42,6 +42,7 @@
  */
 
 import { el } from './werkzeug.js'
+import { brueckenreste } from './ordner.js'
 
 /**
  * @typedef {object} Sache
@@ -62,35 +63,70 @@ export function sachen(stand, mass = null) {
   const megabyte = mass && mass.bytes > 0 ? Math.round((mass.bytes / (1024 * 1024)) * 10) / 10 : null
   const mittelKb = mass && mass.mittel > 0 ? Math.round(mass.mittel / 1024) : null
 
+  /*
+    D1 der Fehlersuche vom 17.09.2026: diese Liste sagte auch bei nicht
+    erreichbarer Datenbank weiter, alles liege in der Datenbank. Wer ihr da
+    glaubte, hielt seine Arbeit fuer beim Kollegen angekommen, waehrend sie
+    nur auf diesem Geraet lag. Jetzt haengt jede Datenbank-Zeile am gemessenen
+    Zustand, und der Grund sagt, was die Luecke aufhebt (Falle 7).
+  */
+  const getrennt = stand.datenbankErreichbar === false
+  const getrenntGrund =
+    'Die Datenbank ist gerade NICHT erreichbar. Deine Änderungen bleiben auf diesem ' +
+    'Gerät und gehen hinaus, sobald die Verbindung wieder steht. Bis dahin sieht dein ' +
+    'Kollege sie nicht.'
+
   return [
     {
       name: 'Projekte, Scheine, Riesenscheine',
-      geteilt: true,
-      grund: 'Liegen in der Datenbank. Dein Kollege sieht jede Änderung, sobald er neu lädt.',
+      geteilt: getrennt ? false : true,
+      grund: getrennt
+        ? getrenntGrund
+        : 'Liegen in der Datenbank. Dein Kollege sieht jede Änderung, sobald er neu lädt.',
     },
     {
       name: 'Namen, Notizen, Ausgänge',
-      geteilt: true,
-      grund: 'Ebenfalls in der Datenbank, am Schein und am Riesenschein.',
+      geteilt: getrennt ? false : true,
+      grund: getrennt ? getrenntGrund : 'Ebenfalls in der Datenbank, am Schein und am Riesenschein.',
     },
     {
       name: 'Ordner für Riesenscheine',
-      geteilt: stand.ordnerGeteilt,
-      grund:
-        stand.ordnerGeteilt === true
+      geteilt: getrennt ? false : stand.ordnerGeteilt,
+      grund: getrennt
+        ? getrenntGrund
+        : stand.ordnerGeteilt === true
           ? 'Liegen am Riesenschein und damit in der Datenbank.'
           : stand.ordnerGeteilt === null
             ? 'Noch nicht festzustellen: in diesem Projekt liegt kein Riesenschein.'
             : 'Der Datenbank fehlt die Spalte dafür. Ein Befehl behebt das, siehe unten.',
     },
+    /*
+      Fund E der Fehlersuche vom 17.09.2026: brueckenreste() war gebaut und
+      nie angeschlossen. Solange dort etwas liegt, sind es Ordner aus einer
+      frueheren Fassung, die NUR dieser Browser kennt, und von selbst wandern
+      sie nie in die Datenbank. Ohne diese Zeile saehe alles geteilt aus.
+    */
+    ...(brueckenreste() > 0
+      ? [
+          {
+            name: 'Ordner aus einer früheren Fassung',
+            geteilt: false,
+            grund:
+              `${brueckenreste()} Ordner-Zuordnung(en) liegen noch aus einer früheren ` +
+              'Programmfassung nur in diesem Browser. Dein Kollege sieht sie nicht. ' +
+              'Setze den Ordner an den betroffenen Riesenscheinen einmal neu, dann ' +
+              'wandert er in die Datenbank und diese Zeile verschwindet.',
+          },
+        ]
+      : []),
     {
       name: 'Bildschirmfotos',
       geteilt: false,
       grund:
         'Die Bilder liegen in diesem Browser, auf dem Gerät, auf dem du sie hochgeladen hast. ' +
-        'In die Datenbank gehen NUR die gelesenen Zahlen. Nicht einmal Dateiname und ' +
-        'Größe gehen mit: die Tabelle dafür steht bereit, wird aber heute nicht ' +
-        'beschrieben. Dein Kollege sieht die Zahlen, aber nicht die Fotos.' +
+        'In die Datenbank gehen die gelesenen Zahlen und seit dem 19.09.2026 auch die Angaben ' +
+        'zum Foto (Dateiname, Größe, Anbieter, Konto), aber NIE die Bilddatei selbst. ' +
+        'Dein Kollege sieht also, welche Fotos es gibt, aber nicht die Bilder.' +
         /*
           DIE GEMESSENE GROESSE, weil davon alles Weitere abhaengt.
 

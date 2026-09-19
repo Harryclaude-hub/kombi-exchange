@@ -220,7 +220,11 @@ function zeichneTor() {
   if (!wurzel) return
   const meldung = el('.tormeldung')
 
+  // C5 der Fehlersuche vom 17.09.2026: die Beschriftung zeigte mit
+  // for="torfeld" auf eine KLASSE, das Feld hatte keine id. Ein Klick auf
+  // "Sperrcode" setzte den Schreibzeiger nicht ins Feld. Jetzt gibt es die id.
   const eingabe = el('input.torfeld', {
+    id: 'torfeld',
     type: 'text',
     placeholder: 'KMB-XXXX-XXXX-XXXX',
     autocomplete: 'off',
@@ -688,6 +692,9 @@ function projektwahl(stand) {
             scheine: [],
             riesenscheine: [],
             bilder: new Map(),
+            // Die Huelle gehoert zum vorigen Projekt. Bliebe sie offen,
+            // liefen neue Fotos in einen fremden Riesenschein.
+            huelle: null,
           })
           await ladeProjektinhalt(gewaehlt.id)
         },
@@ -789,6 +796,8 @@ function horcheAufAblage() {
       scheine: [],
       riesenscheine: [],
       bilder: new Map(),
+      // Die Huelle gehoert zum vorigen Projekt, siehe projektwahl().
+      huelle: null,
     })
     await ladeProjektinhalt(gewaehlt.id)
   })
@@ -1037,6 +1046,7 @@ async function ladeProjektinhalt(projektId) {
     riesenscheine: rohe.map(ausDatenbankRiesenschein),
     ordnerGeteilt: ordnerWerdenGeteilt(rohe),
   })
+  await stelleHuelleWiederHer(projektId)
 
   const scheine = await Datenbank.holeScheine(stand.token, projektId)
   if (scheine.art === 'fehler') {
@@ -1046,6 +1056,7 @@ async function ladeProjektinhalt(projektId) {
   }
 
   await ladeBilderVomGeraet(projektId)
+  await ladeBildangabenAusDatenbank(projektId)
   Zustand.arbeite(false)
 }
 
@@ -1805,11 +1816,13 @@ async function ladeAlles() {
     riesenscheine: geladeneRiesenscheine,
     ordnerGeteilt: ordnerWerdenGeteilt(roheRiesenscheine),
   })
+  await stelleHuelleWiederHer(projekt.id)
   if (scheine.daten.length > 0) {
     Zustand.ordneNeu(scheine.daten)
   }
 
   await ladeBilderVomGeraet(projekt.id)
+  await ladeBildangabenAusDatenbank(projekt.id)
   Zustand.melde(
     'erfolg',
     `${scheine.daten.length} Schein(e) geladen. Willkommen zurück.`
@@ -1827,6 +1840,10 @@ async function ladeAlles() {
 async function ladeNurOertlich() {
   const gemerktesProjekt = await holeStand('projekt')
   const gemerkteScheine = await holeStand('scheine')
+  // Die gemerkten Riesenscheine wurden zwar immer geschrieben, aber nie
+  // zurueckgeholt. Ohne sie erfindet ordneNeu die Namen neu, und der bewusst
+  // leer angelegte Riesenschein (B4) waere nach einem Neuladen ohne Netz weg.
+  const gemerkteRiesenscheine = await holeStand('riesenscheine')
 
   const projekt = gemerktesProjekt ?? {
     id: neueKennung(),
@@ -1838,6 +1855,10 @@ async function ladeNurOertlich() {
   }
 
   Zustand.aendere({ projekt, projekte: [projekt] })
+  if (Array.isArray(gemerkteRiesenscheine) && gemerkteRiesenscheine.length > 0) {
+    Zustand.aendere({ riesenscheine: gemerkteRiesenscheine })
+  }
+  await stelleHuelleWiederHer(projekt.id)
   if (Array.isArray(gemerkteScheine) && gemerkteScheine.length > 0) {
     Zustand.ordneNeu(gemerkteScheine)
   }
@@ -1848,6 +1869,93 @@ async function ladeNurOertlich() {
   // bekommt die Anleitung. Sie erklaert die Oberflaeche, und die steht auch
   // dann, wenn gerade nichts geladen werden konnte.
   Anleitung.zeigeWennNeu()
+}
+
+/**
+ * Holt die Bildangaben aus der Datenbank und ergaenzt, was auf diesem Geraet
+ * fehlt (B7).
+ *
+ * Es kommen nur ANGABEN: Dateiname, Masse, Pruefsumme, Anbieter, Konto. Die
+ * Datei selbst liegt auf dem Geraet, das das Foto aufgenommen hat. Hier steht
+ * dann der leere Rahmen mit dem Namen statt gar nichts (Projektregel 9), und
+ * die Doppelpruefung beim Hochladen erkennt ueber die Pruefsumme, dass ein
+ * Foto im Projekt schon einmal gelesen wurde, auch vom anderen Geraet.
+ *
+ * @param {string} projektId
+ */
+async function ladeBildangabenAusDatenbank(projektId) {
+  const stand = Zustand.hole()
+  if (!stand.token) return
+
+  const antwort = await Datenbank.holeBilder(stand.token, projektId)
+  if (antwort.art === 'fehler') {
+    Zustand.melde('warnung', `Die Bildangaben liessen sich nicht laden: ${antwort.meldung}`)
+    return
+  }
+
+  const zeilen = Array.isArray(antwort.daten) ? antwort.daten : []
+  if (zeilen.length === 0) return
+
+  const bilder = new Map(Zustand.hole().bilder)
+  let ergaenzt = 0
+  for (const zeile of zeilen) {
+    const id = String(zeile.id)
+    // Liegt das Bild hier auf dem Geraet, gilt das Geraet: dort stehen auch
+    // Kartengrenzen und Rahmen, die die Datenbank gar nicht kennt.
+    if (bilder.has(id)) continue
+    ergaenzt += 1
+    bilder.set(id, {
+      bild: {
+        id,
+        projektId: String(zeile.projekt_id ?? projektId),
+        dateiname: String(zeile.dateiname ?? ''),
+        breite: Number(zeile.breite ?? 0),
+        hoehe: Number(zeile.hoehe ?? 0),
+        quelle: '',
+        pruefsumme: String(zeile.pruefsumme ?? ''),
+        buchmacher: zeile.buchmacher ?? { wert: null, sicherheit: 0, quelle: 'vorgabe' },
+        konto: zeile.konto ?? { wert: null, sicherheit: 0, quelle: 'vorgabe' },
+        angelegtAm: String(zeile.angelegt_am ?? jetzt()),
+      },
+      element: null,
+      inhalt: null,
+      karten: [],
+      hinweise: ['Die Bilddatei liegt auf dem Gerät, das dieses Foto aufgenommen hat, nicht hier.'],
+    })
+  }
+  if (ergaenzt > 0) Zustand.aendere({ bilder })
+}
+
+/**
+ * Holt die offene Huelle zurueck, wenn sie zu diesem Projekt gehoert (B4).
+ *
+ * Die Huelle bestimmt, in welchen Riesenschein neu gelesene Fotos fallen.
+ * Ohne diesen Schritt war sie nach jedem Neuladen zu, und der eben noch
+ * benannte leere Riesenschein tauchte nirgends mehr auf. Gehoert die
+ * gemerkte Huelle zu einem ANDEREN Projekt, wird sie hier ausdruecklich
+ * geschlossen statt still uebernommen: Fotos aus Projekt B duerfen nie in
+ * einen Riesenschein aus Projekt A laufen.
+ *
+ * @param {string} projektId
+ */
+async function stelleHuelleWiederHer(projektId) {
+  try {
+    const gemerkt = await holeStand('huelle')
+    if (gemerkt && gemerkt.id && gemerkt.projektId === projektId) {
+      Zustand.aendere({
+        huelle: {
+          id: String(gemerkt.id),
+          name: String(gemerkt.name ?? ''),
+          ordner: String(gemerkt.ordner ?? ''),
+        },
+      })
+    } else if (Zustand.hole().huelle) {
+      Zustand.aendere({ huelle: null })
+    }
+  } catch {
+    // Ohne Browserdatenbank gibt es nichts zurueckzuholen. Die Huelle ist
+    // nach dem Neuladen dann zu, mehr passiert nicht.
+  }
 }
 
 /**
@@ -1878,6 +1986,15 @@ async function ladeBilderVomGeraet(projektId) {
     const bilder = new Map(Zustand.hole().bilder)
     for (const eintrag of abgelegt) {
       if (bilder.has(eintrag.id)) continue
+      /*
+        B5 der Fehlersuche vom 17.09.2026: hier standen karten: [], hinweise:
+        [] und ein leerer Anbieter, obwohl die Ablage all das inzwischen
+        mitfuehrt. Der von Hand gesetzte Anbieter, der gezogene Rahmen und die
+        Kartengrenzen waren nach jedem Neuladen weg, und ohne Grenzen liess
+        sich aus dem Foto nichts mehr lesen ("0 Scheine erkannt"). Alte
+        Eintraege von vor dieser Fassung haben die Felder noch nicht; dann
+        gilt weiter der leere Anfang.
+      */
       bilder.set(eintrag.id, {
         bild: {
           id: eintrag.id,
@@ -1887,14 +2004,15 @@ async function ladeBilderVomGeraet(projektId) {
           hoehe: eintrag.hoehe,
           quelle: '',
           pruefsumme: eintrag.pruefsumme,
-          buchmacher: { wert: null, sicherheit: 0, quelle: 'vorgabe' },
-          konto: { wert: null, sicherheit: 0, quelle: 'vorgabe' },
+          buchmacher: eintrag.buchmacher ?? { wert: null, sicherheit: 0, quelle: 'vorgabe' },
+          konto: eintrag.konto ?? { wert: null, sicherheit: 0, quelle: 'vorgabe' },
           angelegtAm: jetzt(),
         },
         element: null,
         inhalt: eintrag.inhalt,
-        karten: [],
-        hinweise: [],
+        karten: Array.isArray(eintrag.karten) ? eintrag.karten : [],
+        hinweise: Array.isArray(eintrag.hinweise) ? eintrag.hinweise : [],
+        bereich: eintrag.bereich ?? null,
       })
     }
     Zustand.aendere({ bilder })
@@ -1916,6 +2034,14 @@ const speichereVerzoegert = verzoegert(async () => {
     await merkeStand('projekt', stand.projekt)
     await merkeStand('scheine', stand.scheine)
     await merkeStand('riesenscheine', stand.riesenscheine)
+    // B4 der Fehlersuche vom 17.09.2026: die offene Huelle lebte nur im
+    // Arbeitsstand. Wer "Neuer Riesenschein" drueckte, ihn benannte und neu
+    // lud, fand ihn nicht wieder. Jetzt wird sie mitgemerkt, samt Projekt,
+    // damit sie nach dem Neuladen im RICHTIGEN Projekt weiter aufnimmt.
+    await merkeStand(
+      'huelle',
+      stand.huelle ? { ...stand.huelle, projektId: stand.projekt.id } : null
+    )
   } catch (fehler) {
     console.error('[Speichern] oertlich fehlgeschlagen', fehler)
   }
@@ -1955,6 +2081,18 @@ const speichereVerzoegert = verzoegert(async () => {
     stand.scheine,
     fassung
   )
+  /*
+    B3 der Fehlersuche vom 17.09.2026: die Fassung wird SOFORT uebernommen,
+    auch wenn der Lauf scheitert. Bricht das Speichern zwischen zwei Haeppchen
+    ab, hat die Datenbank schon weitergezaehlt; die Antwort traegt die
+    erreichte Fassung mit. Wer sie liegen laesst, arbeitet ab da mit einem
+    veralteten Stand, und JEDER weitere Speicherlauf wird als "zweites
+    Fenster" abgelehnt, bis jemand neu laedt und dabei Arbeit verliert.
+  */
+  if (typeof scheine.fassung === 'number') {
+    fassung = scheine.fassung
+    Zustand.aendere({ fassung })
+  }
   if (!scheine.gelungen) {
     if (scheine.widerspruch) {
       meldeWiderspruch(scheine.meldung)
@@ -1964,7 +2102,6 @@ const speichereVerzoegert = verzoegert(async () => {
     Zustand.melde('warnung', `Nicht alles konnte gesichert werden: ${scheine.meldung}`)
     return
   }
-  fassung = scheine.fassung
 
   const riesenscheine = await Datenbank.speichereRiesenscheine(
     stand.token,
@@ -1982,6 +2119,35 @@ const speichereVerzoegert = verzoegert(async () => {
     return
   }
   fassung = Number(riesenscheine.daten?.fassung ?? fassung)
+
+  /*
+    B7 der Fehlersuche vom 17.09.2026: holeBilder und speichereBilder waren
+    seit Migration 0001 fertig gebaut, samt Tabelle und Rechten, und wurden
+    von niemandem gerufen. In die Datenbank gehen NUR die Angaben (Dateiname,
+    Masse, Pruefsumme, Anbieter, Konto), nie das Foto selbst: das bleibt auf
+    dem Geraet, mit Absicht, siehe die Speichertabelle in der UEBERGABE.
+    Damit sieht der Kollege, WELCHE Fotos es gibt und zu welchem Anbieter sie
+    gehoeren, auch wenn die Dateien nicht bei ihm liegen.
+  */
+  const bilderListe = [...stand.bilder.values()].map((eintrag) => eintrag.bild)
+  if (bilderListe.length > 0) {
+    const bilder = await Datenbank.speichereBilder(
+      stand.token,
+      stand.projekt.id,
+      bilderListe,
+      fassung
+    )
+    if (bilder.art === 'fehler') {
+      if (bilder.code === Datenbank.WIDERSPRUCH) {
+        Zustand.aendere({ fassung })
+        meldeWiderspruch(bilder.meldung)
+        return
+      }
+      Zustand.melde('warnung', `Die Bildangaben liessen sich nicht sichern: ${bilder.meldung}`)
+    } else {
+      fassung = Number(bilder.daten?.fassung ?? fassung)
+    }
+  }
 
   Zustand.aendere({ fassung })
 
@@ -2003,22 +2169,46 @@ const speichereVerzoegert = verzoegert(async () => {
  * @param {string} grund
  */
 function meldeWiderspruch(grund) {
+  /*
+    B2 der Fehlersuche vom 17.09.2026: hier stand der Rat, die Seite neu zu
+    laden, "dann sind beide Staende zusammen sichtbar". Das war falsch:
+    ladeAlles ordnet mit dem Stand AUS DER DATENBANK neu, die ungesicherte
+    Arbeit auf diesem Geraet ist danach fort. Der Rat fuehrte genau in den
+    Verlust, vor dem der Schutz bewahren soll. Der Text sagt jetzt ehrlich,
+    was Neuladen tut und was man vorher sichert (Falle 7: eine Einschraenkung
+    ohne ihr Warum liest sich wie eine Entscheidung).
+  */
   Zustand.melde(
     'warnung',
     'Dieses Projekt wurde an anderer Stelle geändert, etwa in einem zweiten ' +
-      'Fenster. Es wurde deshalb nichts ueberschrieben. Deine Arbeit liegt hier ' +
-      'auf dem Gerät. Am besten diese Angaben notieren und die Seite neu laden, ' +
-      `dann sind beide Staende zusammen sichtbar. (${grund})`
+      'Fenster. Damit nichts überschrieben wird, wurde jetzt nichts gespeichert. ' +
+      'Deine Arbeit bleibt hier auf dem Gerät stehen, solange dieses Fenster offen ist. ' +
+      'ACHTUNG: Neuladen zeigt NICHT beide Stände nebeneinander, sondern ersetzt deine ' +
+      'ungesicherte Arbeit durch den Stand aus der Datenbank. Also zuerst die eigenen ' +
+      `Änderungen notieren oder im Reiter Ausgabe sichern, dann neu laden. (${grund})`
   )
   Zustand.aendere({ datenbankErreichbar: true })
 }
 
 // Bei jeder Aenderung an den Daten wird gesichert.
-let letzterStempel = ''
+//
+// B1 der Fehlersuche vom 17.09.2026: hier stand ein Stempel aus geaendertAm,
+// und jetzt() ist nur minutengenau. Zwei Berichtigungen am selben Schein in
+// derselben Minute trugen denselben Stempel, und die zweite ging nie hinaus.
+// Beim Nachlesen von sechzig Scheinen ist eine Minute gar nichts.
+//
+// Jetzt zaehlt nicht die Uhr, sondern die Liste selbst: zustand.js ersetzt
+// bei jeder Datenaenderung das ganze Feld (map und filter, nie in place).
+// Ist scheine oder riesenscheine ein NEUES Feld, hat sich etwas geaendert.
+// Anzeigezustaende (Auswahl, Suche, Meldungen) lassen beide Felder stehen
+// und loesen weiterhin kein Speichern aus. test/zweite_berichtigung.test.mjs
+// haelt fest, dass zustand.js dieses Versprechen einhaelt.
+let gemerkteScheine = /** @type {any} */ (null)
+let gemerkteRiesenscheine = /** @type {any} */ (null)
 Zustand.hoerZu((stand) => {
-  const stempel = `${stand.scheine.length}|${stand.riesenscheine.map((r) => `${r.id}:${r.geaendertAm}`).join(',')}|${stand.scheine.map((s) => s.geaendertAm).join(',')}`
-  if (stempel === letzterStempel) return
-  letzterStempel = stempel
+  if (stand.scheine === gemerkteScheine && stand.riesenscheine === gemerkteRiesenscheine) return
+  gemerkteScheine = stand.scheine
+  gemerkteRiesenscheine = stand.riesenscheine
   if (stand.angemeldet && stand.projekt) speichereVerzoegert()
 })
 

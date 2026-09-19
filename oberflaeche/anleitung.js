@@ -118,7 +118,10 @@ const SCHRITTE = [
     punkte: [
       'Gleiche Wette bei acht Anbietern: ein Riesenschein mit acht Scheinen darin.',
       'In der Mitte stehen seine Zahlen, rechts jeder einzelne Schein nummeriert.',
-      'Oben rechts kannst du jederzeit ein Foto nachreichen. Der Schein wird gelesen und faellt in diesen Riesenschein.',
+      // D2 der Fehlersuche vom 17.09.2026: hier stand "faellt in diesen
+      // Riesenschein", und das gilt nur, solange genau dieser die Marke
+      // "nimmt neue Fotos auf" traegt. Sonst ordnet die Automatik zu.
+      'Oben rechts kannst du jederzeit ein Foto nachreichen. Steht am Riesenschein "nimmt neue Fotos auf", faellt der Schein hier hinein; sonst ordnet ihn das Programm der passenden Wette zu.',
       'Passt einer doch nicht dazu, trennst du ihn im Reiter Scheine in der Spalte Riesenschein.',
     ],
     achtung:
