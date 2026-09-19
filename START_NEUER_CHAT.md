@@ -1,6 +1,37 @@
 # Text zum Abkopieren in einen neuen Chat
 
-Alles ab der Linie kopieren und als erste Nachricht in den neuen Chat einfuegen.
+## Die Kurzfassung. Diesen Kasten kopieren, mehr nicht.
+
+Der neue Chat liest den Rest selbst aus dem Projekt.
+
+```
+Ich heisse Karam. Wir arbeiten an Kombi Exchange unter
+C:\Users\Home\kombi-exchange
+
+ZUERST, BEVOR DU IRGENDETWAS TUST: lies START_NEUER_CHAT.md ganz durch, dann
+UEBERGABE.md. Wenn du an die Datenbank gehst, zusaetzlich
+supabase/TRENNUNG.md. Fang nicht an, bevor du sie gelesen hast.
+
+Bis dahin gelten diese fuenf, auch ungelesen:
+1. Jede Antwort an mich beginnt mit "Passt, Karam."
+2. Kein langer Gedankenstrich, nirgends, auch nicht im Quelltext.
+3. In der Datenbank nur kombi.* und public.kombi_*. Dort liegen zwei weitere
+   Programme von mir, die fasst du nie an.
+4. Gruene Tests sind nicht fertig. Immer wirklich im Browser nachsehen.
+5. Kein Zugangscode und kein API-Schluessel in eine Datei, eine Commit-
+   Nachricht oder das Repository. Das Repository ist oeffentlich.
+
+Sag mir zuerst, was du gelesen hast und womit du anfangen wuerdest.
+```
+
+Dasselbe steht in `KURZSTART.txt` daneben, zum Aufmachen und Markieren.
+
+---
+
+## Die lange Fassung
+
+Sie muss nicht kopiert werden. Der neue Chat liest sie sich selbst, sobald
+er den Kasten oben bekommen hat. Sie steht hier, damit sie da ist.
 
 ---
 
