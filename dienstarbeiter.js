@@ -62,7 +62,7 @@
   drei bei jedem Durchlauf, damit sie nicht auseinanderlaufen.
 */
 
-const FASSUNG = '2026-09-18-f'
+const FASSUNG = '2026-09-18-g'
 const SPEICHER = `kombi-${FASSUNG}`
 
 /*
@@ -91,8 +91,17 @@ const SPEICHER = `kombi-${FASSUNG}`
 const VORRAT = [
   './',
   './index.html',
-  './fassung.json',
   './manifest.json',
+
+  /*
+    fassung.json steht hier mit Absicht NICHT.
+
+    Sie war zuerst dabei, und im ersten Lauf auf der echten Seite lagen
+    deshalb 67 Eintraege im Speicher, einer davon fuer immer unerreichbar: der
+    fetch-Horcher gibt fuer fassung.json "netz-nur" zurueck und fragt den
+    Speicher gar nicht erst. Ein Eintrag, den niemand je liest, ist kein
+    Vorrat, sondern eine Einladung an den naechsten, ihn doch zu lesen.
+  */
 
   './stil/marken.css',
   './stil/grund.css',

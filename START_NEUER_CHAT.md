@@ -33,7 +33,8 @@ an zu arbeiten, bevor du sie gelesen hast.
 | Die Seite, die ich benutze | `https://harryclaude-hub.github.io/kombi-exchange/` |
 | Datenbank | Supabase, Projekt `immo-check und kombi Tafel`, Kennung `mqmevpyatjsambervgtu` |
 | Zugangscode | **steht nirgends im Quelltext.** Frag mich. |
-| Stand heute | Fassung `2026-09-17-r`, oeffentlich ausgeliefert |
+| Stand heute | Fassung `2026-09-18-f`, oeffentlich ausgeliefert |
+| Trennung in der Datenbank | **`supabase/TRENNUNG.md` lesen, bevor du irgendetwas an der Datenbank machst.** |
 
 ## Meine Regeln. Die sind nicht verhandelbar.
 
@@ -57,10 +58,15 @@ an zu arbeiten, bevor du sie gelesen hast.
 9. **Verworfenes bleibt sichtbar.**
 10. **Nach JEDEM Arbeitsschritt veroeffentlichen.** Ich sehe ausschliesslich
     die Seite bei GitHub Pages. Was nicht dort ist, gibt es fuer mich nicht.
+11. **Kombi Exchange fasst in der Datenbank NUR `kombi.*` und `public.kombi_*`
+    an.** In derselben Supabase-Datenbank liegen zwei weitere Programme von
+    mir: Kombi Tafel (`public.kt_*`) und immo-check (`public`, ohne Vorsilbe).
+    Nichts davon wird von hier aus gelesen, geschrieben oder auch nur erwaehnt.
+    Die ganze Begruendung und der Umzugsweg stehen in `supabase/TRENNUNG.md`.
 
 ```
-npm test                  (301 Faelle, 300 gruen, 1 uebersprungen)
-node werkzeug/pruefe.mjs  (106 Dateien)
+npm test                  (343 Faelle, 342 gruen, 1 uebersprungen)
+node werkzeug/pruefe.mjs  (119 Dateien)
 git add -A
 git commit -F -           (lange deutsche Nachricht: Problem, Grund, Messung)
 git push origin main
@@ -68,8 +74,11 @@ gh run list --limit 1
 curl -s "https://harryclaude-hub.github.io/kombi-exchange/fassung.json?t=$(date +%s%N)"
 ```
 
-**BEIDE Fassungskennungen hochsetzen**, sonst beanstandet es `pruefe.mjs`:
-`fassung.json` und `PROGRAMM_FASSUNG` in `daten/einstellungen.js`.
+**ALLE DREI Fassungskennungen hochsetzen**, sonst beanstandet es
+`pruefe.mjs`: `fassung.json`, `PROGRAMM_FASSUNG` in `daten/einstellungen.js`
+und `const FASSUNG` in `dienstarbeiter.js`. Die dritte ist seit dem 18.09.2026
+dazugekommen: der Browser vergleicht beim Dienstarbeiter die BYTES, und ohne
+eine Aenderung darin wird der alte nie ersetzt.
 
 ## Der Zugangscode. Bitte genau lesen.
 
@@ -87,6 +96,10 @@ Das Repository ist oeffentlich.
 **Die Datenbank gehoert mir.** Migrationen werden als Dateien geschrieben, und
 **ich** fuehre sie aus, ueber `werkzeug/datenbank_erweitern.html`. Fuehr nichts
 gegen die Datenbank aus, ohne dass ich es sage.
+
+Alle neun Wanderungen sind seit dem 18.09.2026 ausgefuehrt, im Projekt
+`mqmevpyatjsambervgtu`, Schema `kombi`. Gegen `kombi.zugangscodes` wird von
+keinem Chat etwas ausgefuehrt, weder angelegt noch geaendert.
 
 ## Was gerade ansteht
 
