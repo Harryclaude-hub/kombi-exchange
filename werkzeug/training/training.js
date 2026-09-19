@@ -56,6 +56,10 @@
 import * as Zustand from '../../oberflaeche/zustand.js'
 import { nimmAuf, leseBilder, beendeLeser } from '../../oberflaeche/aufnahme.js'
 import { el, fuelle, neueKennung, jetzt } from '../../oberflaeche/werkzeug.js'
+// Eigene Fenster statt window.confirm, wie im Programm selbst. Karam am
+// 19.09.2026: "alle Pop-ups, die vom Browser kommen, irgendwie oben, sollen
+// custom-made sein." Die paar Regeln dafuer bringt index.html selbst mit.
+import * as Dialog from '../../oberflaeche/dialog.js'
 import { leseZahl } from '../../kern/zahlen.js'
 
 const ziel = /** @type {HTMLElement} */ (document.getElementById('inhalt'))
@@ -311,12 +315,15 @@ knopfLesen.addEventListener('click', async () => {
   if (offene.length === 0) {
     // Alles schon gelesen. Erneut lesen vergibt neue Kennungen, haengt die
     // Scheine ein zweites Mal an die Liste und ist fast nie gemeint.
-    const nochmal = window.confirm(
-      `Alle ${alle.length} Bilder sind schon gelesen.\n\n` +
-        'Nochmal lesen haengt jeden Schein ein ZWEITES Mal an die Liste. ' +
-        'Die Berichtigungen bleiben erhalten, die Liste wird aber doppelt so lang.\n\n' +
-        'Wirklich alles noch einmal lesen?'
-    )
+    const nochmal = await Dialog.bestaetige({
+      titel: `Alle ${alle.length} Bilder sind schon gelesen`,
+      punkte: [
+        'Nochmal lesen hängt jeden Schein ein ZWEITES Mal an die Liste.',
+        'Die Berichtigungen bleiben erhalten, die Liste wird aber doppelt so lang.',
+      ],
+      ja: 'Alles noch einmal lesen',
+      nein: 'Doch nicht',
+    })
     if (!nochmal) {
       melde('Nichts zu lesen. Alle Bilder sind bereits gelesen.')
       return
@@ -352,7 +359,7 @@ knopfLesen.addEventListener('click', async () => {
   knopfSichern.disabled = Zustand.hole().scheine.length === 0
 })
 
-knopfSichern.addEventListener('click', () => sichere())
+knopfSichern.addEventListener('click', () => void sichere())
 
 /** @param {string} text */
 function melde(text) {
@@ -780,7 +787,7 @@ function baueEingabe(f, e, zelle) {
  * nach test/korpus_echt.mjs, und test/korpus_echt.test.mjs nimmt sie von dort
  * automatisch auf.
  */
-function sichere() {
+async function sichere() {
   const stand = Zustand.hole()
 
   const faelle = stand.scheine.map((schein, i) => {
@@ -849,12 +856,15 @@ function sichere() {
   const mitKorrektur = faelle.filter((f) => f.vonHandBerichtigt.length > 0).length
 
   if (durchgesehen < faelle.length) {
-    const weiter = window.confirm(
-      `${faelle.length - durchgesehen} von ${faelle.length} Scheinen sind NICHT durchgesehen.\n\n` +
-        'Sie kommen mit in die Datei, werden aber beim Pruefen uebersprungen: ' +
-        'was niemand angesehen hat, ist keine geprueefte Wahrheit.\n\n' +
-        'Trotzdem sichern?'
-    )
+    const weiter = await Dialog.bestaetige({
+      titel: `${faelle.length - durchgesehen} von ${faelle.length} Scheinen sind NICHT durchgesehen`,
+      punkte: [
+        'Sie kommen mit in die Datei, werden beim Prüfen aber übersprungen.',
+        'Was niemand angesehen hat, ist keine geprüfte Wahrheit.',
+      ],
+      ja: 'Trotzdem sichern',
+      nein: 'Erst durchsehen',
+    })
     if (!weiter) {
       melde('Nichts gesichert. Erst die restlichen Scheine durchsehen und abhaken.')
       return

@@ -5967,6 +5967,48 @@ li[data-schwere="info"] .hinweisart {
 }
 
 /*
+  Die Symbolreihe: kleine Zeichen, die vorn in den Namen wandern.
+
+  Dieselben Regeln wie bei der Ordnerwahl darueber: mindestens 44 Pixel,
+  damit der Finger sie trifft, und der gewaehlte traegt die Betonungskante,
+  nicht nur eine andere Flaeche.
+*/
+.dialogsymbolreihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+  margin-bottom: var(--luft-2);
+}
+
+.dialogsymbol {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--grund-tief);
+  border: 1px solid var(--feldrand);
+  border-radius: var(--rundung);
+  color: var(--schrift);
+
+  font: inherit;
+  font-size: var(--text-gross);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dialogsymbol:hover {
+  border-color: var(--betonung);
+}
+
+.dialogsymbol[data-gewaehlt="true"] {
+  background: var(--betonung-tief);
+  border-color: var(--betonung);
+  border-width: 2px;
+}
+
+/*
   WIE BREIT EINE ZEILE FLIESSTEXT WIRD.
 
   Karam sitzt an einem breiten Bildschirm. Am 17.09.2026 bei 1920 Pixel
@@ -6099,11 +6141,23 @@ li[data-schwere="info"] .hinweisart {
   border-left: 3px solid var(--ton);
 }
 
-.ordnerkachel[data-ton="1"], .panelknopf[data-ton="1"], .projektzeile[data-ton="1"] { --ton: var(--ton-1); }
-.ordnerkachel[data-ton="2"], .panelknopf[data-ton="2"], .projektzeile[data-ton="2"] { --ton: var(--ton-2); }
-.ordnerkachel[data-ton="3"], .panelknopf[data-ton="3"], .projektzeile[data-ton="3"] { --ton: var(--ton-3); }
-.ordnerkachel[data-ton="4"], .panelknopf[data-ton="4"], .projektzeile[data-ton="4"] { --ton: var(--ton-4); }
-.ordnerkachel[data-ton="5"], .panelknopf[data-ton="5"], .projektzeile[data-ton="5"] { --ton: var(--ton-5); }
-.ordnerkachel[data-ton="6"], .panelknopf[data-ton="6"], .projektzeile[data-ton="6"] { --ton: var(--ton-6); }
-.ordnerkachel[data-ton="7"], .panelknopf[data-ton="7"], .projektzeile[data-ton="7"] { --ton: var(--ton-7); }
-.ordnerkachel[data-ton="8"], .panelknopf[data-ton="8"], .projektzeile[data-ton="8"] { --ton: var(--ton-8); }
+/*
+  Die Riesenschein-Karte traegt denselben Ton an ihrer Kante: der Ordner
+  faerbt, sonst der Name (die Erbfolge steht in oberflaeche/ordner.js).
+
+  NUR wenn nichts ansteht: eine Warnung oder ein Fehler faerbt die Kante
+  weiter selbst (siehe die Regeln bei .riesenkarte oben). Geld schlaegt
+  Schmuck, deshalb greift der Ton ausschliesslich bei data-schwere='gut'.
+*/
+.riesenkarte[data-schwere='gut'][data-ton] {
+  border-left-color: var(--ton);
+}
+
+.ordnerkachel[data-ton="1"], .panelknopf[data-ton="1"], .projektzeile[data-ton="1"], .riesenkarte[data-ton="1"] { --ton: var(--ton-1); }
+.ordnerkachel[data-ton="2"], .panelknopf[data-ton="2"], .projektzeile[data-ton="2"], .riesenkarte[data-ton="2"] { --ton: var(--ton-2); }
+.ordnerkachel[data-ton="3"], .panelknopf[data-ton="3"], .projektzeile[data-ton="3"], .riesenkarte[data-ton="3"] { --ton: var(--ton-3); }
+.ordnerkachel[data-ton="4"], .panelknopf[data-ton="4"], .projektzeile[data-ton="4"], .riesenkarte[data-ton="4"] { --ton: var(--ton-4); }
+.ordnerkachel[data-ton="5"], .panelknopf[data-ton="5"], .projektzeile[data-ton="5"], .riesenkarte[data-ton="5"] { --ton: var(--ton-5); }
+.ordnerkachel[data-ton="6"], .panelknopf[data-ton="6"], .projektzeile[data-ton="6"], .riesenkarte[data-ton="6"] { --ton: var(--ton-6); }
+.ordnerkachel[data-ton="7"], .panelknopf[data-ton="7"], .projektzeile[data-ton="7"], .riesenkarte[data-ton="7"] { --ton: var(--ton-7); }
+.ordnerkachel[data-ton="8"], .panelknopf[data-ton="8"], .projektzeile[data-ton="8"], .riesenkarte[data-ton="8"] { --ton: var(--ton-8); }

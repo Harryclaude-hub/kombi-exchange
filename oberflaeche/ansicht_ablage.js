@@ -31,7 +31,7 @@
  */
 
 import { el, fuelle, zeitText, anbieterzeichen, ausschnittbild } from './werkzeug.js'
-import { tonFuer } from './ordner.js'
+import { tonFuerProjekt } from './ordner.js'
 import { formatiere, formatiereQuote } from '../kern/geld.js'
 import { barEinsatz, realisierterRueckfluss, offenePotenzialauszahlung } from '../kern/rechnung.js'
 // Der Stand eines Scheins steht in der Datenbank als Schluessel, also
@@ -497,6 +497,9 @@ function projektzeile(p, stand) {
           wert: p.ordner ?? '',
           platzhalter: 'leer lassen: ohne Ordner',
           vorschlaege: bekannte,
+          // Ein Zeichen vorn im Ordnernamen, gleiche Reihe wie bei den
+          // Riesenschein-Ordnern (oberflaeche/ordner.js).
+          symbole: ['📌', '🔥', '⭐', '✅', '💰', '🏈', '📅', '🗄️'],
         },
       ],
       ja: 'Übernehmen',
@@ -525,9 +528,10 @@ function projektzeile(p, stand) {
   const zeile = el(
     '.projektzeile',
     {
-      // Der Ton haengt am Projektnamen, genau wie bei den Ordnern.
-      // Siehe oberflaeche/ordner.js, tonFuer().
-      daten: { offen: String(offen), gepinnt: String(p.angepinnt === true), ton: tonFuer(p.name) },
+      // Der Ton: der Ordner faerbt, sonst der Projektname. Die Erbfolge
+      // steht an einer Stelle, in ordner.js, tonFuerProjekt (Karam am
+      // 19.09.2026: "kriegen sie automatisch die Farbe vom Folder").
+      daten: { offen: String(offen), gepinnt: String(p.angepinnt === true), ton: tonFuerProjekt(p) },
       draggable: 'true',
     },
     [
@@ -722,7 +726,15 @@ function benenneUm(p) {
       'Nur der Name ändert sich. Scheine, Riesenscheine und Bilder bleiben, wie sie sind.',
       'Der Name steht danach überall: oben in der Kopfzeile und an jedem Riesenschein.',
     ],
-    felder: [{ name: 'name', beschriftung: 'Neuer Name', wert: p.name }],
+    felder: [
+      {
+        name: 'name',
+        beschriftung: 'Neuer Name',
+        wert: p.name,
+        // Ein Zeichen vorn im Namen; Teil des Namens, wandert mit.
+        symbole: ['🏈', '⚽', '🏀', '🎾', '🏒', '⭐', '💼', '📅'],
+      },
+    ],
     ja: 'Umbenennen',
   }).then((antwort) => {
     if (antwort === null) return

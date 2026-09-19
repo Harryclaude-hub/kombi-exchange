@@ -882,6 +882,9 @@ async function frageNachNeuemRiesenschein(stand, inOrdner) {
         beschriftung: 'Name des neuen Riesenscheins',
         wert: `Riesenschein ${stand.riesenscheine.length + 1}`,
         hilfe: 'Kannst du später jederzeit ändern.',
+        // Ein Zeichen vorn im Namen; Teil des Namens, wandert mit in die
+        // Datenbank. Das feste Stufenzeichen bleibt unangetastet.
+        symbole: ['⭐', '🔥', '💰', '🎯', '🛡️', '⚠️', '✅', '🏈'],
       },
       // Ein Bauplan fuer alle Ordnerfelder, siehe oberflaeche/ordner.js
       // (Projektregel 8). Er bringt die drei sichtbaren Wege mit: kein
@@ -993,7 +996,10 @@ function riesenkarte(riesenschein, stand) {
     Zustand.aendere({ auswahl: riesenschein.id, scheinAuswahl: null })
   }
 
-  const karte = el('.riesenkarte', { daten: { schwere } }, [
+  // Die Kennfarbe: der Ordner faerbt, sonst der eigene Name. Die Regel steht
+  // an genau einer Stelle, in ordner.js (Projektregel 8). Eine Warnung oder
+  // ein Fehler schlaegt die Kennfarbe, siehe stil/bauteile.css.
+  const karte = el('.riesenkarte', { daten: { schwere, ton: Ordner.tonFuerRiesenschein(riesenschein) } }, [
     el('.riesenkartekopf', {}, [
       el('.riesenkartename', { text: riesenschein.name || 'Ohne Namen' }),
       liegtIn ? el('span.ordnermarke', { text: liegtIn }) : null,

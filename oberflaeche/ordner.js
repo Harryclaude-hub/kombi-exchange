@@ -211,6 +211,41 @@ export function tonFuer(name) {
 }
 
 /**
+ * Der Farbton eines Riesenscheins. EINZIGE Stelle fuer die Erbfolge.
+ *
+ * Karam am 19.09.2026: "Wenn sie in einem bestimmten Folder gespeichert
+ * werden, kriegen sie automatisch die Farbe vom Folder."
+ *
+ * Liegt der Riesenschein in einem Ordner, traegt er dessen Ton: alles im
+ * selben Ordner sieht zusammengehoerig aus, auf jedem Geraet gleich. Ohne
+ * Ordner bekommt er seinen eigenen Ton aus dem Namen. Eine von Hand
+ * GEWAEHLTE Farbe dagegen braucht eine neue Spalte in kombi.riesenscheine,
+ * also eine Migration; siehe den Kommentar an tonFuer().
+ *
+ * @param {{id?: string, name?: string, ordner?: string}} riesenschein
+ * @returns {string} '1' bis '8', oder '' wenn nichts einen Namen hat.
+ */
+export function tonFuerRiesenschein(riesenschein) {
+  const ordner = ordnerVon(/** @type {any} */ (riesenschein ?? {}))
+  if (ordner !== OHNE_ORDNER) return tonFuer(ordner)
+  return tonFuer(riesenschein?.name || riesenschein?.id || '')
+}
+
+/**
+ * Der Farbton eines Projekts, nach derselben Erbfolge: der Ordner faerbt,
+ * sonst der eigene Name. Dieselbe Regel an einer Stelle, damit Ablage und
+ * Panel nie auseinanderlaufen (Projektregel 8).
+ *
+ * @param {{id?: string, name?: string, ordner?: string}} projekt
+ * @returns {string}
+ */
+export function tonFuerProjekt(projekt) {
+  const ordner = String(projekt?.ordner ?? '').trim()
+  if (ordner !== '') return tonFuer(ordner)
+  return tonFuer(projekt?.name || projekt?.id || '')
+}
+
+/**
  * Der Bauplan fuer das Ordnerfeld in einem Fenster. EINZIGE Stelle dafuer.
  *
  * Karam am 17.09.2026: "Wenn ich was speichere, kann ich einen Ordner
@@ -268,6 +303,10 @@ export function ordnerfeldbauplan(vorhandene, jetziger = OHNE_ORDNER, anzahlen =
     wert: jetziger,
     platzhalter: 'Name eines neuen Ordners',
     auswahl,
+    // Ein Zeichen VORN im Ordnernamen, wenn Karam eines will. Es ist Teil
+    // des Namens und damit ueberall gleich, auch beim Kollegen. Das feste
+    // Stufenzeichen des Ordners bleibt unangetastet (Karam am 19.09.2026).
+    symbole: ['📌', '🔥', '⭐', '✅', '💰', '🏈', '📅', '🗄️'],
     neuHilfe:
       vorhandene.length > 0
         ? 'Oder tippe hier einen neuen Namen. Der Ordner entsteht damit sofort.'

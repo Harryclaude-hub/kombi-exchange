@@ -53,6 +53,12 @@ import { el, fuelle } from './werkzeug.js'
  *   SICHTBARE Knoepfe ueber dem Feld. Ein Klick traegt den Wert ein.
  * @property {string} [neuHilfe] Was unter dem Feld steht, wenn es um einen
  *   neuen Eintrag geht.
+ * @property {string[]} [symbole] Kleine Zeichen (Emojis) als Knopfreihe am
+ *   Feld. Ein Klick stellt das Zeichen VORN in den Namen, ein zweiter nimmt
+ *   es wieder heraus. Das Zeichen ist Teil des Namens und wandert damit
+ *   ueberallhin mit, auch in die Datenbank und zum Kollegen. Die festen
+ *   Stufenzeichen (Projekt, Ordner, Riesenschein, Schein) bleiben davon
+ *   unberuehrt; das hier ist reine Beschriftung.
  */
 
 /**
@@ -172,9 +178,66 @@ function zeige(bauplan, mitAbbruch) {
         eingabe.addEventListener('input', zeigeGewaehlten)
         zeigeGewaehlten()
 
+        /*
+          DIE SYMBOLREIHE.
+
+          Karam am 19.09.2026: "man kann Emojis hinzufuegen oder Symbole, aber
+          die Hauptsymbole fuer Ordner, Schein und Riesenschein muessen gleich
+          bleiben." Das Zeichen wird deshalb Teil des NAMENS: es faehrt mit dem
+          Namen in die Datenbank und ist beim Kollegen genauso zu sehen. Die
+          festen Stufenzeichen bleiben unangetastet.
+
+          Ein Klick setzt das Zeichen vorn ein, ein zweiter nimmt es heraus,
+          und ein anderes Zeichen ersetzt das vorhandene, statt sich davor zu
+          stapeln.
+        */
+        const symbole = f.symbole ?? []
+        /** @type {HTMLElement[]} */
+        const symbolknoepfe = []
+
+        const ohneFuehrendesSymbol = (wert) => {
+          let rest = wert
+          for (const z of symbole) {
+            if (rest.startsWith(z)) {
+              rest = rest.slice(z.length).replace(/^\s+/, '')
+              break
+            }
+          }
+          return rest
+        }
+
+        const zeigeSymbol = () => {
+          const jetzt = eingabe.value
+          symbole.forEach((z, k) => {
+            symbolknoepfe[k].dataset.gewaehlt = String(jetzt.startsWith(z))
+          })
+        }
+
+        for (const z of symbole) {
+          symbolknoepfe.push(
+            el('button.dialogsymbol', {
+              type: 'button',
+              text: z,
+              title: 'Stellt dieses Zeichen vorn in den Namen. Noch einmal klicken nimmt es heraus.',
+              onclick: () => {
+                const kern = ohneFuehrendesSymbol(eingabe.value)
+                eingabe.value = eingabe.value.startsWith(z) ? kern : `${z} ${kern}`.trimEnd()
+                zeigeSymbol()
+                zeigeGewaehlten()
+                eingabe.focus()
+              },
+            })
+          )
+        }
+        if (symbole.length > 0) {
+          eingabe.addEventListener('input', zeigeSymbol)
+          zeigeSymbol()
+        }
+
         return el('label.dialogfeld', {}, [
           el('span.dialogfeldname', { text: f.beschriftung }),
           knoepfe.length > 0 ? el('.dialogwahlreihe', {}, knoepfe) : null,
+          symbolknoepfe.length > 0 ? el('.dialogsymbolreihe', {}, symbolknoepfe) : null,
           f.neuHilfe ? el('span.dialogfeldhilfe', { text: f.neuHilfe }) : null,
           eingabe,
           listenId

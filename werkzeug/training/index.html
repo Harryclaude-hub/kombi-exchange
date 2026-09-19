@@ -91,6 +91,19 @@
         background: var(--grund); border: 1px solid var(--linie); border-radius: 4px;
         padding: 0.75rem; overflow-x: auto; font-size: 0.8125rem; margin: 0.5rem 0 0;
       }
+      /* Die eigenen Rueckfragefenster (oberflaeche/dialog.js), statt der
+         Browser-Popups oben. Nur die Klassen, die diese Seite braucht. */
+      dialog.dialogfenster {
+        background: var(--flaeche); color: var(--schrift);
+        border: 1px solid var(--linie); border-radius: 10px;
+        padding: 1.25rem; max-width: 34rem;
+      }
+      dialog.dialogfenster::backdrop { background: rgba(3, 6, 12, 0.72); }
+      .dialogtitel { margin: 0 0 0.5rem; font-size: 1.05rem; }
+      .dialogpunkte { margin: 0 0 1rem; padding-left: 1.25rem; color: var(--leise); }
+      .dialogpunkte li { margin-bottom: 0.35rem; }
+      .dialogknoepfe { display: flex; gap: 0.75rem; justify-content: flex-end; }
+      .dialogknoepfe .knopf-haupt { border-color: var(--gut); }
     </style>
   </head>
   <body>

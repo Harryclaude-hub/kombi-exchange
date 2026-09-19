@@ -134,6 +134,30 @@
           </button>
         </div>
       </div>
+
+      <div class="schaugruppe">
+        <h2>Die Symbolreihe im Fenster, beide Zustaende</h2>
+        <!--
+          Neu am 19.09.2026: kleine Zeichen, die vorn in einen Namen wandern.
+          Wie die Ordnerauswahl erscheint sie nur in einem offenen Fenster
+          und wuerde sonst nie gemessen.
+        -->
+        <div class="dialogsymbolreihe" data-auch-heiss="true">
+          <button class="dialogsymbol" type="button" data-gewaehlt="false">&#11088;</button>
+          <button class="dialogsymbol" type="button" data-gewaehlt="true">&#128293;</button>
+        </div>
+      </div>
+
+      <div class="schaugruppe">
+        <h2>Die Kennfarben an der Riesenschein-Karte, alle acht, und was sie schlaegt</h2>
+        <!--
+          Neu am 19.09.2026: die Karte traegt den Ton ihres Ordners, sonst den
+          ihres Namens. Eine Warnung oder ein Fehler faerbt die Kante WEITER
+          selbst; die letzten beiden Karten stehen hier genau dafuer. Was auf
+          dieser Seite fehlt, wird nicht gemessen.
+        -->
+        <div class="riesenkarten" id="kennfarben"></div>
+      </div>
     </main>
 
     <script type="module">
@@ -152,6 +176,27 @@
         z.appendChild(inhalt)
         z.appendChild(el('small', '', bildunterschrift))
         return z
+      }
+
+      // --- Die Kennfarben an der Riesenschein-Karte, alle acht Toene ---
+      {
+        const ziel = document.getElementById('kennfarben')
+        const karte = (name, merkmale) => {
+          const k = el('div', 'riesenkarte', undefined, merkmale)
+          const kopf = el('div', 'riesenkartekopf')
+          kopf.appendChild(el('div', 'riesenkartename', name))
+          k.appendChild(kopf)
+          return k
+        }
+        for (let ton = 1; ton <= 8; ton += 1) {
+          ziel.appendChild(
+            karte(`Ton ${ton}`, { 'data-schwere': 'gut', 'data-ton': String(ton) })
+          )
+        }
+        // Geld schlaegt Schmuck: Warnung und Fehler behalten ihre Kante,
+        // auch wenn ein Ton gesetzt ist.
+        ziel.appendChild(karte('Warnung schlaegt Ton', { 'data-schwere': 'warnung', 'data-ton': '1' }))
+        ziel.appendChild(karte('Fehler schlaegt Ton', { 'data-schwere': 'fehler', 'data-ton': '2' }))
       }
 
       // --- Zahlfelder: alle Kombinationen, nicht nur die haeufigen ---

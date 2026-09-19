@@ -756,6 +756,9 @@ function projektwahl(stand) {
               beschriftung: 'Name des Projekts',
               wert: `Projekt ${stand.projekte.length + 1}`,
               hilfe: 'Kannst du später in der Ablage umbenennen.',
+              // Ein Zeichen vorn im Namen, wenn eines gewuenscht ist. Es ist
+              // Teil des Namens und wandert mit in die Datenbank.
+              symbole: ['🏈', '⚽', '🏀', '🎾', '🏒', '⭐', '💼', '📅'],
             },
           ],
           ja: 'Projekt anlegen',

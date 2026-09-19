@@ -1,6 +1,6 @@
 # Uebergabe an die naechste Sitzung
 
-**Stand: 19.09.2026, Fassung 2026-09-19-a, oeffentlich ausgeliefert.**
+**Stand: 19.09.2026 abends, Fassung 2026-09-19-d, oeffentlich ausgeliefert.**
 
 Diese Datei ist so geschrieben, dass jemand ohne jede Vorgeschichte weiterarbeiten
 kann. Zuerst lesen, dann anfangen. Sie ist lang; die ersten fuenf Abschnitte
@@ -10,6 +10,17 @@ reichen fuer den Anfang, der Rest ist Nachschlagewerk.
 Die Datenbank steht, der Zugangscode ist gesetzt, und Karam kommt hinein. Bis
 zum 18.09.2026 zeigte `daten/einstellungen.js` auf eine Adresse, die es gar
 nicht gab. Deshalb war bis dahin nie etwas gespeichert geblieben.
+
+**AM ABEND DES 19.09.2026 IST DIE GANZE FEHLERSUCHE VOM 17.09. ABGEARBEITET:**
+alle Abschnitte A (Geld), B (Arbeitsverlust), C (tote Knoepfe), D (falsche
+Saetze) und E (nie Angeschlossenes) sind behoben, mit Test zuerst, Details im
+Abschnitt "DIE FEHLERSUCHE" unten und in den Commits `7f42cb2` und `afc0243`.
+Dabei kam ein weiterer Fund heraus: das Speichern von Scheinen warf nach dem
+ersten Haeppchen einen stillen ReferenceError (`zahlOderNull` gab es in
+`daten/datenbank.js` gar nicht); behoben, `test/datenbank_speichern.test.mjs`.
+Dazu: der KI-Lesebereich ist fertig eingerichtet (Sonnet 5, strenger Bauplan,
+Schluesselkasten auch ohne Fotos sichtbar), und die Kennfarben samt
+Symbolreihe sind gebaut (siehe "Was am 19.09.2026 abends gebaut wurde").
 
 **Wer sofort etwas zu tun sucht:** der naechste Schritt ist der
 Anthropic-Schluessel, siehe `API_SCHLUESSEL.md` und Abschnitt "Was offen ist",
@@ -82,7 +93,7 @@ diese Tabelle nach.
 | Namen, Notizen, Ausgaenge | Supabase | ja | ja |
 | Ordner am Riesenschein | Supabase, **nach Migration 0009** | nach 0009 | nach 0009 |
 | Reihenfolge der Scheine | Supabase (`schein_ids`) | ja | ja |
-| **Bildschirmfotos** | **Browser + Ordner auf der Platte** | **nein** | ja |
+| **Bildschirmfotos** | **Browser + Ordner auf der Platte** | **Angaben ja (seit 19.09.), Dateien nein** | ja |
 | Ordner der Projekte, Anpinnen | Supabase | ja | ja |
 | Sortierung, "zuletzt geoeffnet", Panel | Browser | nein, absichtlich | ja |
 
@@ -1179,7 +1190,22 @@ eine echte Luecke des Korpus, nicht nur der Anzeige.
 
 ---
 
-## DIE FEHLERSUCHE VOM 17.09.2026. Hier steht die Arbeit fuer die naechste Sitzung.
+## DIE FEHLERSUCHE VOM 17.09.2026. Seit dem 19.09.2026 abends ERLEDIGT.
+
+**ALLE PUNKTE A BIS E SIND AM 19.09.2026 BEHOBEN**, jeder mit einem Test, der
+gegen den alten Stand ausloest: `test/geldfehler.test.mjs` (A1, A2, A3, A6),
+`test/excel_formeln.test.mjs` (A4, A5), `test/zweite_berichtigung.test.mjs`
+(B1), `test/datenbank_speichern.test.mjs` (B3 und der neue
+zahlOderNull-Fund), `test/leerer_riesenschein_bleibt.test.mjs` (B4),
+`test/bildangaben_halten.test.mjs` (B5). B6 war schon am 18.09. erledigt, B7
+(Bildangaben in die Datenbank) haengt seit dem 19.09. am Speicherlauf in
+`oberflaeche/app.js`. C, D und E stecken in Commit `7f42cb2`; bei E gilt eine
+Ausnahme: die Bewegungsstufen aus `stil/buehne.js` haben weiter keinen
+Schalter (siehe "Was offen ist").
+
+Die Liste unten BLEIBT STEHEN, weil sie erklaert, warum die Reparaturen so
+aussehen, wie sie aussehen. Wer eine der Stellen wieder anfasst, liest hier
+nach, was dort schon einmal schiefging.
 
 Am Abend des 17.09.2026 hat eine Fehlersuche mit 63 Agenten das ganze Programm
 durchgekaemmt, in sechs Richtungen: Geld, Bildverlust, halbfertige Wege, tote
@@ -1585,6 +1611,81 @@ weil sie unter Windows die Pfadtrenner falsch verglich.
 Und der Browserlauf hat einen Fehler gefunden, den kein Test hatte:
 `speicherblock()` bekam den Ordner nicht uebergeben und warf
 `ordner is not defined`. Regel 2, woertlich: gruene Tests sind nicht fertig.
+
+---
+
+## Was am 19.09.2026 abends gebaut wurde
+
+Fassungen 2026-09-19-b bis -d, Commits `7f42cb2`, `afc0243` und der Design-Commit danach.
+
+### 1. Die Fehlersuche vom 17.09. komplett abgearbeitet
+
+Siehe den Banner am Abschnitt "DIE FEHLERSUCHE" oben: A bis E, jede Reparatur
+mit einem Test, der gegen den alten Stand ausloest, und die Geldfaelle (A1)
+zusaetzlich im Browser an der Probeseite nachgestellt (Versprechen 120,00,
+Auszahlung 120,00).
+
+Der wichtigste NEUE Fund dabei: `daten/datenbank.js` rief nach jedem
+erfolgreichen Speicher-Haeppchen `zahlOderNull` auf, eine PRIVATE Funktion
+von `kern/quoten.js`, die es in dieser Datei gar nicht gibt. Das Speichern
+von Scheinen warf also nach dem ersten Haeppchen einen ReferenceError, der im
+verzoegert-Wecker als unbehandelte Ablehnung verschwand: Haeppchen eins lag
+in der Datenbank, die Fassung im Programm blieb alt, und jeder weitere Lauf
+waere als "zweites Fenster" abgelehnt worden. Mit echten Scheinmengen (ueber
+200) waere das am ersten richtigen Spieltag explodiert.
+
+### 2. Der KI-Lesebereich ist einsatzbereit
+
+Fuer Karams naechsten Schritt (Schluessel eintragen):
+
+- **Der Schluesselkasten steht jetzt auch ohne Fotos im Reiter Aufnahme.**
+  Vorher lebte er nur in der Leseleiste, die es erst ab dem ersten Bild gibt.
+- **Sonnet 5 ist und bleibt die Vorgabe** (`claude-sonnet-5`, 2 USD je
+  Million gelesene Token), wie von Karam verlangt.
+- **max_tokens 16000 statt 2000**, und `stop_reason` wird geprueft: eine
+  abgeschnittene Antwort gilt nie als Erfolg (vorher haetten bei neun
+  Kombischeinen je Foto still Scheine gefehlt).
+- **Der Zwischenspeicher wird angefordert statt nur erhofft** (cache_control
+  an der festen Anweisung); ob er greift, zeigt marken.ausSpeicher.
+- **strict: true am Werkzeug**: die API prueft die Antwort selbst gegen den
+  Bauplan; jedes Feld steht unter required, additionalProperties ist false.
+- **Die Anweisung hat zwoelf Regeln statt acht**: Anbieter am Logo nennen und
+  nie raten, Datum der Abgabe genau wie im Bild, Einzel gegen Kombi an der
+  Zahl der Auswahlen, Scheingrenzen an Nummer/Rahmen/doppelter Beschriftung,
+  und die gemessenen Eigenheiten der fuenf echten Anbieter.
+- **push fehlte ueberall** (Bauplan, Anweisung, erlaubt-Liste in
+  `oberflaeche/kilesen.js`): ein Unentschieden waere als "unbekannt" wie ein
+  offener Schein gezaehlt worden. `test/ki_luecken.test.mjs` prueft es jetzt
+  bis in die Rechnung.
+
+**Weiterhin wahr: der echte Aufruf mit Schluessel ist NIE gelaufen.** Der
+erste Lauf ist Karams, siehe `API_SCHLUESSEL.md`.
+
+### 3. Kennfarben und Symbole (Karams Designauftrag vom 19.09.)
+
+- **Riesenschein-Karten tragen jetzt den Farbton**: der Ordner faerbt, sonst
+  der eigene Name. Die Erbfolge steht an EINER Stelle,
+  `oberflaeche/ordner.js` (`tonFuerRiesenschein`, `tonFuerProjekt`); auch die
+  Projektzeile in der Ablage erbt jetzt den Ordnerton. Eine Warnung oder ein
+  Fehler schlaegt die Kennfarbe IMMER (Geld schlaegt Schmuck), Regel in
+  `stil/bauteile.css`, nachgestellt auf `werkzeug/probe/zustaende.html`.
+- **Eine Symbolreihe in den Fenstern** (`oberflaeche/dialog.js`, Feld
+  `symbole`): ein Klick stellt ein Zeichen VORN in den Namen, ein zweiter
+  nimmt es heraus. Das Zeichen ist Teil des Namens und wandert mit in die
+  Datenbank, auch zum Kollegen. Eingebaut bei: Neues Projekt, Projekt
+  umbenennen, beide Ordner-Fenster, Neuer Riesenschein. Die festen
+  Stufenzeichen bleiben unangetastet.
+- **Die Trainingsseite fragt jetzt mit den eigenen Fenstern** statt mit
+  window.confirm (die Browser-Popups oben, die Karam nicht mag).
+- Kontrast ueber alles nachgemessen: 10518 Stellen, beide Themen, 1440 und
+  375 Pixel, keine Beanstandung.
+
+**Eine von Hand GEWAEHLTE Farbe je Riesenschein/Projekt gibt es weiter
+nicht**: sie braucht eine neue Spalte in `kombi.riesenscheine` bzw.
+`kombi.projekte`, also eine Migration, die nur Karam ausfuehrt. Die
+abgeleiteten Toene decken seinen Auftrag (zufaellige Farbe, Ordner faerbt
+automatisch); die bewusste Gegenentscheidung ("ausser man entscheidet sich
+dagegen") steht unter "Was offen ist".
 
 ---
 
@@ -2298,8 +2399,11 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
    selbst eingetragen. **Niemals in eine Datei, eine Nachricht oder einen
    Commit.** Nie nach dem `service_role`-Schluessel von Supabase fragen.
 
-   Kosten bei seiner Menge (100 Fotos je Woche): mit Haiku 4.5 wenige Cent je
-   Tag. Die Rechnung steht in `API_SCHLUESSEL.md`.
+   Seit dem 19.09.2026 abends steht der Schluesselkasten auch OHNE Fotos im
+   Reiter Aufnahme, Sonnet 5 ist vorgewaehlt, und die Anfrage traegt strengen
+   Bauplan, Zwischenspeicher-Haltepunkt und 16000 Ausgabetoken. Kosten bei
+   seiner Menge (100 Fotos je Woche): rund 1,50 USD je Tag mit Sonnet 5. Die
+   Rechnung steht in `API_SCHLUESSEL.md`.
 
    **Was noch NIE mit einem echten Schluessel gelaufen ist:** der Aufruf
    selbst. Alles davor ist mit nachgestellten Antworten geprueft, der letzte
@@ -2361,10 +2465,10 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
    - **`leseBilder` sichert erst nach dem letzten Bild und laesst sich nicht
      abbrechen.** Wer nach achtzig von hundert Bildern abbricht, verliert
      alles. Bei drei Bildern faellt das nicht auf.
-   - **Nach einem Neuladen kommen die Bilder ohne Kartengrenzen zurueck.**
-     `karten`, `bereich` und `hinweise` werden nicht abgelegt. Danach steht
-     bei jedem Bild "0 Scheine erkannt", und die ganze Handarbeit an den
-     Grenzen ist weg.
+   - ~~**Nach einem Neuladen kommen die Bilder ohne Kartengrenzen zurueck.**~~
+     **ERLEDIGT am 19.09.2026 (B5):** Kartengrenzen, Rahmen, Anbieter und
+     Konto wandern jetzt mit dem Bild in die Browserablage,
+     `test/bildangaben_halten.test.mjs`.
    - **Feste Pixelgrenzen in der Zerlegung.** `KARTE_MINDESTHOEHE = 40` ist
      eine absolute Zahl. Bei einem Handybild mit dreifacher Pixeldichte ist
      schon eine einzelne Textzeile hoeher, der Schutz gegen Zerschneiden
@@ -2413,6 +2517,28 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
    **Auf einem Handy noch nicht gemessen.** Dort gibt es weniger Kerne, also
    weniger Leser. Mit zwei Kernen laeuft es wieder einspurig.
 
+6b. **Die Farbwahl von Hand fehlt noch.** Karam am 19.09.2026: "Man kriegt
+   eine random Farbe zugeordnet ... ausser man entscheidet sich dagegen."
+   Die abgeleiteten Toene (Ordner faerbt, sonst der Name) sind gebaut; die
+   BEWUSSTE eigene Farbe je Riesenschein und Projekt braucht je eine neue
+   Spalte (`kombi.riesenscheine.farbe`, `kombi.projekte.farbe`), also eine
+   Migration 0011, die nur Karam ausfuehrt. Erst die Migration schreiben und
+   von ihm ausfuehren lassen, dann die Auswahl in die Fenster bauen. Vorher
+   waere es eine Farbwahl, die beim Neuladen verschwindet, und genau diese
+   Sorte Luecke hat am 17.09. dreimal Nachfragen gekostet.
+
+6c. **Die Bewegungsstufen aus `stil/buehne.js` haben weiter keinen
+   Schalter** (Rest aus Fund E). Stufen 0 und 2 sind in Code und Stil fertig;
+   es fehlt ein Schalter in den Einstellungen, mit Stufe 1 als Vorgabe und
+   einer Warnung vor Stufe 2 auf einer Seite, die stundenlang offen bleibt.
+
+6d. **Bei einem Widerspruch zweier Fenster gibt es weiter keinen
+   Zusammenfuehrweg.** Die Meldung sagt seit dem 19.09.2026 ehrlich, was
+   Neuladen kostet (B2), aber wer beide Staende behalten will, muss den
+   eigenen erst ausgeben und dann von Hand nachtragen. Ein bewusster
+   "Trotzdem uebernehmen"-Weg waere zu bauen, und er braucht eine Rueckfrage,
+   die klar sagt, wessen Arbeit dabei ueberschrieben wird.
+
 7. **Die Ablage und das Zuschneidewerkzeug sind ungeprueft.**
 
    **BERICHTIGT AM 17.09.2026.** Hier stand bis dahin "Kein einziger Test fasst
@@ -2443,11 +2569,12 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 | | |
 |---|---|
-| Tests | 343, davon 342 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 377, davon 376 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, die Fotos fehlen |
-| Aufbaupruefung | 119 Dateien, keine Beanstandung |
-| Fassung | 2026-09-19-a, oeffentlich ausgeliefert und nachgeprueft |
+| Aufbaupruefung | 125 Dateien, keine Beanstandung |
+| Fassung | 2026-09-19-d, oeffentlich ausgeliefert |
+| Fehlersuche vom 17.09. | ALLE Abschnitte A bis E am 19.09. behoben, je mit Test |
 | Datenbank | `mqmevpyatjsambervgtu`, Schema `kombi`, 10 Wanderungen, 45 von 500 MB belegt |
 | Zugangscode | gesetzt am 19.09.2026, Anmeldung auf der echten Seite geprueft |
 | Offlinevorrat | 66 Dateien, rund 2 MB, Dienstarbeiter aktiv geprueft |
@@ -2491,3 +2618,13 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 - **`node --check` auf einer `.js`-Datei meldet `Unexpected token 'export'`.**
   Das ist kein Fehler in der Datei: `--check` prueft als CommonJS. Zum Pruefen
   eines Moduls `import()` benutzen oder `node werkzeug/pruefe.mjs`.
+- **PowerShell-Textersatz (`-replace` mit `Get-Content`/`Set-Content`)
+  zerstoert Umlaute:** Windows PowerShell liest ohne `-Encoding` als ANSI und
+  schreibt UTF-8, aus "drücken" wird "drÃ¼cken". Am 19.09.2026 in
+  `oberflaeche/fotoknoepfe.js` passiert und von `pruefe.mjs`... NICHT
+  gefangen, nur beim Gegenlesen aufgefallen. Quelldateien nur mit dem
+  Schreib- oder Aenderungswerkzeug anfassen, nie mit PowerShell-Ersatz.
+- **Eine Commit-Nachricht per PowerShell-Here-String (`@'...'@ | git commit
+  -F -`) beginnt mit einem unsichtbaren BOM** (EF BB BF) im Titel. Die
+  Nachricht in eine Datei schreiben (Schreibwerkzeug, ohne BOM) und mit
+  `git commit -F <datei>` uebergeben.

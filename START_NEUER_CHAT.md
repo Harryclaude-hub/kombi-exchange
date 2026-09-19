@@ -64,7 +64,7 @@ an zu arbeiten, bevor du sie gelesen hast.
 | Die Seite, die ich benutze | `https://harryclaude-hub.github.io/kombi-exchange/` |
 | Datenbank | Supabase, Projekt `immo-check und kombi Tafel`, Kennung `mqmevpyatjsambervgtu` |
 | Zugangscode | **steht nirgends im Quelltext.** Frag mich. |
-| Stand heute | Fassung `2026-09-19-a`, oeffentlich ausgeliefert |
+| Stand heute | Fassung `2026-09-19-d`, oeffentlich ausgeliefert |
 | Trennung in der Datenbank | **`supabase/TRENNUNG.md` lesen, bevor du irgendetwas an der Datenbank machst.** |
 
 ## Meine Regeln. Die sind nicht verhandelbar.
@@ -96,8 +96,8 @@ an zu arbeiten, bevor du sie gelesen hast.
     Die ganze Begruendung und der Umzugsweg stehen in `supabase/TRENNUNG.md`.
 
 ```
-npm test                  (343 Faelle, 342 gruen, 1 uebersprungen)
-node werkzeug/pruefe.mjs  (119 Dateien)
+npm test                  (377 Faelle, 376 gruen, 1 uebersprungen)
+node werkzeug/pruefe.mjs  (125 Dateien)
 git add -A
 git commit -F -           (lange deutsche Nachricht: Problem, Grund, Messung)
 git push origin main
@@ -154,23 +154,14 @@ nachgestellten Antworten geprueft, der letzte Schritt nicht.
 echten Buchmacherfenster. Es ist gebaut und im Browser durchgemessen, aber noch
 nie von mir benutzt. Was dabei auffaellt, gehoert als Erstes behoben.
 
-**Dann: am 17.09.2026 abends hat eine Fehlersuche mit 63 Agenten 57 Fehler
-gefunden, 47 davon haben eine Gegenpruefung ueberstanden.** Die zum
-Speicherplatz sind erledigt, ebenso der schwerste Geldfund vom 18.09.2026
-(`zahl(null)` gab 0 zurueck, siehe `UEBERGABE.md`). Alles andere steht in
-`UEBERGABE.md` im Abschnitt **"DIE FEHLERSUCHE VOM 17.09.2026"**, mit Datei und
-Zeilennummer, nach Schaden geordnet.
-
-**Fang mit Abschnitt A an, "Wo Geld falsch wird".** Sechs Stueck, alle
-nachgerechnet, keiner davon erzeugt eine Meldung. Das schlimmste Beispiel: der
-Knopf "Gewonnen" verspricht 1.800,00 zurueck und zahlt 900,00, weil ein als
-verloren gelesener Schein auf null Euro stehen bleibt.
-
-Danach Abschnitt B, "Wo Arbeit verlorengeht". Besonders:
-- Zwei Berichtigungen in derselben Minute: die zweite wird nie gespeichert.
-- Ein abgebrochener Speicherlauf sperrt alle weiteren.
-- ~~Ein geloeschter Schein kommt nach dem Neuladen zurueck.~~ Erledigt am
-  18.09.2026, siehe `test/loeschen_haelt.test.mjs`.
+**Die Fehlersuche vom 17.09.2026 (63 Agenten, 47 bestaetigte Funde) ist seit
+dem 19.09.2026 abends KOMPLETT abgearbeitet:** alle Abschnitte A (Geld),
+B (Arbeitsverlust), C (tote Knoepfe), D (falsche Saetze) und E, jeder Punkt
+mit einem Test, der gegen den alten Stand ausloest. Dabei kam ein weiterer
+Fund heraus und wurde behoben: das Speichern von Scheinen warf nach dem
+ersten Haeppchen einen stillen ReferenceError
+(`test/datenbank_speichern.test.mjs`). Die Begruendungen stehen weiter in
+`UEBERGABE.md` im Abschnitt **"DIE FEHLERSUCHE VOM 17.09.2026"**.
 
 **Was noch fehlt und nur ich liefern kann, und ich habe mich am 17.09.2026
 dafuer entschieden, es als Naechstes zu tun: MEINE ECHTEN FOTOS.**
@@ -226,9 +217,10 @@ echten Zahlen abgeleitet werden, nicht geraten.
 
 ## Der Stand in einem Satz
 
-Das Programm laeuft seit dem 19.09.2026 zum ersten Mal vollstaendig: Datenbank
-steht, Zugangscode gesetzt, ablegbar als App, Bildschirm ausschneiden gebaut.
-Was fehlt, ist der Anthropic-Schluessel und meine echten Fotos.
+Das Programm laeuft seit dem 19.09.2026 vollstaendig, die ganze Fehlersuche
+vom 17.09. ist behoben, der KI-Lesebereich wartet eingerichtet (Sonnet 5) auf
+den Schluessel, und Kennfarben samt Symbolen sind gebaut. Was fehlt, ist der
+Anthropic-Schluessel und meine echten Fotos.
 
 ---
 
