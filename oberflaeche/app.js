@@ -19,6 +19,7 @@ import * as Reihenfolge from './reihenfolge.js'
 // nicht." Siehe oberflaeche/dialog.js.
 import * as Dialog from './dialog.js'
 import * as Anleitung from './anleitung.js'
+import { stufenzeichen } from './aufbau.js'
 import * as Installieren from './installieren.js'
 import * as Datenbank from '../daten/datenbank.js'
 import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL, PROGRAMM_FASSUNG } from '../daten/einstellungen.js'
@@ -675,7 +676,11 @@ function stelleFarbeHer() {
  * @returns {HTMLElement}
  */
 function projektwahl(stand) {
+  const stelle = (stand.projekte ?? []).findIndex((p) => p.id === stand.projekt?.id)
   return el('.projektwahl', {}, [
+    // Das Projektzeichen mit der laufenden Nummer, links vom Namen, wie an
+    // jeder anderen Stufe auch (Karam am 19.09.2026).
+    stufenzeichen('projekt', stand.projekt?.name ?? '', stelle >= 0 ? stelle + 1 : null),
     el(
       'select.feldwahl.projektfeld',
       {

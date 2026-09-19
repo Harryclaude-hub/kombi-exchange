@@ -261,6 +261,9 @@
 .panelknopf:focus-visible,
 .projektzeile:focus-visible,
 .ordnerzeile:focus-visible,
+.pfadschritt:focus-visible,
+.dialogsymbol:focus-visible,
+.dialogwahl:focus-visible,
 a:focus-visible,
 summary:focus-visible,
 [tabindex]:focus-visible {
@@ -1565,11 +1568,7 @@ li[data-schwere="info"] .hinweisart {
   border-left-color: var(--offen);
 }
 
-.kaertchennummer {
-  font-family: var(--schriftart-zahl);
-  font-size: var(--text-winzig);
-  color: var(--schrift-still);
-}
+/* .kaertchennummer ist am 19.09.2026 dem Stufenzeichen mit Nummer gewichen. */
 
 .kaertcheninhalt {
   min-width: 0;
@@ -1689,7 +1688,8 @@ li[data-schwere="info"] .hinweisart {
 */
 .projektwahl {
   display: grid;
-  grid-template-columns: auto auto;
+  /* Drei Spalten seit dem 19.09.2026: vorn das Projektzeichen mit Nummer. */
+  grid-template-columns: auto auto auto;
   align-items: center;
   gap: var(--luft-1);
   flex: 0 0 auto;
@@ -2460,7 +2460,9 @@ li[data-schwere="info"] .hinweisart {
 /* Die Zeile mit Name und Ordner INNERHALB einer Projektzeile in der Ablage. */
 .projektzeilenkopf {
   display: flex;
-  align-items: baseline;
+  /* center statt baseline: seit dem 19.09.2026 steht vorn das Stufenzeichen
+     mit der Nummer, ein Kasten, und der haengt an einer Grundlinie schief. */
+  align-items: center;
   gap: var(--luft-2);
   min-width: 0;
 }
@@ -2545,7 +2547,8 @@ li[data-schwere="info"] .hinweisart {
 
 .kombikopf {
   display: flex;
-  align-items: baseline;
+  /* center statt baseline, wegen des Stufenzeichens vorn (19.09.2026). */
+  align-items: center;
   gap: var(--luft-3);
   flex-wrap: wrap;
   margin-bottom: var(--luft-3);
@@ -3185,6 +3188,12 @@ li[data-schwere="info"] .hinweisart {
 .ordnername {
   font-size: var(--text-normal);
   font-weight: 600;
+  /* Der Name schiebt die Zahl nach rechts, seit vorn das Zeichen steht. */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Der Loeschknopf am Ordner bleibt zurueckhaltend und erscheint beim Zeigen. */
@@ -4631,11 +4640,26 @@ li[data-schwere="info"] .hinweisart {
   border-radius: var(--rundung-gross);
   cursor: pointer;
   font: inherit;
+  /* 19.09.2026: gleiche flache Tiefe wie die Riesenschein-Karte. Uebergang
+     nur auf transform, nie auf Farben (Falle 4). */
+  box-shadow: var(--schatten-flach);
+  transition: transform 120ms ease;
 }
 
 .ordnerkachel:hover {
   background: var(--flaeche-hoch);
   border-color: var(--betonung);
+  box-shadow: var(--schatten);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ordnerkachel {
+    transition: none;
+  }
+  .ordnerkachel:hover {
+    transform: none;
+  }
 }
 
 /*
@@ -4717,10 +4741,26 @@ li[data-schwere="info"] .hinweisart {
   border-radius: var(--rundung-gross);
   cursor: pointer;
   font: inherit;
+  /* 19.09.2026: die Karte hebt sich flach von der Flaeche ab und beim
+     Zeigen etwas mehr. Der Uebergang liegt NUR auf transform, nie auf einer
+     Farbe (Falle 4: Farbuebergaenge laufen beim Themenwechsel nicht neu an). */
+  box-shadow: var(--schatten-flach);
+  transition: transform 120ms ease;
 }
 
 .riesenkarte:hover {
   background: var(--flaeche-hoch);
+  box-shadow: var(--schatten);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .riesenkarte {
+    transition: none;
+  }
+  .riesenkarte:hover {
+    transform: none;
+  }
 }
 
 /* Anmerkungen faerben die Kante, damit sie in der Liste auffallen. */
@@ -5896,6 +5936,84 @@ li[data-schwere="info"] .hinweisart {
 .stufenzeichen[data-stufe="schein"] {
   border-style: solid;
   opacity: 0.82;
+}
+
+/*
+  MIT NUMMER DARIN (Karam am 19.09.2026: "diese Symbole da drinnen immer die
+  Nummerierung von jedem"). Der Kasten waechst mit der Zahl mit, statt sie
+  abzuschneiden, und die Ziffern stehen tabellarisch, damit 1 und 11 gleich
+  breit wirken.
+*/
+.stufenzeichen[data-nummer="true"] {
+  width: auto;
+  min-width: 1.375rem;
+  padding: 0 0.3125rem;
+  font-family: var(--schriftart-zahl);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  DIE PFADLEISTE: wo man gerade steht, von aussen nach innen.
+
+  Karam am 19.09.2026: "mach's viel klarer, wie man zu navigieren hat. Vom
+  Projekt zum Ordner, vom Ordner zum Riesenschein, zum Schein."
+
+  Jeder Schritt traegt sein Stufenzeichen mit Nummer. Alles ausser dem
+  letzten Schritt ist ein Knopf und fuehrt eine Ebene hinauf; der letzte ist
+  der Ort selbst und deshalb betont statt anklickbar.
+*/
+.pfadleiste {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--luft-1);
+  margin-bottom: var(--luft-3);
+  min-height: 2rem;
+}
+
+.pfadschritt {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--luft-1);
+  max-width: 18rem;
+
+  padding: var(--luft-1) var(--luft-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--rundung);
+  color: var(--schrift-leise);
+
+  font: inherit;
+  font-size: var(--text-klein);
+}
+
+button.pfadschritt {
+  cursor: pointer;
+}
+
+button.pfadschritt:hover {
+  background: var(--flaeche-hoch);
+  border-color: var(--linie);
+  color: var(--schrift);
+}
+
+.pfadschritt[data-hier="true"] {
+  color: var(--schrift);
+  font-weight: 600;
+  background: var(--flaeche);
+  border-color: var(--linie);
+}
+
+.pfadtext {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pfadpfeil {
+  color: var(--schrift-still);
+  font-size: var(--text-klein);
+  user-select: none;
 }
 
 /*

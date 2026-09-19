@@ -149,6 +149,33 @@
       </div>
 
       <div class="schaugruppe">
+        <h2>Stufenzeichen mit Nummer, und die Pfadleiste</h2>
+        <!--
+          Neu am 19.09.2026: die Zeichen tragen die laufende Nummer, und die
+          Pfadleiste zeigt den Weg Projekt, Ordner, Riesenschein, Schein.
+          Beide Zustaende der Schritte stehen hier, sonst wuerde der
+          Zeigezustand des Knopfs nie gemessen.
+        -->
+        <div class="kachelreihe" id="nummernzeichen"></div>
+        <nav class="pfadleiste" data-auch-heiss="true">
+          <button class="pfadschritt" type="button">
+            <span class="stufenzeichen" data-stufe="projekt" data-nummer="true">1</span>
+            <span class="pfadtext">NFL Saison 2026/27</span>
+          </button>
+          <span class="pfadpfeil">&#8250;</span>
+          <button class="pfadschritt" type="button">
+            <span class="stufenzeichen" data-stufe="ordner-riesenschein" data-nummer="true">3</span>
+            <span class="pfadtext">Spieltag 3</span>
+          </button>
+          <span class="pfadpfeil">&#8250;</span>
+          <span class="pfadschritt" data-hier="true">
+            <span class="stufenzeichen" data-stufe="riesenschein" data-nummer="true">12</span>
+            <span class="pfadtext">Riesenschein 12</span>
+          </span>
+        </nav>
+      </div>
+
+      <div class="schaugruppe">
         <h2>Die Kennfarben an der Riesenschein-Karte, alle acht, und was sie schlaegt</h2>
         <!--
           Neu am 19.09.2026: die Karte traegt den Ton ihres Ordners, sonst den
@@ -176,6 +203,20 @@
         z.appendChild(inhalt)
         z.appendChild(el('small', '', bildunterschrift))
         return z
+      }
+
+      // --- Stufenzeichen mit Nummer: jede Stufe, kurze und lange Zahl ---
+      {
+        const ziel = document.getElementById('nummernzeichen')
+        for (const [stufe] of Object.entries(ZEICHEN)) {
+          for (const nummer of ['1', '128']) {
+            const s = el('span', 'stufenzeichen', nummer, {
+              'data-stufe': stufe,
+              'data-nummer': 'true',
+            })
+            ziel.appendChild(zelle(s, `${stufe} ${nummer}`))
+          }
+        }
       }
 
       // --- Die Kennfarben an der Riesenschein-Karte, alle acht Toene ---

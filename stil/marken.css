@@ -52,8 +52,14 @@
 
   /* ---- Schrift ---- */
   --schrift: #f2f6fc;
-  --schrift-leise: #b3c2d8;
-  --schrift-still: #8fa0b8;
+  /*
+    Am 19.09.2026 aufgehellt (leise b3c2d8 -> c6d3e6, still 8fa0b8 -> a2b2c9):
+    Karam wollte mehr Kontrast. Die leisen Texte lagen auf den Kacheln bei
+    5,4 bis 5,9 zu 1; jetzt liegen sie ueber 7. Nachgemessen mit
+    werkzeug/probe/kontrast.html ueber alle vier Durchgaenge.
+  */
+  --schrift-leise: #c6d3e6;
+  --schrift-still: #a2b2c9;
 
   /*
     ---- Knoepfe ----
@@ -88,7 +94,9 @@
     genau deshalb darf er leuchten: er ist der Weg weiter, nicht einer von
     fuenfzehn gleichen.
   */
-  --knopf-haupt: #2468c8;
+  /* Am 19.09.2026 nachgedunkelt (2468c8 -> 1c56aa): weisse Schrift lag bei
+     5,4 zu 1, jetzt bei rund 7. */
+  --knopf-haupt: #1c56aa;
   /*
     BEIM ZEIGEN GEMESSEN, nicht im Ruhezustand: weisse Schrift auf dem alten
     #2f7ae0 ergab 4,22:1 und lag damit unter den 4,5, die normaler Text
@@ -99,7 +107,7 @@
     #2a6fd2 ergibt 4,88:1 und ist immer noch heller als der Ruhezustand: ein
     Knopf, auf den man zeigt, muss wacher aussehen, nicht muede.
   */
-  --knopf-haupt-heiss: #2a6fd2;
+  --knopf-haupt-heiss: #2160b8;
   --knopf-haupt-rand: #74b0f5;
   --knopf-haupt-schrift: #ffffff;
 
@@ -326,7 +334,7 @@
     --feldrand: #737f96;
 
     --schrift: #0e1522;
-    --schrift-leise: #4c5a6f;
+    --schrift-leise: #435064; /* 19.09.2026 nachgedunkelt, siehe oben im Dunkelblock */
     /*
       Am 16.09.2026 in der hellen Fassung DURCHGEMESSEN, mit richtiger
       Behandlung durchscheinender Flaechen. Elf Textstellen lagen unter
@@ -340,7 +348,7 @@
       ist. Helle Oberflaechen verzeihen weniger: auf Weiss braucht eine Farbe
       deutlich mehr Tiefe als dieselbe Farbe auf Dunkel.
     */
-    --schrift-still: #5a6779;
+    --schrift-still: #4a5568;
 
     --gut: #006e4a;
     --gut-tief: rgba(0, 110, 74, 0.1);
@@ -415,7 +423,7 @@
   --feldrand: #737f96;
 
   --schrift: #0e1522;
-  --schrift-leise: #4c5a6f;
+  --schrift-leise: #435064; /* 19.09.2026 nachgedunkelt, siehe Dunkelblock */
   /*
     Am 16.09.2026 in der hellen Fassung DURCHGEMESSEN, mit richtiger
     Behandlung durchscheinender Flaechen. Elf Textstellen lagen unter
@@ -429,7 +437,7 @@
     ist. Helle Oberflaechen verzeihen weniger: auf Weiss braucht eine Farbe
     deutlich mehr Tiefe als dieselbe Farbe auf Dunkel.
   */
-  --schrift-still: #5a6779;
+  --schrift-still: #4a5568;
 
   --gut: #006e4a;
   --gut-tief: rgba(0, 110, 74, 0.1);

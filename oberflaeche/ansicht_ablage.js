@@ -44,7 +44,7 @@ import * as Zustand from './zustand.js'
 // oberflaeche/dialog.js. Karam am 17.09.2026: "diese Pop-Ups vom Browser
 // oben, das mag ich gar nicht."
 import * as Dialog from './dialog.js'
-import { aufbaukette } from './aufbau.js'
+import { aufbaukette, stufenzeichen } from './aufbau.js'
 
 /**
  * Die Kennung des Pseudo-Ordners "Angepinnt".
@@ -216,9 +216,11 @@ function ordnerspalte(projekte) {
   if (angepinnt > 0) eintraege.push(ordnerzeile(ORDNER_ANGEPINNT, 'Angepinnt', angepinnt, false))
   if ((zaehler.get('') ?? 0) > 0) eintraege.push(ordnerzeile('', 'Ohne Ordner', zaehler.get('') ?? 0, true))
 
-  for (const name of [...zaehler.keys()].filter((o) => o !== '').sort((a, b) => a.localeCompare(b, 'de'))) {
-    eintraege.push(ordnerzeile(name, name, zaehler.get(name) ?? 0, true))
-  }
+  const echte = [...zaehler.keys()].filter((o) => o !== '').sort((a, b) => a.localeCompare(b, 'de'))
+  echte.forEach((name, i) => {
+    // Die laufende Nummer des Ordners wandert in sein Stufenzeichen.
+    eintraege.push(ordnerzeile(name, name, zaehler.get(name) ?? 0, true, i + 1))
+  })
 
   return el('.ablage-ordner', {}, [
     el('.ablage-spaltentitel', { text: 'Ordner' }),
@@ -238,7 +240,7 @@ function ordnerspalte(projekte) {
  * @param {number} anzahl
  * @param {boolean} zielFuerAblegen
  */
-function ordnerzeile(schluessel, name, anzahl, zielFuerAblegen) {
+function ordnerzeile(schluessel, name, anzahl, zielFuerAblegen, nummer = null) {
   const aktiv = gewaehlterOrdner === schluessel
 
   // Ein ECHTER Ordner laesst sich loeschen. "Alle", "Angepinnt" und "Ohne
@@ -261,6 +263,10 @@ function ordnerzeile(schluessel, name, anzahl, zielFuerAblegen) {
   }
 
   const zeile = el('.ordnerzeile', { daten: { aktiv: String(aktiv) } }, [
+    // Nur ein ECHTER Ordner traegt das Ordnerzeichen mit seiner Nummer.
+    // "Alle", "Angepinnt" und "Ohne Ordner" sind Sichten, kein Ordner, und
+    // ein Ordnerzeichen daran wuerde genau das behaupten.
+    echterOrdner ? stufenzeichen('ordner-projekt', name, nummer) : null,
     el('.ordnername', { text: name }),
     el('.ordnerzahl', { text: String(anzahl) }),
     wegKnopf,
@@ -387,7 +393,7 @@ function projektspalte(projekte, stand) {
     ]),
     liste.length === 0
       ? el('p.ablage-hinweis', { text: 'Hier liegt nichts.' })
-      : el('.projektliste', {}, liste.map((p) => projektzeile(p, stand))),
+      : el('.projektliste', {}, liste.map((p, i) => projektzeile(p, stand, i + 1))),
   ])
 }
 
@@ -395,7 +401,7 @@ function projektspalte(projekte, stand) {
  * @param {import('../kern/typen.js').Projekt} p
  * @param {any} stand
  */
-function projektzeile(p, stand) {
+function projektzeile(p, stand, nummer = null) {
   const offen = stand.projekt?.id === p.id
 
   // Das Kaestchen zum Auswaehlen. Es steht am Anfang der Zeile, damit man mit
@@ -548,7 +554,14 @@ function projektzeile(p, stand) {
         Zeile. Breit fiel es nicht auf, weil eine Zeile dort aussieht wie ein
         Raster.
       */
-      el('.projektzeilenkopf', {}, [name, p.ordner ? el('.projektordner', { text: p.ordner }) : null]),
+      // Das Standardsymbol des Projekts mit seiner Nummer darin, rechts davon
+      // der Name (Karam am 19.09.2026). Das Zeichen sagt auch, welche Seite
+      // gemeint ist: blau ist die Projektseite, siehe oberflaeche/aufbau.js.
+      el('.projektzeilenkopf', {}, [
+        stufenzeichen('projekt', p.name, nummer),
+        name,
+        p.ordner ? el('.projektordner', { text: p.ordner }) : null,
+      ]),
       el('.projektdatum', {
         text: `geändert ${zeitText(p.geaendertAm)}`,
         title: `angelegt ${zeitText(p.angelegtAm)}`,
@@ -601,8 +614,12 @@ function inhalt(stand) {
   }
 
   const bloecke = riesen
-    .filter((/** @type {any} */ r) => (nachRiesen.get(r.id) ?? []).length > 0)
-    .map((/** @type {any} */ r) => kombiblock(r.name, nachRiesen.get(r.id) ?? [], r.angelegtAm))
+    // Die Nummer VOR dem Filtern nehmen: sie ist dieselbe wie in der Spalte
+    // links und in der Uebersicht, sonst hiesse derselbe Riesenschein hier 2
+    // und dort 5.
+    .map((/** @type {any} */ r, /** @type {number} */ i) => ({ r, nummer: i + 1 }))
+    .filter(({ r }) => (nachRiesen.get(r.id) ?? []).length > 0)
+    .map(({ r, nummer }) => kombiblock(r.name, nachRiesen.get(r.id) ?? [], r.angelegtAm, nummer))
 
   if (lose.length > 0) {
     bloecke.push(kombiblock('Noch nicht zugeordnet', lose, ''))
@@ -619,7 +636,7 @@ function inhalt(stand) {
  * @param {any[]} scheine
  * @param {string} datum
  */
-function kombiblock(titel, scheine, datum) {
+function kombiblock(titel, scheine, datum, nummer = null) {
   let einsatz = 0
   let moeglich = 0
   let zurueck = 0
@@ -642,6 +659,9 @@ function kombiblock(titel, scheine, datum) {
 
   return el('.kombiblock', {}, [
     el('.kombikopf', {}, [
+      // Das Riesenschein-Zeichen mit derselben Nummer wie ueberall sonst.
+      // "Noch nicht zugeordnet" ist kein Riesenschein und bekommt keines.
+      nummer !== null ? stufenzeichen('riesenschein', titel, nummer) : null,
       el('.kombititel', { text: titel }),
       datum ? el('.kombidatum', { text: zeitText(datum) }) : null,
       el('.kombizahl', { text: `${scheine.length} Schein(e)` }),

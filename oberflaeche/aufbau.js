@@ -68,13 +68,21 @@ export const ZEICHEN = {
  * Baut das Zeichen einer Stufe.
  *
  * Gebaut wie anbieterzeichen() in oberflaeche/werkzeug.js: das Programm setzt
- * das Merkmalswort und den Buchstaben, sonst nichts.
+ * das Merkmalswort und den Inhalt, sonst nichts.
+ *
+ * MIT NUMMER, WENN ES EINE GIBT. Karam am 19.09.2026: "diese Symbole da
+ * drinnen immer die Nummerierung von jedem." Steht eine Nummer im Kasten,
+ * wandert der Buchstabe in den Vorlesetext; welche Stufe gemeint ist, sagen
+ * weiter Farbe und Strichart (blau ist die Projektseite, violett die
+ * Wettseite, gestrichelt haelt andere Sachen, durchgezogen ist selbst eine),
+ * und der Titel sagt es in Worten.
  *
  * @param {'projekt'|'ordner-projekt'|'ordner-riesenschein'|'riesenschein'|'schein'} stufe
  * @param {string} [dazu]  Was daneben steht, fuer den Vorlesetext.
+ * @param {number|string|null} [nummer]  Die laufende Nummer im Kasten.
  * @returns {HTMLElement}
  */
-export function stufenzeichen(stufe, dazu = '') {
+export function stufenzeichen(stufe, dazu = '', nummer = null) {
   const z = ZEICHEN[stufe]
   if (!z) {
     // Eine unbekannte Stufe bekommt ein Fragezeichen und sagt es. Ein leerer
@@ -85,11 +93,66 @@ export function stufenzeichen(stufe, dazu = '') {
       text: '?',
     })
   }
+  const mitNummer = nummer !== null && nummer !== undefined && String(nummer).trim() !== ''
+  const name = mitNummer ? `${z.name} ${nummer}` : z.name
   return el('span.stufenzeichen', {
-    daten: { stufe },
-    title: dazu ? `${z.name}: ${dazu}` : z.name,
-    text: z.buchstabe,
+    daten: mitNummer ? { stufe, nummer: 'true' } : { stufe },
+    title: dazu ? `${name}: ${dazu}` : name,
+    text: mitNummer ? String(nummer) : z.buchstabe,
   })
+}
+
+/**
+ * @typedef {object} Pfadschritt
+ * @property {'projekt'|'ordner-projekt'|'ordner-riesenschein'|'riesenschein'|'schein'} stufe
+ * @property {string} text
+ * @property {number|string|null} [nummer]  Die laufende Nummer im Zeichen.
+ * @property {(() => void)|null} [dahin]    Klick fuehrt dorthin. Ohne: hier ist man.
+ */
+
+/**
+ * Die Pfadleiste: wo man gerade steht, von aussen nach innen, anklickbar.
+ *
+ * Karam am 19.09.2026: "mach's wirklich viel strukturierter und viel klarer,
+ * wie man zu navigieren hat. Vom Projekt zum Ordner, vom Ordner zum
+ * Riesenschein, zum Schein."
+ *
+ * Jeder Schritt traegt sein Stufenzeichen mit Nummer und seinen Namen. Alles
+ * ausser dem letzten Schritt ist ein Knopf und fuehrt eine Ebene hinauf. Der
+ * letzte ist der Ort, an dem man steht, und deshalb kein Knopf: ein Knopf,
+ * der nichts tut, waere eine Luege.
+ *
+ * HIER STEHT KEINE FARBE UND KEINE GROESSE (Projektregel 5).
+ *
+ * @param {Pfadschritt[]} schritte
+ * @returns {HTMLElement}
+ */
+export function pfadleiste(schritte) {
+  return el(
+    'nav.pfadleiste',
+    { 'aria-label': 'Wo du gerade bist' },
+    (schritte ?? []).flatMap((schritt, i) => {
+      const hier = i === schritte.length - 1 || !schritt.dahin
+      const inhalt = [
+        stufenzeichen(schritt.stufe, schritt.text, schritt.nummer ?? null),
+        el('span.pfadtext', { text: schritt.text }),
+      ]
+      return [
+        i > 0 ? el('span.pfadpfeil', { text: '›', 'aria-hidden': 'true' }) : null,
+        hier
+          ? el('span.pfadschritt', { daten: { hier: 'true' }, 'aria-current': 'page' }, inhalt)
+          : el(
+              'button.pfadschritt',
+              {
+                type: 'button',
+                title: `Zurück zu: ${schritt.text}`,
+                onclick: schritt.dahin ?? undefined,
+              },
+              inhalt
+            ),
+      ]
+    })
+  )
 }
 
 /**

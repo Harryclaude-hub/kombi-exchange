@@ -25,7 +25,7 @@ import * as Dialog from './dialog.js'
 // Projekt, Ordner, Riesenschein, Scheine: der Aufbau steht an EINER Stelle
 // und wird von hier, von der Ausgabe und von der Ablage gezeigt
 // (Projektregel 8). Siehe oberflaeche/aufbau.js.
-import { aufbaukette, aufbaublock, stufenzeichen } from './aufbau.js'
+import { aufbaukette, aufbaublock, stufenzeichen, pfadleiste } from './aufbau.js'
 // Was geteilt wird und was nicht, an einer Stelle formuliert.
 // Siehe oberflaeche/geteilt.js.
 import { geteiltblock, speicherblock, ordnerblock } from './geteilt.js'
@@ -115,7 +115,19 @@ export function zeichne(ziel) {
 
   // Ebene 3: ein einzelner Schein, gross und aenderbar.
   if (offenerId && scheinId) {
-    fuelle(ziel, [einzelschein(offenerId, scheinId, scheineDrin)])
+    const stelle = scheineDrin.findIndex((s) => s.id === scheinId)
+    const schein = scheineDrin[stelle]
+    fuelle(ziel, [
+      pfadleiste([
+        ...pfadBis(stand, offenerId, true),
+        {
+          stufe: 'schein',
+          text: schein?.buchmacher.wert || 'Schein',
+          nummer: stelle >= 0 ? stelle + 1 : null,
+        },
+      ]),
+      einzelschein(offenerId, scheinId, scheineDrin),
+    ])
     return
   }
 
@@ -123,6 +135,7 @@ export function zeichne(ziel) {
   if (offenerId) {
     const offener = stand.riesenscheine.find((r) => r.id === offenerId)
     fuelle(ziel, [
+      pfadleiste(pfadBis(stand, offenerId, false)),
       zurueckleiste(
         'Alle Riesenscheine',
         'Zurück zur Übersicht',
@@ -172,6 +185,86 @@ export function zeichne(ziel) {
       feld.setSelectionRange(feld.value.length, feld.value.length)
     }
   }
+}
+
+/**
+ * Die laufende Nummer eines Riesenscheins: seine Stelle in der Liste des
+ * Projekts, DIESELBE Zahl wie in der Spalte links. Zwei verschiedene
+ * Nummerierungen fuer dasselbe Ding waeren die Verwechslung, vor der Karam
+ * Angst hat.
+ *
+ * @param {any} stand
+ * @param {string} riesenscheinId
+ * @returns {number|null}
+ */
+function nummerVon(stand, riesenscheinId) {
+  const stelle = stand.riesenscheine.findIndex((r) => r.id === riesenscheinId)
+  return stelle >= 0 ? stelle + 1 : null
+}
+
+/**
+ * Die laufende Nummer eines Ordners in der Ordnerliste dieses Projekts.
+ *
+ * @param {any} stand
+ * @param {string} name
+ * @returns {number|null}
+ */
+function ordnernummer(stand, name) {
+  const stelle = Ordner.alleOrdner(stand.riesenscheine).findIndex((o) => o.name === name)
+  return stelle >= 0 ? stelle + 1 : null
+}
+
+/**
+ * Der Pfad von aussen nach innen, bis zum Riesenschein.
+ *
+ * Karam am 19.09.2026: "mach's viel klarer, wie man zu navigieren hat. Vom
+ * Projekt zum Ordner, vom Ordner zum Riesenschein, zum Schein."
+ *
+ * @param {any} stand
+ * @param {string} riesenscheinId
+ * @param {boolean} riesenscheinKlickbar  Auf Ebene 3 fuehrt er eine Ebene hinauf.
+ * @returns {import('./aufbau.js').Pfadschritt[]}
+ */
+function pfadBis(stand, riesenscheinId, riesenscheinKlickbar) {
+  const riesenschein = stand.riesenscheine.find((r) => r.id === riesenscheinId)
+  const liegtIn = riesenschein ? Ordner.ordnerVon(riesenschein) : Ordner.OHNE_ORDNER
+
+  /** @type {import('./aufbau.js').Pfadschritt[]} */
+  const schritte = [
+    {
+      stufe: 'projekt',
+      text: stand.projekt?.name || 'Projekt',
+      nummer: projektnummer(stand),
+      dahin: () => Zustand.aendere({ auswahl: null, scheinAuswahl: null, ordnerFilter: null }),
+    },
+  ]
+  if (liegtIn !== Ordner.OHNE_ORDNER) {
+    schritte.push({
+      stufe: 'ordner-riesenschein',
+      text: liegtIn,
+      nummer: ordnernummer(stand, liegtIn),
+      dahin: () =>
+        Zustand.aendere({ ordnerFilter: liegtIn, auswahl: null, scheinAuswahl: null }),
+    })
+  }
+  schritte.push({
+    stufe: 'riesenschein',
+    text: riesenschein?.name || 'Riesenschein',
+    nummer: nummerVon(stand, riesenscheinId),
+    dahin: riesenscheinKlickbar ? () => Zustand.aendere({ scheinAuswahl: null }) : null,
+  })
+  return schritte
+}
+
+/**
+ * Die laufende Nummer des offenen Projekts in der Projektliste.
+ *
+ * @param {any} stand
+ * @returns {number|null}
+ */
+function projektnummer(stand) {
+  const stelle = (stand.projekte ?? []).findIndex((p) => p.id === stand.projekt?.id)
+  return stelle >= 0 ? stelle + 1 : null
 }
 
 /**
@@ -252,6 +345,11 @@ function uebersicht(stand) {
   if (offenerOrdner !== null && !gesucht) return imOrdner(stand, offenerOrdner, gezeigt)
 
   return el('.uebersicht', {}, [
+    // Wo man steht, auch auf der obersten Ebene: im Projekt. Der Pfad waechst
+    // beim Hineingehen um Ordner, Riesenschein und Schein.
+    pfadleiste([
+      { stufe: 'projekt', text: stand.projekt?.name || 'Projekt', nummer: projektnummer(stand) },
+    ]),
     el('.uebersichtkopf', {}, [
       el('.uebersichttitel', {}, [
         el('h2', { text: 'Übersicht' }),
@@ -468,16 +566,32 @@ function imOrdner(stand, ordner, gezeigt) {
   const summe = leer ? null : Reihenfolge.ordnersumme(stand.riesenscheine, ordner, Zustand.rechnungVon)
 
   return el('.uebersicht', {}, [
+    pfadleiste([
+      {
+        stufe: 'projekt',
+        text: stand.projekt?.name || 'Projekt',
+        nummer: projektnummer(stand),
+        dahin: () => Zustand.aendere({ ordnerFilter: null }),
+      },
+      {
+        stufe: 'ordner-riesenschein',
+        text: name,
+        nummer: leer ? null : ordnernummer(stand, ordner),
+      },
+    ]),
     zurueckleiste('Alle Ordner', 'Zurück zur Übersicht', () =>
       Zustand.aendere({ ordnerFilter: null })
     ),
 
     el('.uebersichtkopf', {}, [
       el('.uebersichttitel', {}, [
-        // Das Zeichen der Stufe statt eines blossen Buchstabens. Es sagt
+        // Das Zeichen der Stufe mit der Ordnernummer darin. Es sagt
         // ausserdem, WELCHE Art Ordner das ist: die in der Ablage ordnen
         // Projekte, diese hier Riesenscheine. Siehe oberflaeche/aufbau.js.
-        el('h2', {}, [leer ? null : stufenzeichen('ordner-riesenschein', name), name]),
+        el('h2', {}, [
+          leer ? null : stufenzeichen('ordner-riesenschein', name, ordnernummer(stand, ordner)),
+          name,
+        ]),
         el('p.uebersichtunter', {
           text:
             gezeigt.length === 1
@@ -942,7 +1056,9 @@ function ordnerkachel(stand, wert, beschriftung, anzahl) {
     },
     [
       el('.ordnerkachelname', {}, [
-        stufenzeichen('ordner-riesenschein', beschriftung),
+        // Das Standardsymbol traegt die Ordnernummer, rechts davon der Name
+        // (Karam am 19.09.2026).
+        stufenzeichen('ordner-riesenschein', beschriftung, ordnernummer(stand, wert)),
         beschriftung,
       ]),
       el('.ordnerkachelzahl', {
@@ -1001,6 +1117,9 @@ function riesenkarte(riesenschein, stand) {
   // ein Fehler schlaegt die Kennfarbe, siehe stil/bauteile.css.
   const karte = el('.riesenkarte', { daten: { schwere, ton: Ordner.tonFuerRiesenschein(riesenschein) } }, [
     el('.riesenkartekopf', {}, [
+      // Das Standardsymbol mit der laufenden Nummer darin, dieselbe Zahl wie
+      // in der Spalte links. Rechts davon der Name (Karam am 19.09.2026).
+      stufenzeichen('riesenschein', riesenschein.name || 'Ohne Namen', nummerVon(stand, riesenschein.id)),
       el('.riesenkartename', { text: riesenschein.name || 'Ohne Namen' }),
       liegtIn ? el('span.ordnermarke', { text: liegtIn }) : null,
       /*
@@ -1546,7 +1665,9 @@ function scheinliste(riesenschein, scheine) {
         const bild = Zustand.hole().bilder.get(schein.bildId)
 
         return el('.scheinkaertchen', { daten: { status: schein.status } }, [
-          el('.kaertchennummer', { text: String(i + 1) }),
+          // Das Standardsymbol des Scheins mit seiner Nummer darin, statt
+          // einer nackten Zahl (Karam am 19.09.2026).
+          stufenzeichen('schein', schein.buchmacher.wert ?? '', i + 1),
           el('.kaertcheninhalt', {}, [
             el('.kaertchenanbieter', {}, [
               anbieterzeichen(schein.buchmacher.wert),

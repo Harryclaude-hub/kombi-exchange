@@ -1661,6 +1661,29 @@ Fuer Karams naechsten Schritt (Schluessel eintragen):
 **Weiterhin wahr: der echte Aufruf mit Schluessel ist NIE gelaufen.** Der
 erste Lauf ist Karams, siehe `API_SCHLUESSEL.md`.
 
+### 3b. Nummern in den Zeichen, Pfadleiste, mehr Kontrast (Fassung -e)
+
+Karams zweiter Designauftrag vom 19.09.2026 abends:
+
+- **Jedes Stufenzeichen traegt jetzt die laufende Nummer** (Projekt im Kopf,
+  Ordnerkacheln, Riesenschein-Karten, Scheinkaertchen, Projektzeilen und
+  Ordnerliste der Ablage, Riesenschein-Bloecke im Ablage-Inhalt). Die Nummer
+  eines Riesenscheins ist ueberall DIESELBE wie in der Spalte links
+  (`nummerVon` in ansicht_positionen.js); zwei Zaehlungen fuer dasselbe Ding
+  waeren genau die Verwechslung, vor der Karam Angst hat.
+- **Die Pfadleiste** (`oberflaeche/aufbau.js`, `pfadleiste()`): auf jeder
+  Ebene der Riesenschein-Ansicht steht oben der Weg Projekt, Ordner,
+  Riesenschein, Schein, jeder Schritt mit Zeichen und Nummer, alles ausser
+  dem letzten anklickbar und im Browser durchgeklickt (hin und zurueck,
+  auch aus einem Ordner heraus).
+- **Kontrast angehoben** (stil/marken.css): die leisen Schriften und der
+  Hauptknopf lagen bei 5,4 bis 5,9 zu 1, jetzt bei rund 7. Gemessen: 10810
+  Stellen, beide Themen, 1440 und 375 Pixel, keine Beanstandung; auf der
+  Uebersicht fielen die "knapp ueber der Schwelle"-Eintraege von 102 auf 2.
+- **Karten mit flacher Tiefe und Anheben beim Zeigen** (nur transform,
+  keine Farbuebergaenge, Falle 4; unter prefers-reduced-motion aus).
+- Ueberlauf bei 375 Pixeln auf allen Ebenen nachgemessen: null.
+
 ### 3. Kennfarben und Symbole (Karams Designauftrag vom 19.09.)
 
 - **Riesenschein-Karten tragen jetzt den Farbton**: der Ordner faerbt, sonst
