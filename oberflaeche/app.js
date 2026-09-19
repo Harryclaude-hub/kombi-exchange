@@ -327,8 +327,9 @@ function zeichneTor() {
           }),
           el('p', {
             text:
-              'Dieselbe Zeile steht in NOTFALL.md im Quelltext. Bist du noch irgendwo ' +
-              'angemeldet, geht es einfacher: dort oben im Kopf auf "Code wechseln".',
+              'Dieselbe Zeile steht in NOTFALL.md im Quelltext. Das ist seit dem 19.09.2026 ' +
+              'der EINZIGE Weg: der Knopf im Kopf kann den Code nicht mehr wechseln, und die ' +
+              'Funktion dahinter ist in der Datenbank gesperrt.',
           }),
         ]),
       ]),
@@ -518,9 +519,22 @@ function zeichneKopf() {
       farbwahlknopf(),
       el('button.knopf.knopf-klein', {
         type: 'button',
-        text: 'Code wechseln',
-        title: 'Einen neuen Zugangscode erzeugen und alle anderen Fenster abmelden.',
-        onclick: zeigeCodewechsel,
+        text: 'Code gesperrt',
+        title: 'Der Zugangscode lässt sich aus dem Programm heraus nicht mehr ändern.',
+        onclick: () =>
+          Dialog.sag({
+            titel: 'Der Zugangscode ist gesperrt',
+            text:
+              'Er lässt sich aus dem Programm heraus nicht mehr ändern, und zwar nicht nur ' +
+              'hier in der Oberfläche, sondern schon an der Datenbank.',
+            punkte: [
+              'Karam am 19.09.2026: "Ich will einen Code, den man nicht mehr ändern kann, außer in diesem Chat."',
+              'Ändern geht nur noch im SQL-Editor des Projekts, also nur von dir selbst.',
+              'Der Weg dafür steht in werkzeug/code_setzen.html: der neue Code entsteht in deinem Browser, du fügst den fertigen Befehl ein.',
+              'Warum die Sperre in der Datenbank sitzt und nicht hier: die Funktion war über die Schnittstelle für jeden erreichbar, der den öffentlichen Schlüssel hat. Und der steht im öffentlichen Quelltext.',
+            ],
+            fuss: 'Nachzulesen in supabase/migrations/0010_code_nur_noch_von_hand.sql.',
+          }),
       }),
       el('button.knopf.knopf-klein', {
         type: 'button',
@@ -621,124 +635,30 @@ function stelleFarbeHer() {
   }
 }
 
-/**
- * Den Zugangscode wechseln.
- *
- * Warum es das gibt: es gibt genau einen Code fuer alle. Wird er einmal
- * weitergegeben, kommt jeder herein, der ihn hat. Ohne Wechselmoeglichkeit
- * gaebe es dagegen kein Mittel.
- *
- * Zwei Dinge sind bewusst so gebaut:
- *
- * 1. Der bisherige Code muss eingegeben werden. Ein offenes Fenster allein
- *    reicht nicht. Sonst koennte jemand, der kurz am Rechner sass, den Code
- *    aendern und alle anderen aussperren.
- *
- * 2. Der neue Code wird HIER gewuerfelt, nicht selbst ausgedacht. Selbst
- *    ausgedachte Codes sind erratbar. Die Datenbank bekommt ihn nur als
- *    Einwegwert zu sehen, im Klartext steht er nirgends.
- */
-function zeigeCodewechsel() {
-  const stand = Zustand.hole()
-  const neuerCode = Datenbank.wuerfleCode()
+/*
+  DER WECHSELDIALOG IST WEG, UND ZWAR GANZ.
 
-  const altFeld = el('input.feldeingabe', {
-    type: 'password',
-    placeholder: 'bisheriger Code',
-    autocomplete: 'off',
-  })
-  const anzeige = el('input.feldeingabe.feldeingabe-code', {
-    type: 'text',
-    value: neuerCode,
-    readonly: true,
-    spellcheck: false,
-  })
-  const hinweis = el('p.hinweiszeile', { text: '' })
+  Karam am 19.09.2026: "Ich will, dass du mir jetzt einen Code setzt, den man
+  nicht mehr aendern kann, ausser in diesem Chat." Und schon am 16.09.2026:
+  "Bitte lass ihn nie wieder aendern. Ausser ich schreibe das in diesen Chat."
 
-  const dialog = /** @type {HTMLDialogElement} */ (el('dialog.dialog', {}, [
-    el('h2', { text: 'Zugangscode wechseln' }),
-    el('p', {
-      text:
-        'Der neue Code steht unten. Bitte zuerst sichern, danach ist er nicht ' +
-        'mehr abrufbar. Alle anderen offenen Fenster werden abgemeldet.',
-    }),
-    el('label.feldzeile', {}, [el('span', { text: 'Bisheriger Code' }), altFeld]),
-    el('label.feldzeile', {}, [el('span', { text: 'Neuer Code' }), anzeige]),
-    hinweis,
-    el('.dialogknoepfe', {}, [
-      el('button.knopf.knopf-klein', {
-        type: 'button',
-        text: 'Neu würfeln',
-        onclick: () => {
-          anzeige.value = Datenbank.wuerfleCode()
-        },
-      }),
-      el('button.knopf.knopf-klein', {
-        type: 'button',
-        text: 'Kopieren',
-        onclick: async () => {
-          try {
-            await navigator.clipboard.writeText(anzeige.value)
-            hinweis.textContent = 'In die Zwischenablage gelegt.'
-          } catch {
-            // Ohne Erlaubnis zur Zwischenablage: markieren, dann kann der
-            // Nutzer selbst kopieren. Nicht einfach schweigen.
-            anzeige.select()
-            hinweis.textContent = 'Kopieren ging nicht. Der Code ist markiert, bitte von Hand kopieren.'
-          }
-        },
-      }),
-      el('button.knopf.knopf-klein', {
-        type: 'button',
-        text: 'Abbrechen',
-        onclick: () => dialog.close(),
-      }),
-      el('button.knopf.knopf-haupt', {
-        type: 'button',
-        text: 'Wechseln',
-        onclick: async () => {
-          const alt = altFeld.value.trim()
-          const neu = anzeige.value.trim()
-          if (!alt) {
-            hinweis.textContent = 'Bitte den bisherigen Code eingeben.'
-            return
-          }
-          const ja = await Dialog.bestaetige({
-            titel: 'Code wirklich wechseln?',
-            text: `Neuer Code: ${neu}`,
-            punkte: [
-              'Schreib ihn dir VORHER auf. Danach ist er nicht mehr abrufbar.',
-              'Alle anderen Fenster werden abgemeldet, auch die deines Kollegen.',
-              'Dieses Fenster bleibt offen.',
-            ],
-            ja: 'Code wechseln',
-            gefahr: true,
-          })
-          if (!ja) return
+  Seit der Wanderung 0010 darf anon die Funktion public.kombi_code_wechseln
+  nicht mehr aufrufen. Der Dialog haette ab jetzt nur noch "permission denied
+  for function kombi_code_wechseln" gezeigt, und ein Knopf, der sicher in einen
+  rohen Datenbankfehler laeuft, ist schlimmer als kein Knopf: er sieht aus, als
+  waere etwas kaputt, dabei ist es genau so gewollt.
 
-          hinweis.textContent = 'Wird gewechselt ...'
-          const ergebnis = await Datenbank.wechsleCode(stand.token, alt, neu)
+  An seiner Stelle steht oben ein Knopf "Code gesperrt", der erklaert, warum.
 
-          if (!ergebnis.gelungen) {
-            hinweis.textContent = ergebnis.meldung
-            return
-          }
+  Geaendert wird der Code jetzt nur noch im SQL-Editor, ueber
+  werkzeug/code_setzen.html. Dort entsteht er in Karams Browser, und die
+  Datenbank sieht ihn nur als Einwegwert.
 
-          dialog.close()
-          Zustand.melde(
-            'erfolg',
-            `Code gewechselt. ${ergebnis.hinausgeworfen} andere Sitzung(en) wurden abgemeldet. ` +
-              'Dieses Fenster bleibt offen.'
-          )
-        },
-      }),
-    ]),
-  ]))
-
-  document.body.append(dialog)
-  dialog.addEventListener('close', () => dialog.remove())
-  dialog.showModal()
-}
+  Datenbank.wechsleCode bleibt in daten/datenbank.js stehen. Die Funktion gibt
+  es in der Datenbank weiter, nur ohne Recht fuer anon, und ein Entzug von
+  Rechten ist in einer Zeile zuruecknehmbar. Ein geloeschter Aufrufweg waere es
+  nicht.
+*/
 
 /**
  * Projekt waehlen, anlegen, leeren.
