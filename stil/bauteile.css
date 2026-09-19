@@ -6256,6 +6256,12 @@ button.pfadschritt:hover {
   padding: var(--luft-2);
 }
 
+/* Solange der Rahmen im gewachsenen Mini-Fenster liegt, ist der Knopf weg:
+   display grid oben schluege sonst das hidden-Merkmal. */
+.miniknopfhuelle[hidden] {
+  display: none;
+}
+
 .miniknopfhuelle[data-in-seite="true"] {
   position: fixed;
   left: var(--mini-links, auto);

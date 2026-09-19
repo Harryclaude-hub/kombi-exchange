@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import { beurteileGleicheWette } from '../kern/kennung.js'
 import { quotenstreuungVon } from '../kern/rechnung.js'
+import { grosseFuerRahmen } from '../oberflaeche/massenschnipsel.js'
 
 /**
  * Die Pruefung hinter dem Massenausschnitt (Karam am 19.09.2026):
@@ -145,3 +146,24 @@ test('quotenstreuungVon rechnet genau wie die Kachel im Riesenschein', () => {
   assert.equal(s.groessterAbstand, Math.round(groesster * 10000) / 10000)
   assert.equal(s.anzahl, 6)
 })
+
+test('grosseFuerRahmen: fast der Bildschirm, nie mehr als der Arbeitsbereich', () => {
+  // Karams Monitor: 90 Prozent, damit der Rand des Fensters greifbar bleibt.
+  assert.deepEqual(grosseFuerRahmen({ availWidth: 2560, availHeight: 1400 }), {
+    breite: 2304,
+    hoehe: 1260,
+  })
+  // Ein kleiner Bildschirm gibt nicht mehr her, als er hat: die Mindestmasse
+  // duerfen den Arbeitsbereich nie ueberschreiten, sonst laege der Rahmen
+  // teils ausserhalb.
+  assert.deepEqual(grosseFuerRahmen({ availWidth: 400, availHeight: 300 }), {
+    breite: 400,
+    hoehe: 300,
+  })
+  // Ohne Angaben eine brauchbare Annahme statt NaN: resizeTo(NaN) waere ein
+  // stiller Fehlschlag, und der Rahmen bliebe 104 Pixel schmal.
+  const blind = grosseFuerRahmen(null)
+  assert.ok(Number.isFinite(blind.breite) && blind.breite >= 480)
+  assert.ok(Number.isFinite(blind.hoehe) && blind.hoehe >= 360)
+})
+

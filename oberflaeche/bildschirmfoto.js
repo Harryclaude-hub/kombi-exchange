@@ -156,10 +156,19 @@ export async function oeffneBildschirmstrom() {
 /**
  * Holt EIN Einzelbild aus einem laufenden Strom.
  *
+ * DIE UHR IST WAEHLBAR (uhren): der Massenausschnitt laesst das
+ * Programmfenster absichtlich verdeckt hinten liegen, und Chrome drosselt
+ * die Wecker verdeckter Fenster auf etwa einen Schlag je Sekunde. Das
+ * Sicherheitsnetz hier ist im verdeckten Fenster der EINZIGE Weg zum Bild
+ * (der Bildrueckruf feuert dort nie, siehe unten), und gedrosselt machte
+ * es aus 500 Millisekunden eine volle Sekunde je Aufnahme. Deshalb plant
+ * der Massenausschnitt diese Uhr auf seinem nie verdeckten Mini-Fenster.
+ *
  * @param {HTMLVideoElement} video
+ * @param {Window} [uhren]  Das Fenster, dessen Wecker benutzt werden.
  * @returns {Promise<HTMLCanvasElement>}
  */
-export async function greifeEinzelbild(video) {
+export async function greifeEinzelbild(video, uhren = window) {
   // Ein Einzelbild abwarten. Ohne das ist die Leinwand manchmal schwarz,
   // weil das erste Bild noch nicht durch ist.
   await new Promise((fertig) => {
@@ -175,9 +184,9 @@ export async function greifeEinzelbild(video) {
       // Sicherheitsnetz: in einem verdeckten Fenster ruft der Browser den
       // Bildrueckruf nicht auf. Genau diese Falle hat dieses Projekt schon
       // einmal einen halben Tag gekostet.
-      setTimeout(einmal, 500)
+      uhren.setTimeout(einmal, 500)
     } else {
-      setTimeout(() => fertig(undefined), 300)
+      uhren.setTimeout(() => fertig(undefined), 300)
     }
   })
 
@@ -301,10 +310,19 @@ export async function ausBlob(blob) {
  *
  * Gibt den Ausschnitt zurueck, oder null, wenn abgebrochen wurde.
  *
+ * DER WIRT IST WAEHLBAR, seit dem 19.09.2026 nachts. Der Massenausschnitt
+ * zieht den Rahmen im schwebenden Mini-Fenster selbst, damit sich das
+ * Programmfenster nicht bei jeder Aufnahme nach vorn schiebt (Karam: "ich
+ * will nicht, dass jedes Mal sich die Kombi Exchange oeffnet"). Es bleibt
+ * dieselbe EINE Umsetzung fuer beide Fenster (Projektregel 8); die Elemente
+ * werden beim Einhaengen vom Zieldokument uebernommen, die Tastatur- und
+ * Groessenhorcher haengen am Wirt, nicht am Programmfenster.
+ *
  * @param {HTMLCanvasElement} leinwand
+ * @param {Window} [wirt]  Das Fenster, in dem der Rahmen liegt.
  * @returns {Promise<HTMLCanvasElement|null>}
  */
-export function zeigeZuschnitt(leinwand) {
+export function zeigeZuschnitt(leinwand, wirt = window) {
   return new Promise((fertig) => {
     /** @type {{x: number, y: number, breite: number, hoehe: number}|null} */
     let rahmen = null
@@ -363,8 +381,8 @@ export function zeigeZuschnitt(leinwand) {
         return { breite: platz.width, hoehe: platz.height }
       }
       return {
-        breite: Math.max(320, window.innerWidth - 32),
-        hoehe: Math.max(240, window.innerHeight - 180),
+        breite: Math.max(320, wirt.innerWidth - 32),
+        hoehe: Math.max(240, wirt.innerHeight - 180),
       }
     }
 
@@ -442,8 +460,8 @@ export function zeigeZuschnitt(leinwand) {
     const schneide = (bereich) => schneideAus(leinwand, bereich)
 
     function schliesse(ergebnis) {
-      window.removeEventListener('resize', beiGroesse)
-      window.removeEventListener('keydown', beiTaste)
+      wirt.removeEventListener('resize', beiGroesse)
+      wirt.removeEventListener('keydown', beiTaste)
       schicht.remove()
       fertig(ergebnis)
     }
@@ -467,17 +485,21 @@ export function zeigeZuschnitt(leinwand) {
     )
     knopfAbbruch.addEventListener('click', () => schliesse(null))
 
-    window.addEventListener('resize', beiGroesse)
-    window.addEventListener('keydown', beiTaste)
+    wirt.addEventListener('resize', beiGroesse)
+    wirt.addEventListener('keydown', beiTaste)
 
-    document.body.append(schicht)
+    // append uebernimmt die anderswo gebauten Elemente in das Zieldokument
+    // (die Uebernahme ist Teil des Einhaengens im DOM-Standard).
+    wirt.document.body.append(schicht)
     zeichneAnzeige()
     // Zweiter Anlauf, sobald der Browser die Schicht wirklich eingerichtet hat.
     // Bewusst setTimeout und NICHT requestAnimationFrame: in einem verdeckten
     // Fenster ruft der Browser den Bildrueckruf nicht mehr auf, und dann
     // bliebe die Anzeige fuer immer klein. Diese Falle hat das Projekt schon
-    // einmal einen halben Tag gekostet.
-    setTimeout(beiGroesse, 0)
+    // einmal einen halben Tag gekostet. Die Uhr des WIRTS, nicht des
+    // Programmfensters: das kann waehrend des Massenausschnitts verdeckt
+    // und gedrosselt sein.
+    wirt.setTimeout(beiGroesse, 0)
   })
 }
 

@@ -1,6 +1,6 @@
 # Uebergabe an die naechste Sitzung
 
-**Stand: 19.09.2026 spaet abends, Fassung 2026-09-19-h, oeffentlich ausgeliefert.**
+**Stand: 19.09.2026 nachts, Fassung 2026-09-19-i, oeffentlich ausgeliefert.**
 
 Diese Datei ist so geschrieben, dass jemand ohne jede Vorgeschichte weiterarbeiten
 kann. Zuerst lesen, dann anfangen. Sie ist lang; die ersten fuenf Abschnitte
@@ -72,7 +72,7 @@ curl -s "https://harryclaude-hub.github.io/kombi-exchange/fassung.json?t=$(date 
 
 **Vor jedem Commit:**
 ```
-npm test                 (das sind 396 Faelle, 1 planmaessig uebersprungen)
+npm test                 (das sind 397 Faelle, 1 planmaessig uebersprungen)
 node werkzeug/pruefe.mjs (130 Dateien)
 ```
 
@@ -1760,11 +1760,67 @@ Knoepfe der HELLEN Fassung kraeftiger (gefuellte Flaeche cfd9e8, dunkle
 Kante 3d4f6b, vorher fast weiss auf weiss); die dunkle Fassung ist
 unangetastet. Kontrastmesser danach: 10818 Stellen, keine Beanstandung.
 
+**Nachgezogen in Fassung -i, auf Karams Fehlerbericht** ("nach jedem
+Screenshot oeffnet sich aus irgendeinem Grund die Kombi Exchange. Ich
+will: Bild machen, uebernehmen, das naechste Bild machen"): der Rahmen
+liegt jetzt im schwebenden Mini-Fenster SELBST. Es waechst dafuer per
+resizeTo() auf rund neunzig Prozent des Bildschirms (Klick und
+Eingabetaste liefern die dafuer noetige frische Nutzereingabe) und
+schrumpft nach dem Rahmen auf 104 mal 112 zurueck; das Programmfenster
+wird waehrend der Serie NIE mehr nach vorn geholt. zeigeZuschnitt hat
+dafuer einen waehlbaren Wirt bekommen (ein Parameter, dieselbe eine
+Umsetzung; die anderen Rufer nutzen weiter das Hauptfenster). Wachsen
+UND Schrumpfen werden an der Fensterbreite NACHGEMESSEN (warteAufMass);
+nur ein nachweislich verpufftes Wachsen faellt auf den alten Weg mit
+window.focus zurueck, und zwar mit einem Satz WARUM am Mini-Fenster.
+
+Eine Durchsicht aus drei Blickwinkeln mit gegnerischer Nachpruefung hat
+danach acht echte Funde bestaetigt, alle behoben:
+
+- **Escape stiftet laut HTML-Standard KEINE frische Nutzereingabe**, das
+  Schrumpfen haette nach einem Escape ohne Rechteck still versagt und
+  das fast bildschirmgrosse Immer-oben-Fenster stuende in der naechsten
+  Aufnahme mit im Bild. Jetzt wird das Schrumpfen nachgemessen; steht es
+  aus, sagt es der Hinweis, und der naechste Klick ist ein
+  REPARATURKLICK: er macht nur das Fenster wieder klein, nimmt nichts
+  auf (seine Eingabe wird genau dafuer verbraucht).
+- **Am SERIENENDE holt schluss() das Programmfenster jetzt nach vorn**,
+  der eine gewollte Fokuswechsel: Karam will die Vorschau ja sehen, und
+  showModal hebt kein Betriebssystemfenster.
+- **Alle Wecker der Serie laufen auf dem Mini-Fenster** (uhren): das
+  verdeckte Programmfenster wird von Chrome auf einen Schlag je Sekunde
+  gedrosselt, die Doppelklick-Spanne von 300 ms waere sonst praktisch
+  eine Sekunde gewesen und zwei zuegige Einzelklicks haetten die Serie
+  beendet. Auch greifeEinzelbild nimmt jetzt eine waehlbare Uhr.
+- **vorbei wird nach jedem langen Schritt neu geprueft** und schluss()
+  schliesst einen offenen Rahmen im Programmfenster selbst mit
+  (kuenstliches Escape): vorher konnte ein Serienende mitten in der
+  Aufnahme einen Waisen-Rahmen hinterlassen und ein spaeter
+  bestaetigter Ausschnitt versickerte wortlos im schon ausgewerteten
+  bilder-Feld.
+- **Der Klick-Horcher kennt imRahmen**: im Seiten-Rueckfall schwebt der
+  Knopf ueber der Zuschnittschicht, ein Doppelklick haette die Serie
+  mitten im Rahmen beendet.
+- **stil/grund.css ist im Mini-Fenster verlinkt** (Schriftart, box-sizing
+  kamen nur von dort), und der Rueckfall schrumpft ein spaet doch noch
+  gewachsenes Fenster zurueck.
+
+Browser-geprueft: Rahmen im fremden Fenster (iframe-Nachbau mit
+Uebernahme der Elemente, Skalierung, Ganzes-Bild-Masse 640x400,
+Escape-Trennung der Fenster), der ganze Seiten-Rueckfall mit
+gefaelschtem Strom (Aufnahme, Zaehler, Doppelklick, Vorschau, Strom
+beendet), Doppelklick waehrend offenen Rahmens tut nichts, Serienende
+mitten im Rahmen schliesst ihn mit und die Vorschau kommt trotzdem.
+Kontrast 11130 Stellen ohne Beanstandung.
+
 **Was davon nur Karam beweisen kann:** der echte Griff in den
 Bildschirmstrom samt Fensterwahl und das Bild-im-Bild-Fenster an seinen
-drei Monitoren. Vorschau, Analysieren, Wegwerfen und die Serienpruefung
-sind im Browser durchgespielt; der Mini-Knopf selbst braucht seine Hand,
-genau wie das Snipping-Werkzeug (Punkt 0b unter "Was offen ist").
+drei Monitoren, seit -i auch das Wachsen und Schrumpfen des Mini-Fensters
+(requestWindow bleibt in der eingebauten Pruefumgebung ewig offen, dort
+laesst sich kein echtes Bild-im-Bild-Fenster stellen). Vorschau,
+Analysieren, Wegwerfen und die Serienpruefung sind im Browser
+durchgespielt; der Mini-Knopf selbst braucht seine Hand, genau wie das
+Snipping-Werkzeug (Punkt 0b unter "Was offen ist").
 
 ### 3b. Nummern in den Zeichen, Pfadleiste, mehr Kontrast (Fassung -e)
 
