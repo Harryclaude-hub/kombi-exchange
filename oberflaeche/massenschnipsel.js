@@ -21,11 +21,16 @@
  * bleiben. Der Unterschied steht am Knopf, nicht im Kleingedruckten
  * (Falle 7: eine Einschraenkung ohne ihr Warum liest sich wie Absicht).
  *
- * WAS AUFGENOMMEN WIRD: der GANZE geteilte Bildschirm, ungeschnitten. Kein
- * Rahmenziehen, das ist der Unterschied zum normalen Ausschneiden. Die
- * Zerlegung und das Lesen laufen danach durch dieselben Wege wie jede
- * hochgeladene Datei. Der Mini-Knopf selbst ist auf dem Bild MIT drauf, wenn
- * derselbe Bildschirm geteilt wird; er ist klein und gehoert an den Rand.
+ * WAS AUFGENOMMEN WIRD (seit dem 19.09.2026 abends, zweite Runde): ein Klick
+ * friert das aktuelle Bild ein und oeffnet SOFORT den Rahmen zum Markieren,
+ * wie beim Snipping-Werkzeug: Rechteck ziehen, Eingabetaste uebernimmt,
+ * Escape verwirft genau diese eine Aufnahme. Keine Fensterwahl dazwischen,
+ * kein Nachfragen; der Rahmen erscheint im Programmfenster, das dafuer nach
+ * vorn geholt wird. Karam: "ich kriege die Moeglichkeit, mit der Maus zu
+ * markieren, was ich ausschneiden moechte, und wenn ich Enter druecke, geht
+ * das ins Massenschneidewerkzeug, ohne dass ich irgendwelche Fenster
+ * aufmache." Der Rahmen selbst ist zeigeZuschnitt aus bildschirmfoto.js,
+ * dieselbe eine Stelle wie beim normalen Ausschneiden (Projektregel 8).
  *
  * Die Fensterwahl kommt genau EINMAL (oeffneBildschirmstrom), danach beliebig
  * viele Aufnahmen. Beendet wird mit Doppelklick, Escape, dem Schliessen des
@@ -43,6 +48,7 @@ import {
   greifeEinzelbild,
   beendeStrom,
   alsDatei,
+  zeigeZuschnitt,
 } from './bildschirmfoto.js'
 
 /**
@@ -107,9 +113,11 @@ async function sammleImMiniKnopf(strom, video, bilder) {
   let miniFenster = null
   if (kannMiniFenster()) {
     try {
+      // Klein, wie von Karam verlangt ("um die Haelfte oder fast ein
+      // Viertel"): vorher 168 mal 168, jetzt gut ein Drittel der Flaeche.
       miniFenster = await /** @type {any} */ (window).documentPictureInPicture.requestWindow({
-        width: 168,
-        height: 168,
+        width: 104,
+        height: 112,
       })
     } catch {
       // Verweigert oder nicht verfuegbar: dann der Weg in der Seite.
@@ -145,17 +153,13 @@ async function sammleImMiniKnopf(strom, video, bilder) {
     zaehler.className = 'miniknopfzahl'
     zaehler.textContent = '0'
 
-    const wort = dokument.createElement('span')
-    wort.className = 'miniknopfwort'
-    wort.textContent = 'Aufnehmen'
-
     const knopf = dokument.createElement('button')
     knopf.type = 'button'
     knopf.className = 'miniknopf'
     knopf.title =
-      'Klick oder Eingabetaste: den ganzen Bildschirm aufnehmen. ' +
-      'Doppelklick oder Escape: fertig, zurück zur Vorschau.'
-    knopf.append(zaehler, wort)
+      'Klick oder Eingabetaste: Bild einfrieren und mit der Maus markieren, ' +
+      'Enter übernimmt den Ausschnitt. Doppelklick oder Escape hier: fertig, zurück zur Vorschau.'
+    knopf.append(zaehler)
 
     const hinweis = dokument.createElement('p')
     hinweis.className = 'miniknopfhinweis'
@@ -176,22 +180,49 @@ async function sammleImMiniKnopf(strom, video, bilder) {
     dokument.body.append(huelle)
     knopf.focus()
 
+    /*
+      EIN KLICK: BILD EINFRIEREN, RAHMEN ZIEHEN, ENTER UEBERNIMMT.
+
+      Der Rahmen (zeigeZuschnitt) liegt im PROGRAMMFENSTER, denn nur dort
+      kann eine Webseite ueber das ganze Bild zeichnen. Das Fenster wird
+      dafuer nach vorn geholt. Solange ein Rahmen offen ist, tut ein
+      weiterer Druck auf den Mini-Knopf nichts: zwei Rahmen uebereinander
+      waeren zwei Wahrheiten ueber dieselbe Aufnahme.
+    */
+    let imRahmen = false
     const nimmAuf = async () => {
+      if (imRahmen || vorbei) return
+      imRahmen = true
       try {
-        const leinwand = await greifeEinzelbild(video)
-        bilder.push(leinwand)
-        zaehler.textContent = String(bilder.length)
-        // Kurzes Aufleuchten als Quittung. Nur ein Merkmal, das Aussehen
-        // steht in stil/bauteile.css.
-        knopf.dataset.genommen = 'true'
-        setTimeout(() => {
-          knopf.dataset.genommen = 'false'
-        }, 180)
+        const ganz = await greifeEinzelbild(video)
+        try {
+          window.focus()
+        } catch {
+          // Manche Browser verweigern das Nachvornholen. Dann klickt Karam
+          // das Programmfenster selbst an; der Rahmen wartet dort.
+        }
+        const ausschnitt = await zeigeZuschnitt(ganz)
+        if (ausschnitt) {
+          bilder.push(ausschnitt)
+          zaehler.textContent = String(bilder.length)
+          // Kurzes Aufleuchten als Quittung. Nur ein Merkmal, das Aussehen
+          // steht in stil/bauteile.css.
+          knopf.dataset.genommen = 'true'
+          setTimeout(() => {
+            knopf.dataset.genommen = 'false'
+          }, 180)
+        }
       } catch (fehler) {
-        wort.textContent = 'Fehlgeschlagen'
         knopf.title = `Die Aufnahme schlug fehl: ${
           fehler instanceof Error ? fehler.message : String(fehler)
         }`
+      } finally {
+        imRahmen = false
+        try {
+          knopf.focus()
+        } catch {
+          // Ein geschlossenes Mini-Fenster braucht keinen Fokus mehr.
+        }
       }
     }
 

@@ -6169,8 +6169,9 @@ button.pfadschritt:hover {
 }
 
 .miniknopf {
-  width: 6rem;
-  height: 6rem;
+  /* 19.09.2026 abends auf Karams Ansage halbiert: vorher 6rem. */
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -6193,13 +6194,9 @@ button.pfadschritt:hover {
 .miniknopfzahl {
   font-family: var(--schriftart-zahl);
   font-variant-numeric: tabular-nums;
-  font-size: var(--text-gross);
+  font-size: var(--text-normal);
   font-weight: 800;
   line-height: 1;
-}
-
-.miniknopfwort {
-  font-size: var(--text-winzig);
 }
 
 .miniknopfhinweis {
@@ -6207,7 +6204,7 @@ button.pfadschritt:hover {
   color: var(--schrift-leise);
   font-size: var(--text-winzig);
   text-align: center;
-  max-width: 12rem;
+  max-width: 8rem;
 }
 
 /* Die Vorschau der Serie, mit "Analysieren". */

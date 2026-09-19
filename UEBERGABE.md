@@ -1693,6 +1693,18 @@ Karams Auftrag vom 19.09.2026 abends, Wort fuer Wort umgesetzt in
   wird IMMER, auch der gute Ausgang. Sieben Faelle in
   test/massenlese.test.mjs.
 
+**Nachgezogen in Fassung -g, auf Karams Rueckmeldung:** der Mini-Knopf ist
+halbiert (3rem statt 6rem, Fenster 104 mal 112 statt 168 mal 168), und ein
+Klick nimmt nicht mehr blind das ganze Bild, sondern friert es ein und
+oeffnet SOFORT den Rahmen zum Markieren (zeigeZuschnitt aus
+bildschirmfoto.js, dieselbe eine Stelle wie beim normalen Ausschneiden):
+Rechteck ziehen, Eingabetaste uebernimmt, Escape verwirft genau diese
+Aufnahme, keine Fensterwahl dazwischen. Der Rahmen liegt im
+Programmfenster, das dafuer nach vorn geholt wird. Ausserdem sind die
+Knoepfe der HELLEN Fassung kraeftiger (gefuellte Flaeche cfd9e8, dunkle
+Kante 3d4f6b, vorher fast weiss auf weiss); die dunkle Fassung ist
+unangetastet. Kontrastmesser danach: 10818 Stellen, keine Beanstandung.
+
 **Was davon nur Karam beweisen kann:** der echte Griff in den
 Bildschirmstrom samt Fensterwahl und das Bild-im-Bild-Fenster an seinen
 drei Monitoren. Vorschau, Analysieren, Wegwerfen und die Serienpruefung

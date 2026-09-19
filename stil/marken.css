@@ -367,10 +367,17 @@
         Kante auf Flaeche    5,43 zu 1
         Schrift auf Knopf   13,69 zu 1
     */
-    --knopf: #eef2f8;
-    --knopf-heiss: #dde5f0;
-    --knopf-rand: #5a6b84;
-    --knopf-schrift: #1a2538;
+    /*
+      Am 19.09.2026 abends auf Karams Ansage kraeftiger gemacht, NUR hell:
+      "die weissen Buttons, umrandet, das bringt nichts, die helle Version
+      fuehlt sich noch zu hell an." Vorher #eef2f8, fast weiss auf weiss.
+      Jetzt eine gefuellte, kuehle Flaeche mit dunkler Kante; die dunkle
+      Fassung bleibt unangetastet, die funktioniert.
+    */
+    --knopf: #cfd9e8;
+    --knopf-heiss: #bccbdf;
+    --knopf-rand: #3d4f6b;
+    --knopf-schrift: #16233a;
 
     --knopf-haupt: #1258ad;
     --knopf-haupt-heiss: #0d4890;
@@ -456,10 +463,11 @@
       Kante auf Flaeche    5,43 zu 1
       Schrift auf Knopf   13,69 zu 1
   */
-  --knopf: #eef2f8;
-  --knopf-heiss: #dde5f0;
-  --knopf-rand: #5a6b84;
-  --knopf-schrift: #1a2538;
+  /* 19.09.2026 abends kraeftiger, nur hell; siehe den Medienblock oben. */
+  --knopf: #cfd9e8;
+  --knopf-heiss: #bccbdf;
+  --knopf-rand: #3d4f6b;
+  --knopf-schrift: #16233a;
 
   --knopf-haupt: #1258ad;
   --knopf-haupt-heiss: #0d4890;
