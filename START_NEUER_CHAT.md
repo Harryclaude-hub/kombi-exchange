@@ -33,7 +33,7 @@ an zu arbeiten, bevor du sie gelesen hast.
 | Die Seite, die ich benutze | `https://harryclaude-hub.github.io/kombi-exchange/` |
 | Datenbank | Supabase, Projekt `immo-check und kombi Tafel`, Kennung `mqmevpyatjsambervgtu` |
 | Zugangscode | **steht nirgends im Quelltext.** Frag mich. |
-| Stand heute | Fassung `2026-09-18-f`, oeffentlich ausgeliefert |
+| Stand heute | Fassung `2026-09-19-a`, oeffentlich ausgeliefert |
 | Trennung in der Datenbank | **`supabase/TRENNUNG.md` lesen, bevor du irgendetwas an der Datenbank machst.** |
 
 ## Meine Regeln. Die sind nicht verhandelbar.
@@ -93,25 +93,42 @@ Der Code liegt nur als Einwegwert (bcrypt) in der Datenbank. **Er darf niemals
 in eine Datei, in eine Commit-Nachricht oder sonstwohin geschrieben werden.**
 Das Repository ist oeffentlich.
 
-**Die Datenbank gehoert mir.** Migrationen werden als Dateien geschrieben, und
-**ich** fuehre sie aus, ueber `werkzeug/datenbank_erweitern.html`. Fuehr nichts
-gegen die Datenbank aus, ohne dass ich es sage.
+**Die Datenbank gehoert mir.** Fuehr nichts gegen die Datenbank aus, ohne dass
+ich es sage.
 
-Alle neun Wanderungen sind seit dem 18.09.2026 ausgefuehrt, im Projekt
-`mqmevpyatjsambervgtu`, Schema `kombi`. Gegen `kombi.zugangscodes` wird von
-keinem Chat etwas ausgefuehrt, weder angelegt noch geaendert.
+Alle zehn Wanderungen sind ausgefuehrt, im Projekt `mqmevpyatjsambervgtu`,
+Schema `kombi`. **Der Code ist seit dem 19.09.2026 gesetzt und zugesperrt:**
+Wanderung `0010` entzieht `anon` das Recht auf `public.kombi_code_wechseln`,
+der Wechseldialog im Programm ist entfernt, und im Kopf steht stattdessen
+"Code gesperrt". Aendern geht nur noch im SQL-Editor, also nur durch mich.
+
+Gegen `kombi.zugangscodes` wird nur dann etwas ausgefuehrt, wenn ich es
+ausdruecklich im Gespraech verlange.
 
 ## Was gerade ansteht
 
-**Ganz oben: Migration 0009 ist geschrieben, aber noch nicht gelaufen.**
-`supabase/migrations/0009_riesenschein_ordner.sql`. Das Programm ist darauf
-vorbereitet. Erinnere mich daran, sie auszufuehren.
+**GANZ OBEN: der Anthropic-Schluessel.** Ich habe am 19.09.2026 gesagt: das
+Einzige, was noch uebrig ist, ist der API-Key, damit wir ein richtig gutes
+Leseprogramm haben. Der ganze Weg ist gebaut und wartet nur darauf. Die
+Anleitung zum Besorgen steht in `API_SCHLUESSEL.md`.
+
+Der Schluessel liegt NUR in `localStorage`, ich trage ihn selbst ein.
+**Niemals in eine Datei, eine Nachricht oder einen Commit.** Frag mich nie nach
+dem `service_role`-Schluessel von Supabase.
+
+**Was daran noch nie gelaufen ist:** der echte Aufruf. Alles davor ist mit
+nachgestellten Antworten geprueft, der letzte Schritt nicht.
+
+**Danach: ich teste das Snipping-Werkzeug** an meinen drei Monitoren mit einem
+echten Buchmacherfenster. Es ist gebaut und im Browser durchgemessen, aber noch
+nie von mir benutzt. Was dabei auffaellt, gehoert als Erstes behoben.
 
 **Dann: am 17.09.2026 abends hat eine Fehlersuche mit 63 Agenten 57 Fehler
 gefunden, 47 davon haben eine Gegenpruefung ueberstanden.** Die zum
-Speicherplatz sind erledigt. Alles andere steht in `UEBERGABE.md` im Abschnitt
-**"DIE FEHLERSUCHE VOM 17.09.2026"**, mit Datei und Zeilennummer, nach Schaden
-geordnet.
+Speicherplatz sind erledigt, ebenso der schwerste Geldfund vom 18.09.2026
+(`zahl(null)` gab 0 zurueck, siehe `UEBERGABE.md`). Alles andere steht in
+`UEBERGABE.md` im Abschnitt **"DIE FEHLERSUCHE VOM 17.09.2026"**, mit Datei und
+Zeilennummer, nach Schaden geordnet.
 
 **Fang mit Abschnitt A an, "Wo Geld falsch wird".** Sechs Stueck, alle
 nachgerechnet, keiner davon erzeugt eine Meldung. Das schlimmste Beispiel: der
@@ -121,7 +138,8 @@ verloren gelesener Schein auf null Euro stehen bleibt.
 Danach Abschnitt B, "Wo Arbeit verlorengeht". Besonders:
 - Zwei Berichtigungen in derselben Minute: die zweite wird nie gespeichert.
 - Ein abgebrochener Speicherlauf sperrt alle weiteren.
-- Ein geloeschter Schein kommt nach dem Neuladen zurueck.
+- ~~Ein geloeschter Schein kommt nach dem Neuladen zurueck.~~ Erledigt am
+  18.09.2026, siehe `test/loeschen_haelt.test.mjs`.
 
 **Was noch fehlt und nur ich liefern kann, und ich habe mich am 17.09.2026
 dafuer entschieden, es als Naechstes zu tun: MEINE ECHTEN FOTOS.**
@@ -158,6 +176,12 @@ echten Zahlen abgeleitet werden, nicht geraten.
 - `npm install` scheitert an esbuild. Wird nicht gebraucht, die Bibliotheken
   liegen in `lib/`.
 - `node --test test/` scheitert. Richtig ist `node --test "test/*.test.mjs"`.
+- **DREI Fassungskennungen hochsetzen, nicht zwei:** `fassung.json`,
+  `PROGRAMM_FASSUNG` in `daten/einstellungen.js` und `const FASSUNG` in
+  `dienstarbeiter.js`.
+- GitHub Pages haelt Dateien zehn Minuten fest. Direkt nach dem Hochladen sehe
+  ich manchmal noch die alte Fassung. Der Fassungschip oben im Kopf laedt
+  daran vorbei.
 - **Bash-Heredocs scheitern an Umlauten, Anfuehrungszeichen und `${...}`.**
   Fuer jede Aenderung an einer Quelldatei: ein Python-Skript mit dem
   Schreibwerkzeug schreiben und ausfuehren, und darin mit `count(alt) == 1`
@@ -166,6 +190,14 @@ echten Zahlen abgeleitet werden, nicht geraten.
 - `werkzeug/probe/oberflaeche.html` zeigt die ganze Oberflaeche mit echten
   Scheinen aus dem Testkorpus, ohne Zugangscode. Zum Nachsehen im Browser:
   `node werkzeug/server.mjs 4173`.
+
+---
+
+## Der Stand in einem Satz
+
+Das Programm laeuft seit dem 19.09.2026 zum ersten Mal vollstaendig: Datenbank
+steht, Zugangscode gesetzt, ablegbar als App, Bildschirm ausschneiden gebaut.
+Was fehlt, ist der Anthropic-Schluessel und meine echten Fotos.
 
 ---
 

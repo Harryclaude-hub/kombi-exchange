@@ -119,7 +119,10 @@ daten/              Datenbank, lokale Ablage, Einstellungen.
 oberflaeche/        Die Ansichten. Setzen Klassennamen, keine Farben.
 stil/               DESIGNSCHICHT. Darf komplett geloescht werden.
 lib/                Mitgelieferte Bibliotheken. Kein Internet noetig.
-supabase/           Das Datenbankschema.
+supabase/           Das Datenbankschema. TRENNUNG.md zuerst lesen.
+symbole/            Die vier PNG fuer das abgelegte Programm.
+dienstarbeiter.js   Macht die Seite ablegbar und offlinefaehig.
+manifest.json       Name, Symbole und Startadresse fuer das abgelegte Programm.
 test/               Tests fuer die Logik.
 werkzeug/           Server zum Ausprobieren und die Gegenprobe.
 ```
@@ -252,18 +255,41 @@ Das Programm besteht aus vielen einzelnen Dateien, die der Browser einzeln
 zwischenspeichert. Nach einer Aktualisierung kann er deshalb neue und alte mischen,
 und die Seite laeuft mit einer Kombination, die es nie gegeben hat.
 
-Deshalb steht dieselbe Fassungskennung an zwei Stellen: in `daten/einstellungen.js`,
-fest in den Programmdateien, und in `fassung.json` daneben. Beim Start wird
-`fassung.json` ohne Zwischenspeicher geholt und verglichen. Weichen sie ab, laedt die
-Seite sich **einmal** neu. Hilft das nicht, sagt sie es, statt sich weiter neu zu laden.
+Deshalb steht dieselbe Fassungskennung an **drei** Stellen: in
+`daten/einstellungen.js`, fest in den Programmdateien, in `fassung.json` daneben, und
+seit dem 18.09.2026 in `dienstarbeiter.js`. Beim Start wird `fassung.json` ohne
+Zwischenspeicher geholt und verglichen. Weichen sie ab, laedt die Seite sich
+**einmal** neu. Hilft das nicht, sagt sie es, statt sich weiter neu zu laden.
 
-**Beim Aendern des Programms beide Werte hochsetzen.** `node werkzeug/pruefe.mjs`
-beanstandet es, wenn sie auseinanderlaufen.
+Die dritte Stelle braucht es, weil der Browser den Dienstarbeiter an seinen BYTES
+erkennt. Eine Datei, die ihre Fassung erst zur Laufzeit laedt, aendert ihre eigenen
+Bytes nie und wuerde nie ersetzt.
+
+**Beim Aendern des Programms alle drei Werte hochsetzen.** `node werkzeug/pruefe.mjs`
+beanstandet es, wenn eine abweicht.
+
+## Zum Ablegen auf Rechner und Handy
+
+Oben im Kopf steht **"App installieren"**. Danach laeuft Kombi Exchange in einem
+eigenen Fenster ohne Adresszeile, mit eigenem Symbol, und es laeuft ohne Netz weiter:
+alles Vorhandene bleibt sichtbar und die Ausgabe als Excel geht. Was ohne Netz NICHT
+geht, ist das Lesen neuer Bilder, denn die Texterkennung wiegt 16 MB und liegt
+bewusst nicht im Vorrat.
+
+Der Dienstarbeiter fragt **immer zuerst das Netz** und nimmt den Zwischenspeicher nur,
+wenn das Netz nicht antwortet. Online wird dadurch nichts schneller, dafuer kann der
+Zwischenspeicher mit der Fassungspruefung oben nicht in Streit geraten.
 
 ## Eigene Datenbank
 
 Nur `daten/einstellungen.js` anpassen und die Dateien in `supabase/migrations/` der
 Reihe nach einspielen. Danach einen Code setzen, siehe oben.
+
+**Wenn in derselben Datenbank noch etwas anderes liegt: `supabase/TRENNUNG.md`
+lesen.** Kombi Exchange fasst ausschliesslich das Schema `kombi` und die Funktionen
+`public.kombi_*` an. Das ist keine Absichtserklaerung: `daten/datenbank.js` laesst
+keinen anderen Namen durch, und `werkzeug/pruefe.mjs` stellt jeder Wanderung sieben
+Fragen dazu.
 
 ---
 

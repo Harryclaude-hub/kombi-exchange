@@ -1,15 +1,23 @@
 # Uebergabe an die naechste Sitzung
 
-**Stand: 17.09.2026, Fassung 2026-09-17-r, oeffentlich ausgeliefert.**
+**Stand: 19.09.2026, Fassung 2026-09-19-a, oeffentlich ausgeliefert.**
 
 Diese Datei ist so geschrieben, dass jemand ohne jede Vorgeschichte weiterarbeiten
 kann. Zuerst lesen, dann anfangen. Sie ist lang; die ersten fuenf Abschnitte
 reichen fuer den Anfang, der Rest ist Nachschlagewerk.
 
-**Wer sofort etwas zu tun sucht: der Abschnitt "DIE FEHLERSUCHE VOM 17.09.2026".**
-Dort stehen 47 gegengepruefte Funde mit Datei und Zeilennummer, nach Schaden
-geordnet. Die sechs unter "A. Wo Geld falsch wird" sind die einzigen, die
-wirklich zaehlen.
+**DAS PROGRAMM LAEUFT SEIT DEM 19.09.2026 ZUM ERSTEN MAL VOLLSTAENDIG.**
+Die Datenbank steht, der Zugangscode ist gesetzt, und Karam kommt hinein. Bis
+zum 18.09.2026 zeigte `daten/einstellungen.js` auf eine Adresse, die es gar
+nicht gab. Deshalb war bis dahin nie etwas gespeichert geblieben.
+
+**Wer sofort etwas zu tun sucht:** der naechste Schritt ist der
+Anthropic-Schluessel, siehe `API_SCHLUESSEL.md` und Abschnitt "Was offen ist",
+Punkt 0. Alles davor ist erledigt.
+
+**Wer an der Datenbank arbeitet: ZUERST `supabase/TRENNUNG.md` lesen.** In
+demselben Supabase-Projekt liegen zwei weitere Programme von Karam. Was dort
+steht, ist nicht Empfehlung, sondern wird von zwei Waenden erzwungen.
 
 ---
 
@@ -52,8 +60,8 @@ curl -s "https://harryclaude-hub.github.io/kombi-exchange/fassung.json?t=$(date 
 
 **Vor jedem Commit:**
 ```
-npm test                 (das sind 274 Faelle)
-node werkzeug/pruefe.mjs (96 Dateien)
+npm test                 (das sind 343 Faelle)
+node werkzeug/pruefe.mjs (119 Dateien)
 ```
 
 **Und dann im Browser nachsehen.** Gruene Tests sind nicht fertig (Regel 2).
@@ -103,7 +111,8 @@ Das Programm ZEIGT diesen Stand an, in der Uebersicht, gemessen statt behauptet:
 | Quelltext | `https://github.com/Harryclaude-hub/kombi-exchange` (oeffentlich!) |
 | Seite | `https://harryclaude-hub.github.io/kombi-exchange/` |
 | Datenbank | Supabase, Projekt `immo-check und kombi Tafel`, Kennung `mqmevpyatjsambervgtu` |
-| Zugangscode | **steht nirgends im Quelltext.** Karam fragen. |
+| Zugangscode | **gesetzt am 19.09.2026, steht nirgends im Quelltext.** Karam fragen. |
+| Trennung der Programme | `supabase/TRENNUNG.md`. Vor JEDER Arbeit an der Datenbank lesen. |
 | Karams Fotos | `FOTOS_KARAM.md`: 36 Scheine aus 13 Bildschirmfotos, nachgerechnet. Die BILDDATEIEN gibt es nicht auf der Platte. |
 
 Der Code liegt nur als Einwegwert (bcrypt) in `kombi.zugangscodes`. **Niemals in
@@ -116,13 +125,27 @@ diesen Code aendern." Also: den Code NICHT wechseln, NICHT neu setzen,
 `update kombi.zugangscodes` NICHT ausfuehren, solange Karam es nicht selbst im
 Gespraech verlangt.
 
+**Am 19.09.2026 hat er es im Gespraech verlangt**, woertlich: "Ich will, dass du
+mir jetzt einen Code setzt, den man nicht mehr aendern kann, ausser in diesem
+Chat, und den kopiere ich jetzt ab." Der Code ist seitdem gesetzt und geprueft.
+Damit gilt die Regel von oben wieder und strenger als vorher:
+
+**Er laesst sich aus dem Programm heraus nicht mehr aendern.** Wanderung `0010`
+entzieht `anon` und `authenticated` das Recht auf `public.kombi_code_wechseln`.
+Von aussen nachgeprueft: der Versuch mit GUELTIGER Sitzung und RICHTIGEM altem
+Code bekommt `permission denied for function kombi_code_wechseln`. Der
+Wechseldialog im Programm ist ganz entfernt; an seiner Stelle steht im Kopf ein
+Knopf "Code gesperrt", der erklaert, warum.
+
+Geaendert wird er nur noch im SQL-Editor, ueber `werkzeug/code_setzen.html`.
+
 **Ist der Code weg: `NOTFALL.md`**, und im Programm `werkzeug/code_setzen.html`.
 Dort wuerfelt sein Browser einen neuen und baut den SQL-Befehl darum; der Wert
 laeuft nirgends durch, wo er nicht hingehoert.
 
 **Die Datenbank gehoert Karam.** Der MCP-Zugang dieser Umgebung erreicht sein
 eigenes Konto (`saifokaram1@gmail.com's Org`); eine aeltere Fassung dieser Datei
-behauptete das Gegenteil, das war falsch. Alle neun Wanderungen liegen seit dem
+behauptete das Gegenteil, das war falsch. Alle zehn Wanderungen liegen seit dem
 18.09.2026 im Projekt `immo-check und kombi Tafel` (`mqmevpyatjsambervgtu`), im
 eigenen Schema `kombi`.
 
@@ -132,9 +155,12 @@ Namensverzeichnis, "Failed to fetch" von der Seite aus. Deshalb hat Karam das
 Projekt in Supabase nie gefunden, und deshalb ist nie etwas gespeichert
 geblieben: nicht ein Fehler beim Schreiben, sondern gar keine Gegenstelle.
 
-**Die Zugangscodetabelle bleibt ausgenommen.** Gegen `kombi.zugangscodes` wird
-von hier aus nichts ausgefuehrt, weder Anlegen noch Aendern. Den Code setzt
-Karam selbst ueber `werkzeug/code_setzen.html`.
+Seit dem 19.09.2026 liegt dort auch die Wanderung `0010`, die den Code
+zusperrt. Insgesamt also zehn.
+
+**Gegen `kombi.zugangscodes` wird nur auf ausdrueckliche Ansage im Gespraech
+etwas ausgefuehrt.** Am 19.09.2026 hat Karam es verlangt, deshalb steht dort
+jetzt ein Wert. Ohne eine solche Ansage bleibt die Tabelle unberuehrt.
 
 ---
 
@@ -185,11 +211,16 @@ Eine dritte Angabe koennte mit diesen beiden auseinanderlaufen (Regel 8).
 ## Sofort loslegen
 
 ```bash
-npm test                      # 274 Faelle
-node werkzeug/pruefe.mjs      # Aufbaupruefung ueber 96 Dateien
-node werkzeug/messe_lesen.mjs # Wie gut wird gelesen
-node werkzeug/server.mjs      # Server auf http://localhost:4173
+npm test                        # 343 Faelle
+node werkzeug/pruefe.mjs        # Aufbaupruefung ueber 119 Dateien
+node werkzeug/messe_lesen.mjs   # Wie gut wird gelesen
+node werkzeug/server.mjs        # Server auf http://localhost:4173
+python werkzeug/symbole_bauen.py # nur wenn sich das Symbol aendert
 ```
+
+**DREI Fassungskennungen hochsetzen, nicht zwei.** Seit dem 18.09.2026 kam
+`const FASSUNG` in `dienstarbeiter.js` dazu. `werkzeug/pruefe.mjs` beanstandet
+es, wenn eine der drei abweicht.
 
 `npm test` meldet EINEN uebersprungenen Test, solange es keine echten Fotos
 gibt. Das ist richtig so, siehe "Der Auftrag: trainieren".
@@ -213,6 +244,8 @@ einmal an esbuild gescheitert.
 | `werkzeug/probe/anbieterzeichen.html` | alle sechzig Anbieterzeichen |
 | `werkzeug/datenbank_erweitern.html` | der SQL-Befehl fuer Migration 0009 |
 | `werkzeug/code_setzen.html` | einen neuen Zugangscode wuerfeln |
+| `werkzeug/probe/kontrast.html` | jede Farbpaarung nachmessen, beide Themen |
+| `werkzeug/probe/zustaende.html` | alle Bedienzustaende nebeneinander |
 
 Alles andere liegt hinter dem Code. Wer ihn nicht hat, kann die Reiter Aufnahme,
 Scheine, Riesenscheine, Ausgabe und Ablage nicht selbst ansehen und muss das
@@ -1555,6 +1588,201 @@ Und der Browserlauf hat einen Fehler gefunden, den kein Test hatte:
 
 ---
 
+## Was am 18. und 19.09.2026 gebaut wurde
+
+Der Tag, an dem das Programm zum ersten Mal vollstaendig lief.
+
+### 1. Die Datenbank gab es gar nicht
+
+`daten/einstellungen.js` zeigte auf `eybwhnvjavovcxvimtxr.supabase.co`. Diese
+Adresse existierte nicht: kein Eintrag im Namensverzeichnis, von zwei
+Namensdiensten bestaetigt, und "Failed to fetch" von der veroeffentlichten
+Seite aus.
+
+Das ist die Antwort auf zwei Fragen, die wochenlang offen waren: warum Karam
+das Projekt in Supabase nie gefunden hat, und warum nie etwas gespeichert
+geblieben ist. Es war kein Fehler beim Schreiben, es gab keine Gegenstelle.
+
+Alle zehn Wanderungen liegen jetzt im Projekt `mqmevpyatjsambervgtu`
+(`immo-check und kombi Tafel`), im eigenen Schema `kombi`. Von aussen geprueft:
+
+| Pruefung | Ergebnis |
+|---|---|
+| 14 Tueren `public.kombi_*` | alle da |
+| Lesen ohne Sitzungsschluessel | `28000 Kein gueltiger Zugang` |
+| `/rest/v1/scheine` direkt | Tabelle nicht gefunden |
+
+Belegt sind 45 von 500 MB. Bei rund 8 KB je Schein passen etwa 60.000 Scheine
+hinein, bei guter Verdichtung eher 150.000. Bei 100 Fotos je Woche sind das
+ueber vier Jahre. Fotos liegen nicht in der Datenbank; im Dateispeicher waeren
+bei 450 KB je Bild rund 2.200 Stueck moeglich.
+
+### 2. Die Trennung der drei Programme
+
+Karam am 18.09.2026: "Mach klare Trennungen zwischen den Projekten in der
+Datenbank. Ich will nie, dass sich irgendwas mischt."
+
+In demselben Supabase-Projekt liegen drei Programme:
+
+| Programm | Wohnt in | Umfang |
+|---|---|---|
+| **Kombi Exchange** | Schema `kombi` + `public.kombi_*` | 7 Tabellen, 25 Funktionen |
+| Kombi Tafel | `public.kt_*` | 22 Tabellen, 15 Funktionen |
+| immo-check | `public`, ohne Vorsilbe | 13 Tabellen, 6 Funktionen |
+
+Am 18.09.2026 in der laufenden Datenbank nachgemessen: keine `kombi`-Funktion
+greift nach draussen, keine fremde greift nach `kombi`, ueber die Schemagrenze
+laeuft kein einziger Fremdschluessel, und Kombi Exchange benutzt nicht einmal
+die Anmeldung von Supabase.
+
+Gehalten wird das von zwei Waenden, nicht von einer Anleitung:
+
+- **`daten/datenbank.js`**, Funktion `rufe()`. Der einzige Durchlass des ganzen
+  Programms. Nimmt nur die vierzehn Namen aus `daten/grenze.js` an und wirft
+  sonst sofort, mit Vorschlag bei einem Tippfehler.
+- **`werkzeug/pruefe.mjs`**. Sieben Fragen an jede Wanderung und an jede Datei.
+  Darunter die stille Zeile `grant execute on all functions in schema public to
+  anon`, die kein fremdes Wort enthaelt und trotzdem alle drei Programme in
+  einem Zug aufschliessen wuerde.
+
+Die Namen stehen an genau EINER Stelle, in `daten/grenze.js`. Wand, Pruefung
+und Probe lesen von dort. Mit absichtlich falschen Dateien nachgewiesen: zwoelf
+von zwoelf Verstoessen gefangen, richtig geschriebene Zeilen unbehelligt.
+
+Der Umzugsweg in ein eigenes Supabase-Projekt steht Schritt fuer Schritt in
+`supabase/TRENNUNG.md`, mitsamt der gefaehrlichsten Stelle.
+
+### 3. Die Null, die keine war. Der teuerste Fund dieses Projekts
+
+`zahl()` in `oberflaeche/kilesen.js` rechnete `Number(null)`. Das ist 0, und
+`Number.isFinite(0)` ist wahr. Aus jedem `null` der KI wurde ein abgelesener
+Wert 0.
+
+Und `null` schickt die KI auf Befehl: der Bauplan fuehrt `einsatz`,
+`quoteDezimal` und `auszahlung` mit dem Typ `['number','null']`, und die
+Anweisung sagt woertlich "Steht ein Wert nicht im Bild, ist er null". Bei
+PS3838 steht auf dem Schein gar keine Auszahlung, sondern nur der Gewinn.
+
+Mit Karams neun echten PS3838-Scheinen nachgerechnet:
+
+| | Einsatz | moeglich | bestenfalls |
+|---|---|---|---|
+| richtig | 17.717,48 | 20.222,73 | **+2.505,25** |
+| wie gerechnet wurde | 17.717,48 | 0,00 | **-17.717,48** |
+
+Schlimmer: ein gewonnener Schein, dessen Auszahlung die KI nicht lesen konnte,
+wurde als Totalverlust gebucht, und `rechne()` meldete dazu "Alle haben die
+Gegenrechnung bestanden". Die Sicherung prueft auf `!== null`, und 0 ist nicht
+null: die Null ging an jeder Pruefung vorbei, weil sie wie ein Messwert aussah.
+
+Es traf auch das Zusammenfassen, also Karams eigentliches Ziel: aus "Ohne Linie
+null" wurde `linie` 0, und dieselbe Wette bekam einmal von der KI und einmal
+oertlich gelesen nur noch 0,8 statt 1,0 Punkte.
+
+Behoben. `zuSchein` ist dafuer nach aussen gegeben, weil an dieser Umwandlung
+drei Fehler hintereinander aufgetreten sind, alle drei unter gruenen Proben,
+weil sie von aussen nicht erreichbar war. `test/ki_luecken.test.mjs` hat neun
+Faelle; acht davon fallen gegen die alte Fassung durch.
+
+### 4. Das Programm laesst sich ablegen
+
+Karam: "Ich habe den Button, das zu downloaden. In deinem Desktop oder auf mein
+Handy."
+
+Knopf im Kopf, drei Zustaende, kein Schnueffeln nach dem Geraet: die Frage ist
+nicht "welches Geraet", sondern "kam ein Angebot". Neue Dateien:
+`manifest.json`, `dienstarbeiter.js`, `oberflaeche/installieren.js`, vier PNG
+in `symbole/`, erzeugt von `werkzeug/symbole_bauen.py` (schreibt PNG von Hand
+mit zlib, ohne Fremdbibliothek, Farben aus `stil/marken.css`).
+
+**Die gefaehrlichste Stelle war der Zwischenspeicher.** Er kann mit dem
+Fassungsabgleich in Streit geraten, und der Streit endet in einer
+Endlosschleife: alte Dateien, Abweichung zu `fassung.json`, neu laden, wieder
+alte Dateien. Unbenutzbar, ausgerechnet fuer den, der gerade aktualisiert hat.
+
+Unmoeglich gemacht, nicht unwahrscheinlich. Die Schleife braucht zweierlei
+gleichzeitig: eine erfolgreich geholte `fassung.json` UND alte Dateien. Kommt
+`fassung.json` durch, gibt es Netz. Gibt es Netz, liefert "Netz zuerst" jede
+Datei frisch. Die beiden Bedingungen schliessen einander aus.
+
+| Anfrage | Behandlung |
+|---|---|
+| `fassung.json`, `dienstarbeiter.js` | nie aus dem Speicher |
+| Datenbank, alles Fremde, alles ausser GET | gar nicht angefasst |
+| alles Uebrige vom eigenen Ursprung | Netz zuerst, Speicher nur im Notfall |
+
+Geschrieben wird der Speicher nur einmal beim Einrichten. Kein `skipWaiting`,
+kein `clients.claim`. `lib/tesseract` bleibt draussen: 16.162.819 Bytes, davon
+braucht ein Geraet ein Drittel, und das Sprachmodell legt Tesseract selbst ab.
+Mit `lib/exceljs` kommt der Vorrat auf rund 2 MB, 66 Dateien.
+
+Auf der echten Seite nachgesehen: Dienstarbeiter aktiv, Geltungsbereich
+`/kombi-exchange/`, Speicher angelegt, `app.js` kam trotzdem vom Server.
+
+### 5. Bildschirm ausschneiden, einmal fragen
+
+Karam: "Man muss nur auf diesen Knopf klicken und dann schon kann man sich
+aussuchen, was man aus dem Bildschirm ausschneiden will." Und zweimal vorher:
+"dass es keinen anderen Fenster oeffnet".
+
+`oberflaeche/schnipsel.js`. Der Strom bleibt offen, bis "Fertig" gedrueckt
+wird. Die Fensterwahl kommt genau einmal, danach beliebig viele Bilder und aus
+jedem Bild beliebig viele Ausschnitte, mit Vorschaustreifen und einzeln
+wegwerfbar. Der Knopf heisst "Bildschirm ausschneiden" und steht in
+`fotoknoepfe.js`, also an allen sechs Stellen, unter anderem direkt neben
+"Neuer Riesenschein".
+
+**Das Selbstbild-Problem:** gibt Karam denselben Bildschirm frei, auf dem das
+Programm laeuft, faengt das naechste Einzelbild die Bedienschicht mit ein. Sie
+blendet sich deshalb vorher weg, zwei Bildaufbauten plus 60 ms. Ein einzelnes
+`requestAnimationFrame` reicht nicht.
+
+Im Browser mit einem gefaelschten Bildschirmstrom durchgespielt:
+
+| Probe | Ergebnis |
+|---|---|
+| Rahmen 400 x 200 auf der Anzeige | **539 x 269 Originalpunkte** geschnitten |
+| drei Ausschnitte, einer verworfen | zwei kamen zurueck |
+| beim neuen Bild | Schicht war wirklich weggeblendet |
+| nach Fertig | Spur auf `ended`, Schicht weg |
+| Kontrast, beide Themen | 11 Textstellen, 4 Raender, 0 Fehler |
+| bei 375 Punkten Breite | kein Ueberstand, kein Querscrollen |
+
+`nimmBildschirmAuf` und der neue Weg teilen sich dieselben Bausteine
+(`oeffneBildschirmstrom`, `greifeEinzelbild`, `beendeStrom`). Der alte
+Einzelschuss ist weg: er konnte nichts, was der neue nicht auch kann.
+
+### 6. Der Zugangscode, gesetzt und zugesperrt
+
+Siehe oben unter "Wo alles liegt". Wanderung `0010`, geprueft mit gueltiger
+Sitzung und richtigem altem Code: `permission denied`.
+
+### Was in dieser Sitzung an eigenen Fehlern gefunden wurde
+
+Der Vollstaendigkeit halber, weil jeder davon eine Lehre traegt:
+
+1. **Die Grenze stand an drei Stellen ab.** Ein Gegenleser fand es. Eine Probe
+   mit eigener veralteter Liste waere gruen gewesen und haette nichts bewiesen.
+   Jetzt liest alles aus `daten/grenze.js`.
+2. **Die Wand galt nur fuer `rufe()`.** Wer in einer neuen Datei selbst ein
+   `fetch` baut, ging vorbei. Jetzt darf ausser zwei Dateien keine die Adresse
+   der Datenbank auch nur erwaehnen.
+3. **Der Tuerabgleich fand einen Fehler in sich selbst.** Wanderung 0004 zieht
+   drei Funktionen aus `public` heraus und legt sie SOFORT neu an. Wer erst
+   alle Anlagen sammelt und dann alle Wegzuege abzieht, loescht die Neuanlage
+   mit. Jetzt wird in der Reihenfolge gelaufen, in der es wirklich passiert.
+4. **Zwei Regeln beanstandeten ihre eigenen Erklaerungen.** Im Kommentar stand
+   "KEIN skipWaiting" und "NICHT DABEI: lib/tesseract". Vor jeder Textsuche
+   muessen die Kommentare weg.
+5. **`URL` fehlt in `vm.createContext`.** Dadurch warf `new URL(...)` im
+   Dienstarbeiter, die Ausnahme wurde abgefangen, und fuer JEDE Adresse kam
+   "nicht-anfassen" zurueck. Fuenf Proben waren rot, keine zeigte auf den Grund.
+6. **Ein Eintrag im Vorrat, den niemand lesen kann.** `fassung.json` lag im
+   Speicher, wird von dort aber nie ausgeliefert. Kostet nichts, ist aber eine
+   Einladung an den naechsten, es doch zu tun.
+
+---
+
 ## Was am 17.09.2026 zuletzt gebaut wurde
 
 Fassung 2026-09-17-j.
@@ -2054,16 +2282,45 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 ## Was offen ist
 
-0. **Den Zugangscode setzen.** Das ist der einzige Schritt, der noch fehlt,
-   und er gehoert Karam allein. `werkzeug/code_setzen.html` wuerfelt den Code in
-   seinem Browser und baut den SQL-Befehl darum; er fuegt ihn im SQL-Editor ein.
-   Die Tabelle `kombi.zugangscodes` ist noch leer, deshalb baut die Seite seit
-   dem 18.09.2026 zwei Befehle: einen, der eine vorhandene Zeile aendert, und
-   einen, der sie anlegt, falls es keine gibt. Vorher kommt niemand hinein,
-   auch er nicht.
+0. **DER ANTHROPIC-SCHLUESSEL. Hier faengt die naechste Sitzung an.**
 
-   Alle neun Wanderungen sind gelaufen. Der Kasten in der Uebersicht, der sagte,
-   dass die Ordner noch nicht geteilt werden, verschwindet damit von selbst.
+   Karam am 19.09.2026: "Das Einzige, was dann auch noch uebrig waere, wenn
+   alles fluessig laeuft, waere der API-Key fuer Anthropic, dass wir da ein
+   richtig gutes Leseprogramm haetten."
+
+   Der ganze Weg ist gebaut und wartet nur auf den Schluessel:
+   `daten/kileser.js` (Bauplan der Antwort und Anweisung), `oberflaeche/
+   kilesen.js` (Umwandlung in Scheine), der Knopf "Mit KI lesen" in
+   `oberflaeche/ansicht_aufnahme.js`, und der Schluesselkasten.
+
+   Die Schritt-fuer-Schritt-Anleitung zum Besorgen steht in
+   `API_SCHLUESSEL.md`. Der Schluessel liegt NUR in `localStorage`, von Karam
+   selbst eingetragen. **Niemals in eine Datei, eine Nachricht oder einen
+   Commit.** Nie nach dem `service_role`-Schluessel von Supabase fragen.
+
+   Kosten bei seiner Menge (100 Fotos je Woche): mit Haiku 4.5 wenige Cent je
+   Tag. Die Rechnung steht in `API_SCHLUESSEL.md`.
+
+   **Was noch NIE mit einem echten Schluessel gelaufen ist:** der Aufruf
+   selbst. Alles davor ist mit nachgestellten Antworten geprueft, der letzte
+   Schritt nicht. Das ist der erste Punkt, der zu tun ist.
+
+0b. **Karam testet das Snipping-Werkzeug.** Gebaut und im Browser mit einem
+   gefaelschten Bildschirmstrom durchgemessen, aber noch nie von ihm an seinen
+   drei Monitoren mit einem echten Buchmacherfenster benutzt. Was dabei
+   auffaellt, gehoert als Erstes behoben.
+
+0c. **Kombi Tafel steht offen, und Karam hat noch nicht entschieden.**
+   `kt_wetten` (648 Zeilen), `kt_saetze` (23) und `kt_profilfoto` sind mit dem
+   oeffentlichen Schluessel allein lesbar, ohne Anmeldung. Ihre Leseregel steht
+   auf `true`. Schreiben ist ueberall dicht, `kt_scheine`, `kt_person_daten`
+   und `kt_geheim` sind ebenfalls dicht.
+
+   Das war schon vorher so. Neu ist, dass der Schluessel dieses Projekts seit
+   dem 18.09.2026 im oeffentlichen Repository steht. Der Riegel waere eine
+   Zeile je Tabelle (Lesen nur fuer Angemeldete). **Nicht ohne Karams Wort
+   setzen:** das ist seine andere laufende App, und wenn die irgendwo Wetten
+   vor der Anmeldung anzeigt, ginge sie damit kaputt.
 
 1. **Karams echte Fotos.** Der eigentliche Auftrag. Der Weg dahin steht, ist
    im Browser durchgemessen und wartet nur noch auf die Bilder.
@@ -2186,11 +2443,15 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 | | |
 |---|---|
-| Tests | 301, davon 300 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 343, davon 342 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, die Fotos fehlen |
-| Aufbaupruefung | 106 Dateien, keine Beanstandung |
-| Fassung | 2026-09-17-r, oeffentlich ausgeliefert und nachgeprueft |
+| Aufbaupruefung | 119 Dateien, keine Beanstandung |
+| Fassung | 2026-09-19-a, oeffentlich ausgeliefert und nachgeprueft |
+| Datenbank | `mqmevpyatjsambervgtu`, Schema `kombi`, 10 Wanderungen, 45 von 500 MB belegt |
+| Zugangscode | gesetzt am 19.09.2026, Anmeldung auf der echten Seite geprueft |
+| Offlinevorrat | 66 Dateien, rund 2 MB, Dienstarbeiter aktiv geprueft |
+| Grenzregeln | 7 Fragen je Wanderung, mit 12 absichtlichen Verstoessen nachgewiesen |
 | Quelltext | rund 23.700 Zeilen JavaScript, ohne lib/ |
 | Commits am 17.09.2026 | 19, jeder einzeln veroeffentlicht |
 | Fehlersuche | 63 Agenten, 57 Funde, 47 nach Gegenpruefung bestaetigt |
@@ -2206,6 +2467,27 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 - Git auf Windows braucht `git config core.longpaths true`.
 - Bash-Heredocs scheitern an Umlauten. Fuer groessere Dateien das
   Schreibwerkzeug nehmen, nicht `cat <<EOF`.
-- Nach jeder Aenderung am Programm **beide** Fassungskennungen hochsetzen:
-  `fassung.json` und `PROGRAMM_FASSUNG` in `daten/einstellungen.js`.
-  `werkzeug/pruefe.mjs` beanstandet es, wenn sie auseinanderlaufen.
+- Nach jeder Aenderung am Programm **alle DREI** Fassungskennungen hochsetzen:
+  `fassung.json`, `PROGRAMM_FASSUNG` in `daten/einstellungen.js` und
+  `const FASSUNG` in `dienstarbeiter.js`. `werkzeug/pruefe.mjs` beanstandet es,
+  wenn eine abweicht. Die dritte kam am 18.09.2026 dazu: der Browser vergleicht
+  beim Dienstarbeiter die BYTES, und ohne Aenderung darin wird der alte nie
+  ersetzt.
+- **Bash-Heredocs zerschiessen `\r?\n` in Python-Zeichenketten.** Am 18.09.2026
+  wurde daraus ein echter Zeilenumbruch mitten im Quelltext, und die Datei war
+  kaputt. Fuer Skripte mit Ausdruecken das Schreibwerkzeug nehmen und die Datei
+  dann mit `python datei.py` aufrufen.
+- **Der Trick, mit dem ein Kommentarende in einer Python-Zeichenkette geteilt
+  wird, landet woertlich im Quelltext**, wenn das umgebende Zitat drei einfache
+  statt drei doppelte Anfuehrungszeichen sind. Dann steht die Teilung nicht
+  ausgerechnet, sondern als Text in der JavaScript-Datei, und der Browser
+  meldet `Unexpected token 'export'` an einer ganz anderen Stelle. Passiert am
+  18.09.2026 in `oberflaeche/fotoknoepfe.js`. Nach jedem solchen Skript einmal
+  nach der Zeichenfolge aus drei Anfuehrungszeichen, Leerzeichen, Pluszeichen
+  suchen, quer ueber alle `.js`.
+- **GitHub Pages haelt Dateien zehn Minuten fest** (`max-age=600`). Direkt nach
+  dem Hochladen kann der Browser noch die alte Fassung ziehen, obwohl der
+  Server die neue hat. Der Fassungschip im Kopf laedt daran vorbei.
+- **`node --check` auf einer `.js`-Datei meldet `Unexpected token 'export'`.**
+  Das ist kein Fehler in der Datei: `--check` prueft als CommonJS. Zum Pruefen
+  eines Moduls `import()` benutzen oder `node werkzeug/pruefe.mjs`.

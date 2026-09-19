@@ -23,16 +23,29 @@ koennte. Es gibt nur den Weg, einen neuen zu setzen.
 Wer dir anbietet, dir deinen alten Code zu nennen, hat entweder eine andere
 Datenbank vor sich oder irrt sich.
 
-## Der einfache Fall: du bist noch irgendwo angemeldet
+## Seit dem 19.09.2026 gibt es nur noch EINEN Weg
 
-Auf einem anderen Rechner, einem anderen Browser, dem Handy. Eine Sitzung
-haelt **30 Tage** (`supabase/migrations/0001_kombi_grundgeruest.sql`, `ablauf
-:= now() + interval '30 days'`).
+Frueher stand oben in der Kopfzeile ein Knopf "Code wechseln". **Den gibt es
+nicht mehr.**
 
-Dort oben in der Kopfzeile auf **"Code wechseln"**. Das Programm wuerfelt einen
-neuen, zeigt ihn dir einmal, und meldet alle anderen Fenster ab.
+Du hast es am 19.09.2026 so verlangt: "Ich will einen Code, den man nicht mehr
+aendern kann, ausser in diesem Chat." Wanderung `0010` entzieht dem Programm
+das Recht auf `public.kombi_code_wechseln`. Die Sperre sitzt in der Datenbank,
+nicht im Knopf: die Funktion war ueber die Schnittstelle fuer jeden erreichbar,
+der den oeffentlichen Schluessel hat, und der steht im oeffentlichen Quelltext.
 
-## Der andere Fall: du kommst nirgends mehr hinein
+An der Stelle des alten Knopfes steht jetzt **"Code gesperrt"** und erklaert
+das.
+
+Es bleibt also nur der Weg unten, und der braucht den SQL-Editor. Der ist
+gewollt: dorthin kommt nur, wer das Supabase-Konto hat.
+
+Eine offene Sitzung haelt uebrigens **30 Tage**
+(`supabase/migrations/0001_kombi_grundgeruest.sql`,
+`ablauf := now() + interval '30 days'`). Solange du irgendwo noch angemeldet
+bist, hast du Zeit.
+
+## Einen neuen Code setzen
 
 ### Der bequeme Weg: die Hilfsseite
 
@@ -72,11 +85,21 @@ Der Befehl steht auch im Programm selbst, am Anmeldefenster unter
 
 ### Was der Code erfuellen muss
 
-Die Funktion `kombi_code_wechseln` verlangt das, und dieselben Regeln gelten
-sinnvollerweise auch hier:
+Die Datenbank prueft das beim Setzen von Hand NICHT nach. Halt dich trotzdem
+daran, es sind dieselben Regeln, die die alte Wechselfunktion erzwungen hat:
 
 - mindestens **zwoelf Zeichen**
 - **keine Leerzeichen**, auch nicht am Anfang oder Ende
+
+Am besten gar nicht selbst ausdenken, sondern von `werkzeug/code_setzen.html`
+wuerfeln lassen. Selbst ausgedachte Codes sind erratbar.
+
+### Wenn die Tabelle leer ist
+
+Beim ganz frischen Aufsetzen gibt es noch keine Zeile, und dann trifft der
+`update` oben nichts und meldet `UPDATE 0`. Das ist kein Fehler.
+`werkzeug/code_setzen.html` baut deshalb zwei Befehle: einen, der aendert, und
+einen, der anlegt, falls es nichts zu aendern gibt. Beide zusammen einfuegen.
 
 ### Alle anderen Fenster hinauswerfen
 

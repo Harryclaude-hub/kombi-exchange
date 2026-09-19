@@ -44,7 +44,15 @@ Zwei Waende, keine Anleitung. Anleitungen werden ueberlesen.
 
 `daten/datenbank.js`, Funktion `rufe()`. Das ist der **einzige** Ort, an dem
 dieses Programm die Datenbank beruehrt: jeder Aufruf geht durch ihn hindurch.
-Er nimmt nur Namen an, die auf `^kombi_[a-z][a-z0-9_]*$` passen.
+Er nimmt nur Namen an, die **beides** erfuellen: die Form
+`^kombi_[a-z][a-z0-9_]*$` und einen Eintrag in der Liste `TUEREN` in
+`daten/grenze.js`.
+
+Beide Tore werden gebraucht. Die Form faengt Pfadausbrueche ab, also
+Schraegstrich, Punkt und Fragezeichen, bevor eine Adresse zusammengebaut wird.
+Die Liste faengt den Tippfehler: `kombi_scheine_lsen` hat die richtige Form und
+stuerbe sonst erst draussen als 404, was im Browser aussieht wie ein
+Netzproblem.
 
 ```js
 rufe('kombi_scheine_lesen', ...)   // geht
@@ -63,16 +71,43 @@ SQL-Editor eingefuegt. Dort ist der Schaden am groessten, weil ein
 `drop table scheine` ohne Schema in `public` landet und dort etwas Fremdes
 trifft.
 
-Vier Fragen an jede Datei in `supabase/migrations/`:
+Sieben Fragen, vier an jede Datei in `supabase/migrations/`:
 
 1. Kommt ein Name eines fremden Programms vor?
 2. Wird etwas in `public` angelegt, das nicht `kombi_` heisst?
 3. Wird ein Objekt **ohne Schema** angesprochen?
 4. Wird ein fremdes Schema angefasst?
 
-Nachgewiesen mit einer absichtlich falschen Wanderung: alle sieben Verstoesse
-gefangen, die richtig geschriebenen Zeilen unbehelligt, und Beispiele in
-Kommentaren loesen nichts aus.
+Und drei, die erst am 18.09.2026 dazukamen, weil ein Gegenleser gezeigt hat,
+dass die ersten vier sie durchlassen:
+
+5. **Verbotene Zeilen.** `grant ... on all ... in schema public`,
+   `drop extension`, `grant ... to public`, `alter role`. Keine davon enthaelt
+   ein fremdes Wort, und jede einzelne wuerde alle drei Programme in einem Zug
+   vermischen oder aufschliessen.
+6. **Eine neue Funktion ohne `set search_path = ''`.** Ohne leeren Suchpfad
+   laesst sich eine Funktion mit `security definer` auf eine fremde Tabelle
+   umlenken.
+7. **Der Abgleich der vierzehn Tueren ueber drei Orte:** `daten/grenze.js`, die
+   Wanderungen und die Aufrufe in `daten/datenbank.js`. Gemeldet wird mit
+   Richtung, also vergessener Eintrag, Tippfehler oder tote Tuer.
+
+### Wand 3: es gibt genau eine Tuer
+
+Die Wand in `rufe()` prueft NAMEN. Sie haelt niemanden davon ab, in einer neuen
+Datei selbst ein `fetch` auf `/rest/v1/` zu bauen und damit an ihr vorbeizugehen.
+
+Deshalb darf ausser `daten/datenbank.js` und `daten/einstellungen.js` **keine
+Datei die Adresse der Datenbank auch nur erwaehnen.** Proben sind ausgenommen:
+eine Probe, die beweist, dass die Wand haelt, muss nennen koennen, was sie
+aussperrt.
+
+### Nachgewiesen
+
+Mit absichtlich falschen Dateien: **zwoelf von zwoelf Verstoessen gefangen**,
+die richtig geschriebenen Zeilen unbehelligt, und Beispiele in Kommentaren
+loesen nichts aus. Das war noetig: zwei der Regeln haben beim ersten Lauf ihre
+eigenen Erklaerungstexte beanstandet.
 
 ---
 
@@ -129,9 +164,10 @@ bekommt. Dauer: rund zwanzig Minuten.
 
 **Schritt 1.** Neues Projekt anlegen. Kennung und Regionsangabe notieren.
 
-**Schritt 2.** Die neun Wanderungen aus `supabase/migrations/` der Reihe nach
-im SQL-Editor des **neuen** Projekts ausfuehren, 0001 bis 0009. Sie sind
-vollstaendig: Schema, Tabellen, Indizes, Rechte, alle vierzehn Tueren.
+**Schritt 2.** Die zehn Wanderungen aus `supabase/migrations/` der Reihe nach
+im SQL-Editor des **neuen** Projekts ausfuehren, 0001 bis 0010. Sie sind
+vollstaendig: Schema, Tabellen, Indizes, Rechte, alle vierzehn Tueren, und
+0010 sperrt den Zugangscode wieder zu.
 
 **Schritt 3.** Die Daten mitnehmen. Im **alten** Projekt:
 
