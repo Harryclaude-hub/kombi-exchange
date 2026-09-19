@@ -125,6 +125,41 @@ export function offenePotenzialauszahlung(schein) {
 }
 
 /**
+ * Wie weit eine Menge Quoten auseinanderliegt: Median und groesster Abstand.
+ *
+ * Die EINE Stelle fuer diese Rechnung. Sie traegt die Streuungskachel in
+ * rechne() und seit dem 19.09.2026 auch die Gleiche-Wette-Pruefung des
+ * Massenausschnitts. Warum Median statt Mittelwert und warum das Verhaeltnis
+ * statt der Differenz, steht im grossen Kommentar in rechne().
+ *
+ * @param {number[]} quoten
+ * @param {number} [mindest]  Unterhalb wird nichts behauptet. rechne() nimmt
+ *   drei (bei zweien gibt es keine Mitte, der eine Wert ist so gut wie der
+ *   andere); der Massenausschnitt nimmt zwei, denn zwei Aufnahmen derselben
+ *   Wette mit Quote 1,84 und 18,4 sind auch zu zweit ein klarer Fund.
+ * @returns {{median: number, groessterAbstand: number, anzahl: number, mitteGenau: number}|null}
+ */
+export function quotenstreuungVon(quoten, mindest = 3) {
+  const liste = (quoten ?? []).filter((q) => typeof q === 'number' && Number.isFinite(q) && q > 0)
+  if (liste.length < mindest) return null
+
+  const sortiert = [...liste].sort((a, b) => a - b)
+  const mitte = sortiert.length % 2 === 1
+    ? sortiert[(sortiert.length - 1) / 2]
+    : ((sortiert[sortiert.length / 2 - 1] ?? 0) + (sortiert[sortiert.length / 2] ?? 0)) / 2
+  if (mitte === undefined || !(mitte > 0)) return null
+
+  const abstaende = liste.map((q) => (q > mitte ? q / mitte : mitte / q))
+  return {
+    median: runde(mitte, 4),
+    groessterAbstand: runde(Math.max(...abstaende), 4),
+    anzahl: liste.length,
+    // Ungerundet, fuer Folgerechnungen wie die Ausreissergrenze in rechne().
+    mitteGenau: mitte,
+  }
+}
+
+/**
  * Berechnet alle Summen eines Riesenscheins.
  *
  * @param {import('./typen.js').Schein[]} scheine
@@ -433,13 +468,12 @@ export function rechne(scheine) {
    */
   let quotenstreuung = null
 
-  if (alleQuotenPosten.length >= 3) {
-    const sortiert = [...alleQuotenPosten].map((p) => p.quote).sort((a, b) => a - b)
-    const mitte = sortiert.length % 2 === 1
-      ? sortiert[(sortiert.length - 1) / 2]
-      : ((sortiert[sortiert.length / 2 - 1] ?? 0) + (sortiert[sortiert.length / 2] ?? 0)) / 2
-
-    if (mitte !== undefined && mitte > 0) {
+  {
+    // Die Rechnung selbst lebt seit dem 19.09.2026 in quotenstreuungVon()
+    // oben, weil der Massenausschnitt dieselbe braucht (Projektregel 8).
+    const streuungRoh = quotenstreuungVon(alleQuotenPosten.map((p) => p.quote))
+    if (streuungRoh) {
+      const mitte = streuungRoh.mitteGenau
       /*
         DIE GEMESSENE STREUUNG WIRD MITGEGEBEN, AUCH UNTER DER GRENZE.
 
@@ -469,13 +503,10 @@ export function rechne(scheine) {
         liegen, und danach laesst sich die Grenze aus Zahlen ableiten statt
         zu raten. Das kostet nichts und faelscht nichts.
       */
-      const abstaende = alleQuotenPosten.map((p) =>
-        p.quote > mitte ? p.quote / mitte : mitte / p.quote
-      )
       quotenstreuung = {
-        median: runde(mitte, 4),
-        groessterAbstand: runde(Math.max(...abstaende), 4),
-        anzahl: alleQuotenPosten.length,
+        median: streuungRoh.median,
+        groessterAbstand: streuungRoh.groessterAbstand,
+        anzahl: streuungRoh.anzahl,
       }
 
       const GRENZE = 1.5

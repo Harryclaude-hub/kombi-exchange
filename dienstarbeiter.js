@@ -62,7 +62,7 @@
   drei bei jedem Durchlauf, damit sie nicht auseinanderlaufen.
 */
 
-const FASSUNG = '2026-09-19-e'
+const FASSUNG = '2026-09-19-f'
 const SPEICHER = `kombi-${FASSUNG}`
 
 /*
@@ -160,6 +160,7 @@ const VORRAT = [
   './oberflaeche/reihenfolge.js',
   './oberflaeche/scheinfelder.js',
   './oberflaeche/schnipsel.js',
+  './oberflaeche/massenschnipsel.js',
   './oberflaeche/werkzeug.js',
   './oberflaeche/zustand.js',
 

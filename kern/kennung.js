@@ -336,6 +336,67 @@ export function vergleicheScheine(a, b) {
 }
 
 /**
+ * Beurteilt, ob eine Serie von Scheinen DIESELBE Wette traegt.
+ *
+ * Karam am 19.09.2026, zum Massenausschnitt: "die KI muss auch immer
+ * erkennen, dass die Screenshots alle die gleiche Wette haben. Also die
+ * Quoten muessen sich sehr aehnlich sein, die Spiele."
+ *
+ * GEPRUEFT WIRD IM PROGRAMM, NICHT VON DER KI. Die KI liest jeden Schein
+ * einzeln ab; ob zwei Ablesungen dieselbe Wette sind, entscheidet dieselbe
+ * Rechnung, die auch die Riesenscheine zusammenfuehrt (vergleicheScheine).
+ * Eine zweite Wahrheit darueber, was "dieselbe Wette" heisst, waere genau
+ * die Drift aus Projektregel 8; und einer KI etwas glauben zu muessen, was
+ * sich nachrechnen laesst, verbietet Projektregel 1.
+ *
+ * Verglichen wird jeder Schein gegen den ERSTEN vergleichbaren: bei einer
+ * Serie vom selben Riesenschein ist der erste so gut wie jeder andere, und
+ * n Vergleiche statt n mal n halten auch hundert Aufnahmen kurz.
+ *
+ * Die QUOTEN prueft der Aufrufer daneben mit quotenstreuungVon() aus
+ * kern/rechnung.js; hier geht es um die Wette selbst (Spieler, Markt,
+ * Linie, Anzahl der Beine).
+ *
+ * @param {import('./typen.js').Schein[]} scheine
+ * @param {number} [schwelle]  Ab wie vielen Punkten ein Paar als dieselbe
+ *   Wette gilt. Vorgabe 0,6, dieselbe Schwelle wie der Vorschlag in
+ *   kern/gruppierung.js.
+ * @returns {{alleGleich: boolean, vergleichbar: number, ohneAuswahl: number, abweichler: {id: string, punkte: number, gruende: string[]}[]}}
+ */
+export function beurteileGleicheWette(scheine, schwelle = 0.6) {
+  const liste = (scheine ?? []).filter((s) => Array.isArray(s?.auswahlen) && s.auswahlen.length > 0)
+  const ohneAuswahl = (scheine ?? []).length - liste.length
+
+  if (liste.length < 2) {
+    // Mit einem einzigen vergleichbaren Schein gibt es nichts zu widersprechen.
+    // ohneAuswahl steht trotzdem dabei: was nicht vergleichbar war, darf nicht
+    // wie geprueft aussehen (Projektregel 9).
+    return { alleGleich: true, vergleichbar: liste.length, ohneAuswahl, abweichler: [] }
+  }
+
+  const erster = liste[0]
+  /** @type {{id: string, punkte: number, gruende: string[]}[]} */
+  const abweichler = []
+  for (const schein of liste.slice(1)) {
+    const vergleich = vergleicheScheine(erster, schein)
+    if (vergleich.punkte < schwelle) {
+      abweichler.push({
+        id: schein.id,
+        punkte: vergleich.punkte,
+        gruende: vergleich.gruende.slice(0, 3),
+      })
+    }
+  }
+
+  return {
+    alleGleich: abweichler.length === 0,
+    vergleichbar: liste.length,
+    ohneAuswahl,
+    abweichler,
+  }
+}
+
+/**
  * Kurzer Fingerabdruck einer Wette, fuer schnelles Vorsortieren und fuer die Anzeige.
  *
  * Er wird bewusst NICHT als alleiniges Kriterium fuer die Gruppierung benutzt.

@@ -1661,6 +1661,44 @@ Fuer Karams naechsten Schritt (Schluessel eintragen):
 **Weiterhin wahr: der echte Aufruf mit Schluessel ist NIE gelaufen.** Der
 erste Lauf ist Karams, siehe `API_SCHLUESSEL.md`.
 
+### 3c. Der Massenausschnitt (Fassung -f)
+
+Karams Auftrag vom 19.09.2026 abends, Wort fuer Wort umgesetzt in
+`oberflaeche/massenschnipsel.js` und `oberflaeche/fotoknoepfe.js`:
+
+- **Der Knopf "Massenausschnitt"** steht neben "Bildschirm ausschneiden",
+  an allen Stellen der Knopfreihe (auch direkt am Riesenschein).
+- **Der Mini-Knopf** lebt in einem Bild-im-Bild-Fenster
+  (documentPictureInPicture): das einzige Fenster, das eine Webseite oeffnen
+  kann, das IMMER ueber allem liegt und sich frei verschieben laesst. Wo es
+  das nicht gibt (Firefox, Safari, Telefon), schwebt der Knopf in der Seite,
+  und der Knopftitel sagt das ehrlich dazu.
+- **Klick oder Eingabetaste nimmt den GANZEN Bildschirm** (Fensterwahl genau
+  einmal, ueber die bestehenden Bausteine aus bildschirmfoto.js).
+  **Doppelklick, Escape, Fenster zu oder Freigabe beendet** sind alle vier
+  dasselbe Ende; keiner laesst den Strom offen. Der erste Klick wartet die
+  Doppelklick-Spanne (300 ms) ab, sonst haette jedes Fertig eine ungewollte
+  Aufnahme zu viel.
+- **Die Vorschau** zeigt alle Aufnahmen, einzeln wegwerfbar, sagt VORHER wo
+  die Scheine landen (offene Huelle oder automatische Zuordnung, Falle 7),
+  und "Analysieren" liest mit der KI, wenn ein Schluessel da ist, sonst
+  oertlich.
+- **Danach prueft das PROGRAMM die Serie**, nicht die KI:
+  `beurteileGleicheWette` in kern/kennung.js vergleicht jeden Schein mit
+  derselben Rechnung, die auch die Riesenscheine zusammenfuehrt, und die
+  Quoten laufen durch `quotenstreuungVon` (aus rechne() herausgezogen, EINE
+  Stelle, kern/rechnung.js). Die Serien-Grenze von zehn Prozent ist aus
+  Karams gemessenen Zahlen abgeleitet (echte Streuung 4,52, bekannter
+  Verleser 13,48); die Riesenschein-Grenze 1,5 bleibt unberuehrt. Gemeldet
+  wird IMMER, auch der gute Ausgang. Sieben Faelle in
+  test/massenlese.test.mjs.
+
+**Was davon nur Karam beweisen kann:** der echte Griff in den
+Bildschirmstrom samt Fensterwahl und das Bild-im-Bild-Fenster an seinen
+drei Monitoren. Vorschau, Analysieren, Wegwerfen und die Serienpruefung
+sind im Browser durchgespielt; der Mini-Knopf selbst braucht seine Hand,
+genau wie das Snipping-Werkzeug (Punkt 0b unter "Was offen ist").
+
 ### 3b. Nummern in den Zeichen, Pfadleiste, mehr Kontrast (Fassung -e)
 
 Karams zweiter Designauftrag vom 19.09.2026 abends:
@@ -2592,7 +2630,7 @@ Projekt- und Ordnerzeilen, jeder Knopf sieht aus wie ein Knopf.
 
 | | |
 |---|---|
-| Tests | 377, davon 376 gruen und 1 uebersprungen (noch kein echter Korpus) |
+| Tests | 384, davon 383 gruen und 1 uebersprungen (noch kein echter Korpus) |
 | Lesekorpus nachgebaut | 19 Formate, 73 Felder, 100 Prozent |
 | Lesekorpus echt | noch leer, die Fotos fehlen |
 | Aufbaupruefung | 125 Dateien, keine Beanstandung |
