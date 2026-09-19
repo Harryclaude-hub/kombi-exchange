@@ -9,6 +9,29 @@
       content="Riesenschein-Terminal: Wettscheine aus Bildern lesen, zu einer Grosskombi zusammenfuehren, als Blatt und Excel ausgeben."
     />
     <meta name="color-scheme" content="dark light" />
+
+    <!--
+      Das Programm zum Ablegen.
+
+      Alle Adressen hier sind RELATIV. Die Seite liegt auf GitHub Pages in einem
+      Unterverzeichnis (/kombi-exchange/), und ein fuehrender Schraegstrich
+      zeigte auf die Wurzel des ganzen Kontos, also woandershin.
+
+      Die einzige Ausnahme steht in manifest.json unter "id": ein relativer Wert
+      wird dort nicht gegen die Manifestadresse aufgeloest, sondern gegen den
+      Ursprung, und dann haette dieses Programm dieselbe Kennung wie jede andere
+      Seite dieses Kontos.
+
+      Das iPhone liest die Symbole aus dem Manifest ueberhaupt nicht. Deshalb
+      steht apple-touch-icon zusaetzlich hier.
+    -->
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./symbole/symbol-180.png" />
+    <meta name="theme-color" content="#0d141f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Kombi" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0f16'/%3E%3Cpath d='M6 22 L11 14 L16 18 L26 7' stroke='%2318c98a' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 
     <!--

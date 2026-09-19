@@ -78,6 +78,37 @@ export function kannZwischenablageLesen() {
  * @returns {Promise<HTMLCanvasElement>}
  */
 export async function nimmBildschirmAuf() {
+  const { strom, video } = await oeffneBildschirmstrom()
+  try {
+    return await greifeEinzelbild(video)
+  } finally {
+    // IMMER abschalten, auch wenn oben etwas schiefging. Ein weiterlaufender
+    // Datenstrom heisst: der Browser zeigt weiter an, dass der Bildschirm
+    // geteilt wird. Das darf nicht passieren.
+    beendeStrom(strom, video)
+  }
+}
+
+/**
+ * Oeffnet den Bildschirmstrom und laesst ihn LAUFEN.
+ *
+ * WARUM DAS GETRENNT VON nimmBildschirmAuf STEHT
+ *
+ * Seit dem 18.09.2026 gibt es zwei Wege, die beide einen Bildschirmstrom
+ * brauchen: das einzelne Bild hier und die Serie in oberflaeche/schnipsel.js.
+ * Der Unterschied ist NUR, wann der Strom endet, und deshalb waere ein zweiter
+ * Nachbau dieser dreissig Zeilen genau das, was Projektregel 8 verbietet.
+ *
+ * Die drei Vorkehrungen darin stammen alle aus echten Vorfaellen und gelten
+ * fuer beide Wege gleichermassen: die Zeitgrenze von zehn Sekunden, das
+ * Sicherheitsnetz fuer den Bildrueckruf, und kein img.decode.
+ *
+ * WER DAS HIER RUFT, MUSS beendeStrom RUFEN. Sonst zeigt der Browser
+ * unbegrenzt weiter an, dass der Bildschirm geteilt wird.
+ *
+ * @returns {Promise<{strom: MediaStream, video: HTMLVideoElement}>}
+ */
+export async function oeffneBildschirmstrom() {
   if (!kannBildschirmAufnehmen()) {
     throw new Error(
       'Dieser Browser kann den Bildschirm nicht aufnehmen. ' +
@@ -85,23 +116,21 @@ export async function nimmBildschirmAuf() {
     )
   }
 
-  /** @type {MediaStream|null} */
-  let strom = null
+  const strom = await navigator.mediaDevices.getDisplayMedia({
+    video: true,
+    audio: false,
+    // Der Mauszeiger im Bild waere nur ein schwarzer Fleck ueber einer Zahl.
+    // @ts-ignore nicht in jeder Typfassung bekannt
+    cursor: 'never',
+    preferCurrentTab: false,
+  })
+
+  const video = document.createElement('video')
+  video.srcObject = strom
+  video.muted = true
+  video.playsInline = true
+
   try {
-    strom = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: false,
-      // Der Mauszeiger im Bild waere nur ein schwarzer Fleck ueber einer Zahl.
-      // @ts-ignore nicht in jeder Typfassung bekannt
-      cursor: 'never',
-      preferCurrentTab: false,
-    })
-
-    const video = document.createElement('video')
-    video.srcObject = strom
-    video.muted = true
-    video.playsInline = true
-
     await new Promise((fertig, schiefgegangen) => {
       // Ohne Zeitgrenze haengt das hier stumm, wenn der Datenstrom kein Bild
       // liefert. Ein stiller Fehlschlag ist schlimmer als eine Meldung.
@@ -115,42 +144,72 @@ export async function nimmBildschirmAuf() {
         schiefgegangen(new Error('Der Bildschirm ließ sich nicht anzeigen.'))
       }
     })
-
-    // Ein Einzelbild abwarten. Ohne das ist die Leinwand manchmal schwarz,
-    // weil das erste Bild noch nicht durch ist.
-    await new Promise((fertig) => {
-      if ('requestVideoFrameCallback' in video) {
-        // @ts-ignore nicht in jeder Typfassung bekannt
-        video.requestVideoFrameCallback(() => fertig(undefined))
-        // Sicherheitsnetz: in einem verdeckten Fenster ruft der Browser den
-        // Bildrueckruf nicht auf. Genau diese Falle hat dieses Projekt schon
-        // einmal einen halben Tag gekostet.
-        setTimeout(() => fertig(undefined), 500)
-      } else {
-        setTimeout(() => fertig(undefined), 300)
-      }
-    })
-
-    const leinwand = document.createElement('canvas')
-    leinwand.width = video.videoWidth
-    leinwand.height = video.videoHeight
-    const kontext = leinwand.getContext('2d')
-    if (!kontext) throw new Error('Der Browser stellt keinen Zeichenkontext bereit.')
-    kontext.drawImage(video, 0, 0)
-
-    video.pause()
-    video.srcObject = null
-
-    if (leinwand.width === 0 || leinwand.height === 0) {
-      throw new Error('Das aufgenommene Bild war leer.')
-    }
-    return leinwand
-  } finally {
-    // IMMER abschalten, auch wenn oben etwas schiefging. Ein weiterlaufender
-    // Datenstrom heisst: der Browser zeigt weiter an, dass der Bildschirm
-    // geteilt wird. Das darf nicht passieren.
-    for (const spur of strom?.getTracks() ?? []) spur.stop()
+  } catch (fehler) {
+    // Sonst liefe die Freigabe weiter, obwohl niemand mehr etwas davon hat.
+    beendeStrom(strom, video)
+    throw fehler
   }
+
+  return { strom, video }
+}
+
+/**
+ * Holt EIN Einzelbild aus einem laufenden Strom.
+ *
+ * @param {HTMLVideoElement} video
+ * @returns {Promise<HTMLCanvasElement>}
+ */
+export async function greifeEinzelbild(video) {
+  // Ein Einzelbild abwarten. Ohne das ist die Leinwand manchmal schwarz,
+  // weil das erste Bild noch nicht durch ist.
+  await new Promise((fertig) => {
+    if ('requestVideoFrameCallback' in video) {
+      let schon = false
+      const einmal = () => {
+        if (schon) return
+        schon = true
+        fertig(undefined)
+      }
+      // @ts-ignore nicht in jeder Typfassung bekannt
+      video.requestVideoFrameCallback(einmal)
+      // Sicherheitsnetz: in einem verdeckten Fenster ruft der Browser den
+      // Bildrueckruf nicht auf. Genau diese Falle hat dieses Projekt schon
+      // einmal einen halben Tag gekostet.
+      setTimeout(einmal, 500)
+    } else {
+      setTimeout(() => fertig(undefined), 300)
+    }
+  })
+
+  const leinwand = document.createElement('canvas')
+  leinwand.width = video.videoWidth
+  leinwand.height = video.videoHeight
+  const kontext = leinwand.getContext('2d')
+  if (!kontext) throw new Error('Der Browser stellt keinen Zeichenkontext bereit.')
+  kontext.drawImage(video, 0, 0)
+
+  if (leinwand.width === 0 || leinwand.height === 0) {
+    throw new Error('Das aufgenommene Bild war leer.')
+  }
+  return leinwand
+}
+
+/**
+ * Beendet einen Bildschirmstrom vollstaendig.
+ *
+ * @param {MediaStream|null} strom
+ * @param {HTMLVideoElement|null} [video]
+ */
+export function beendeStrom(strom, video) {
+  if (video) {
+    try {
+      video.pause()
+      video.srcObject = null
+    } catch {
+      // Ein Video, das sich nicht mehr anhalten laesst, ist ohnehin fertig.
+    }
+  }
+  for (const spur of strom?.getTracks() ?? []) spur.stop()
 }
 
 /**

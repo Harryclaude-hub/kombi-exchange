@@ -12,6 +12,7 @@
  */
 
 import { DATENBANK } from './einstellungen.js'
+import { VORSILBE, TUEREN, istEigeneTuer } from './grenze.js'
 
 /**
  * @typedef {object} Antwort
@@ -38,35 +39,42 @@ export const WIDERSPRUCH = 'K0409'
 /** Fehlercode, wenn das Projekt inzwischen geloescht wurde. */
 export const PROJEKT_WEG = 'K0404'
 
-/**
- * Die Vorsilbe, die JEDE Tuer dieses Programms tragen muss.
- *
- * DAS IST DIE GRENZE ZWISCHEN DEN PROGRAMMEN, und sie steht hier, weil hier
- * die einzige Stelle ist, an der dieses Programm die Datenbank beruehrt.
- *
- * Karam am 18.09.2026: "Mach klare Trennungen zwischen den Projekten in der
- * Datenbank. Ich will nie, dass sich irgendwas mischt. Und auch fuer die neuen
- * Chats, wenn ich da was arbeite und mit der Datenbank mache, muss das wirklich
- * klar getrennt sein, keine Fehler, kein Durcheinander."
- *
- * In derselben Supabase-Datenbank liegen drei Programme:
- *
- *   Kombi Exchange   Schema kombi, Tueren public.kombi_*   (dieses hier)
- *   Kombi Tafel      public.kt_*                            22 Tabellen
- *   immo-check       public, ohne Vorsilbe                  13 Tabellen
- *
- * Am 18.09.2026 in der laufenden Datenbank nachgemessen: keine einzige
- * kombi-Funktion greift nach draussen, keine fremde Funktion greift nach
- * kombi, und ueber die Schemagrenze laeuft kein einziger Fremdschluessel.
- * Kombi Exchange benutzt nicht einmal die Anmeldung von Supabase, sondern den
- * eigenen Sperrcode. Die Trennung ist heute vollstaendig.
- *
- * Sie bleibt es aber nicht von selbst. Ein spaeterer Chat, der schnell etwas
- * nachsehen will, schreibt rufe('kt_wetten_lesen') und hat die Grenze
- * uebertreten, ohne es zu merken. Eine Anleitung in einer Datei haette das
- * nicht verhindert, denn Anleitungen werden ueberlesen. Diese Wand nicht.
- */
-export const VORSILBE = 'kombi_'
+// Weitergereicht, damit niemand eine zweite Fassung davon anlegt.
+export { VORSILBE, TUEREN } from './grenze.js'
+
+/*
+  DIE GRENZE ZWISCHEN DEN PROGRAMMEN, UND SIE STEHT HIER AM EINZIGEN DURCHLASS.
+
+  Karam am 18.09.2026: "Mach klare Trennungen zwischen den Projekten in der
+  Datenbank. Ich will nie, dass sich irgendwas mischt. Und auch fuer die neuen
+  Chats, wenn ich da was arbeite und mit der Datenbank mache, muss das wirklich
+  klar getrennt sein, keine Fehler, kein Durcheinander."
+
+  In derselben Supabase-Datenbank liegen drei Programme:
+
+    Kombi Exchange   Schema kombi, Tueren public.kombi_*   (dieses hier)
+    Kombi Tafel      public.kt_*                            22 Tabellen
+    immo-check       public, ohne Vorsilbe                  13 Tabellen
+
+  Am 18.09.2026 in der laufenden Datenbank nachgemessen: keine einzige
+  kombi-Funktion greift nach draussen, keine fremde Funktion greift nach kombi,
+  und ueber die Schemagrenze laeuft kein einziger Fremdschluessel. Kombi
+  Exchange benutzt nicht einmal die Anmeldung von Supabase, sondern den eigenen
+  Sperrcode. Die Trennung ist heute vollstaendig.
+
+  Sie bleibt es aber nicht von selbst. Ein spaeterer Chat, der schnell etwas
+  nachsehen will, schreibt rufe('kt_wetten_lesen') und hat die Grenze
+  uebertreten, ohne es zu merken. Eine Anleitung in einer Datei haette das nicht
+  verhindert, denn Anleitungen werden ueberlesen. Diese Wand nicht.
+
+  WAS SIE NICHT LEISTET: sie prueft Namen, die durch rufe() gehen. Wer in einer
+  neuen Datei selbst ein fetch auf /rest/v1/ baut, kommt an ihr vorbei. Genau
+  das faengt die Regel "eine einzige Tuer" in werkzeug/pruefe.mjs ab: ausser
+  dieser Datei und einstellungen.js darf keine einzige die Adresse der Datenbank
+  auch nur erwaehnen.
+
+  Die Namen selbst stehen in daten/grenze.js und nirgends sonst.
+*/
 
 /**
  * Laesst nur Namen durch, die zu diesem Programm gehoeren.
@@ -79,24 +87,20 @@ export const VORSILBE = 'kombi_'
  * @param {string} name
  */
 function verlangeEigeneTuer(name) {
-  if (typeof name === 'string' && /^kombi_[a-z][a-z0-9_]*$/.test(name)) return
+  if (istEigeneTuer(name)) return
+
+  const nah = TUEREN.filter((t) => typeof name === 'string' && t.startsWith(String(name).slice(0, 12)))
+  const tipp = nah.length > 0 ? ` Gemeint war vielleicht: ${nah.join(', ')}.` : ''
 
   throw new Error(
     `"${name}" ist keine Tuer von Kombi Exchange. In dieser Datenbank liegen ` +
-      'mehrere Programme nebeneinander: Kombi Exchange spricht ausschliesslich ' +
-      'Funktionen an, die mit "kombi_" beginnen. Alles andere gehoert Kombi Tafel ' +
-      '(kt_) oder immo-check und wird von hier aus nie angefasst. Wenn du wirklich ' +
-      'eine neue Tuer brauchst, leg sie in supabase/migrations/ als public.kombi_... an.'
+      `mehrere Programme nebeneinander: Kombi Exchange kennt genau ${TUEREN.length} ` +
+      `Funktionen, alle mit der Vorsilbe "${VORSILBE}". Alles andere gehoert Kombi ` +
+      'Tafel (kt_) oder immo-check und wird von hier aus nie angefasst.' +
+      tipp +
+      ' Wer wirklich eine neue Tuer braucht, legt sie in supabase/migrations/ an ' +
+      'und traegt sie in daten/grenze.js ein.'
   )
-}
-
-/**
- * @param {unknown} wert
- * @returns {number|null}
- */
-function zahlOderNull(wert) {
-  const zahl = Number(wert)
-  return Number.isFinite(zahl) ? zahl : null
 }
 
 /**

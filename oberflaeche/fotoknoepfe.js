@@ -26,26 +26,59 @@ import { nimmAuf } from './aufnahme.js'
 import {
   kannBildschirmAufnehmen,
   kannZwischenablageLesen,
-  nimmBildschirmAuf,
   ausZwischenablage,
   zeigeZuschnitt,
   alsDatei,
 } from './bildschirmfoto.js'
+import { schnipselDurchgang } from './schnipsel.js'
 
 /**
- * Bildschirm aufnehmen, zuschneiden, aufnehmen lassen.
+ * Bildschirm ausschneiden: einmal fragen, dann so viele Ausschnitte wie noetig.
+ *
+ * ERSETZT DEN FRUEHEREN EINZELSCHUSS.
+ *
+ * Bis zum 18.09.2026 stand hier bildschirmfotoMachen(): ein Bild, ein
+ * Ausschnitt, Strom zu. Fuer jedes weitere Bild fragte der Browser wieder,
+ * welches Fenster freigegeben werden soll. Bei zwanzig Anbietern zwanzigmal.
+ *
+ * Karam dazu, zweimal: "Kannst du Snipping-Tool so machen, dass es keinen
+ * anderen Fenster oeffnet." Und: "Man muss nur auf diesen Knopf klicken und
+ * dann schon kann man sich aussuchen, was man aus dem Bildschirm ausschneiden
+ * will."
+ *
+ * Es gibt jetzt nur noch diesen einen Weg und nicht zwei nebeneinander. Der
+ * alte konnte nichts, was der neue nicht auch kann: wer ein einziges Bild
+ * will, nimmt einen Ausschnitt und drueckt Fertig. Zwei Fassungen desselben
+ * Ablaufs waeren Projektregel 8.
+ *
+ * ALLE AUSSCHNITTE GEHEN IN EINEM ZUG WEITER. nimmAuf nimmt eine Liste, und
+ * damit laeuft der Fortschrittsbalken einmal sauber durch, statt die
+ * Oberflaeche zwanzigmal neu zu zeichnen.
  *
  * @returns {Promise<void>}
  */
-export async function bildschirmfotoMachen() {
+export async function bildschirmAusschneiden() {
   try {
-    const voll = await nimmBildschirmAuf()
-    const ausschnitt = await zeigeZuschnitt(voll)
-    if (!ausschnitt) {
-      Zustand.melde('info', 'Bildschirmfoto verworfen.')
+    const ausschnitte = await schnipselDurchgang()
+    if (ausschnitte.length === 0) {
+      Zustand.melde('info', 'Kein Ausschnitt genommen.')
       return
     }
-    await nimmAuf([await alsDatei(ausschnitt, 'bildschirm')])
+
+    /*
+      DER NAME BEKOMMT EINE LAUFENDE NUMMER.
+
+      alsDatei benennt sekundengenau. In einer schnellen Serie entstehen zwei
+      Ausschnitte in derselben Sekunde und heissen dann gleich. Verloren geht
+      dabei nichts, die Pruefsumme unterscheidet sie, aber in der Liste haette
+      Karam zweimal denselben Namen und wuesste nicht, welcher welcher ist.
+    */
+    const dateien = []
+    for (let i = 0; i < ausschnitte.length; i += 1) {
+      dateien.push(await alsDatei(ausschnitte[i], `schnipsel-${String(i + 1).padStart(2, '0')}`))
+    }
+
+    await nimmAuf(dateien)
   } catch (fehler) {
     // Ein Abbruch im Auswahlfenster des Browsers ist kein Fehler, sondern eine
     // Entscheidung. Er darf deshalb nicht rot gemeldet werden.
@@ -123,11 +156,13 @@ export function fotoknoepfe(einstellungen = {}) {
     knoepfe.push(
       el(`${klasse}.foto-bildschirm`, {
         type: 'button',
-        text: 'Bildschirmfoto',
-        title: 'Fenster aussuchen, Rahmen um die Wettliste ziehen, fertig.',
+        text: 'Bildschirm ausschneiden',
+        title:
+          'Einmal das Fenster aussuchen, dann beliebig viele Ausschnitte. ' +
+          'Eingabe nimmt, N holt ein neues Bild, Esc ist fertig.',
         onclick: async (e) => {
           e.stopPropagation()
-          await bildschirmfotoMachen()
+          await bildschirmAusschneiden()
         },
       })
     )

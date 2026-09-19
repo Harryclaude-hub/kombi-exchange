@@ -15,6 +15,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  TUEREN,
+  VORSILBE,
+  ERLAUBTE_SCHEMATA as GRENZE_SCHEMATA,
+  FREMDE_NAMEN as GRENZE_FREMDE,
+  FREMDE_VORSILBEN,
+} from '../daten/grenze.js'
 
 const wurzel = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -45,7 +52,15 @@ function sammle(ordner) {
   return heraus
 }
 
-const dateien = [...ORDNER.flatMap(sammle), 'index.html']
+/*
+  Die vier Dateien im Wurzelverzeichnis gehoeren mitgeprueft.
+
+  dienstarbeiter.js und manifest.json sind seit dem 18.09.2026 Teil des
+  Programms, und zwar an einer Stelle, an der ein Fehler besonders lange
+  unbemerkt bliebe: ein Gedankenstrich oder eine Farbe von Hand faellt dort
+  niemandem auf, weil die beiden nie jemand aufmacht.
+*/
+const dateien = [...ORDNER.flatMap(sammle), 'index.html', 'dienstarbeiter.js', 'manifest.json']
 
 // --- 1. und 2.: Syntax und Importpfade ---
 
@@ -197,6 +212,36 @@ if (!imProgramm) {
     art: 'fassung',
     datei: 'fassung.json',
     text: `steht auf "${inDatei}", in daten/einstellungen.js steht "${imProgramm}". Beide muessen gleich sein.`,
+  })
+}
+
+/*
+  SEIT DEM 18.09.2026 IST ES EINE DRITTE STELLE: dienstarbeiter.js.
+
+  Sie steht dort woertlich und MUSS dort woertlich stehen. Der Browser holt den
+  Dienstarbeiter neu und vergleicht seine BYTES; aendern sie sich nicht, wird der
+  alte nie ersetzt. Eine Datei, die ihre Fassung erst zur Laufzeit aus
+  fassung.json laedt, aendert ihre eigenen Bytes nie und bliebe fuer immer stehen,
+  mitsamt ihrem alten Vorrat.
+
+  Laufen die drei auseinander, ist der Schaden groesser als bei zweien: der
+  Dienstarbeiter raeumte dann einen Speicher auf, der noch gebraucht wird, oder
+  behielte einen, den niemand mehr will.
+*/
+const dienstarbeiterText = fs.readFileSync(path.join(wurzel, 'dienstarbeiter.js'), 'utf8')
+const imDienstarbeiter = dienstarbeiterText.match(/const FASSUNG = '([^']+)'/)?.[1] ?? ''
+
+if (!imDienstarbeiter) {
+  beanstandungen.push({
+    art: 'fassung',
+    datei: 'dienstarbeiter.js',
+    text: "const FASSUNG = '...' wurde nicht gefunden. Ohne sie ersetzt der Browser den Dienstarbeiter nie.",
+  })
+} else if (imProgramm && imDienstarbeiter !== imProgramm) {
+  beanstandungen.push({
+    art: 'fassung',
+    datei: 'dienstarbeiter.js',
+    text: `steht auf "${imDienstarbeiter}", in daten/einstellungen.js steht "${imProgramm}". Alle drei Stellen muessen gleich sein.`,
   })
 }
 
@@ -577,23 +622,17 @@ for (const datei of dateien) {
 
 const WANDERUNGEN = path.join(wurzel, 'supabase', 'migrations')
 
-/** Namen, die anderen Programmen in derselben Datenbank gehoeren. */
-const FREMDE_NAMEN = [
-  // immo-check. Tabellen ohne Vorsilbe, deshalb einzeln aufgezaehlt.
-  'categories', 'criteria', 'inspection_items', 'inspection_notes',
-  'inspection_plans', 'inspections', 'paper_sheets', 'profiles', 'properties',
-  'property_photos', 'template_criteria', 'templates', 'units',
-  'is_active_user', 'is_admin', 'handle_new_user', 'touch_updated_at',
-  'auto_confirm_email', 'guard_profile_update',
-]
+/*
+  Die Namen kommen aus daten/grenze.js und stehen hier NICHT noch einmal.
 
-/**
- * Schemata, die eine Wanderung von Kombi Exchange nennen darf.
- *
- * extensions, weil dort pgcrypto liegt: crypt, gen_salt, digest und
- * gen_random_bytes. public nur mit der Vorsilbe, und das prueft Frage 2.
- */
-const ERLAUBTE_SCHEMATA = new Set(['kombi', 'public', 'extensions', 'pg_catalog'])
+  Sie standen bis zum 18.09.2026 an drei Stellen: hier, in daten/datenbank.js
+  und in test/trennung.test.mjs. Drei Abschriften derselben Sache sind genau
+  das, was Projektregel 8 verbietet, und die dritte waere die gefaehrlichste
+  gewesen: eine Probe, die ihre eigene veraltete Liste prueft, ist gruen und
+  beweist nichts.
+*/
+const FREMDE_NAMEN = GRENZE_FREMDE
+const ERLAUBTE_SCHEMATA = new Set(GRENZE_SCHEMATA)
 
 /**
  * Schneidet Kommentare heraus, ohne Zeichenketten zu zerschneiden.
@@ -668,13 +707,15 @@ for (const name of wanderungen) {
       })
     }
   }
-  const tafel = [...new Set(sql.match(/\bkt_[a-z0-9_]+/g) ?? [])]
-  if (tafel.length > 0) {
-    beanstandungen.push({
-      art: 'grenze',
-      datei: pfad,
-      text: `nennt ${tafel.join(', ')}. Das gehoert Kombi Tafel und wird von hier aus nie angefasst.`,
-    })
+  for (const vorsilbe of FREMDE_VORSILBEN) {
+    const treffer = [...new Set(sql.match(new RegExp(`\\b${vorsilbe}[a-z0-9_]+`, 'g')) ?? [])]
+    if (treffer.length > 0) {
+      beanstandungen.push({
+        art: 'grenze',
+        datei: pfad,
+        text: `nennt ${treffer.join(', ')}. Das gehoert einem anderen Programm und wird von hier aus nie angefasst.`,
+      })
+    }
   }
 
   // --- Frage 2: etwas in public ohne die Vorsilbe? ---
@@ -744,6 +785,361 @@ for (const name of wanderungen) {
       art: 'grenze',
       datei: pfad,
       text: `greift auf das Schema "${schema}" zu. Erlaubt sind nur ${[...ERLAUBTE_SCHEMATA].join(', ')}.`,
+    })
+  }
+}
+
+/*
+  ES GIBT GENAU EINE TUER ZUR DATENBANK.
+
+  Die Wand in daten/datenbank.js prueft NAMEN. Sie haelt niemanden davon ab, in
+  einer neuen Datei selbst ein fetch auf /rest/v1/ zu bauen und damit an ihr
+  vorbeizugehen. Heute gibt es genau eine solche Stelle; nichts hielt die zweite
+  auf, und genau die zweite waere die, die niemand mehr prueft.
+
+  Erlaubt sind zwei Dateien: daten/datenbank.js baut die Adresse,
+  daten/einstellungen.js haelt sie. Alles andere ist eine Beanstandung.
+*/
+const TUER_ERLAUBT = new Set(['daten/datenbank.js', 'daten/einstellungen.js'])
+const TUER_MUSTER = /rest\/v1|storage\/v1|\.supabase\.co|DATENBANK\.adresse/
+
+/**
+ * Schneidet Kommentare aus Quelltext, damit eine Erklaerung keine Beanstandung
+ * ausloest. Dieselbe Falle wie bei der Regel fuer tote Bildadressen.
+ *
+ * @param {string} text
+ * @param {boolean} istHtml
+ */
+function ohneErklaerungen(text, istHtml) {
+  let heraus = text.replace(/\/\*[\s\S]*?\*\//g, ' ')
+  if (istHtml) heraus = heraus.replace(/<!--[\s\S]*?-->/g, ' ')
+  return heraus
+    .split(/\r?\n/)
+    .map((zeile) => {
+      const stelle = zeile.indexOf('//')
+      if (stelle < 0) return zeile
+      // Ein doppelter Schraegstrich in einer Adresse ist kein Kommentar.
+      if (/https?:$/.test(zeile.slice(0, stelle))) return zeile
+      return zeile.slice(0, stelle)
+    })
+    .join('\n')
+}
+
+for (const datei of dateien) {
+  const pfad = datei.split(path.sep).join('/')
+  if (TUER_ERLAUBT.has(pfad)) continue
+  /*
+    Proben sind ausgenommen, aus demselben Grund wie beim Probehaken weiter
+    oben: eine Probe, die beweist, dass die Wand haelt, MUSS nennen koennen,
+    was sie aussperrt. test/dienstarbeiter.test.mjs fuehrt eine echte
+    Supabase-Adresse auf, um zu zeigen, dass der Dienstarbeiter sie nicht
+    anfasst. Beim ersten Lauf hat diese Regel genau das beanstandet.
+  */
+  if (pfad.startsWith('test/')) continue
+  if (!/\.(js|mjs|html)$/.test(pfad)) continue
+  const voll = path.join(wurzel, datei)
+  if (!fs.existsSync(voll)) continue
+
+  const roh = ohneErklaerungen(fs.readFileSync(voll, 'utf8'), pfad.endsWith('.html'))
+  if (!TUER_MUSTER.test(roh)) continue
+
+  const zeilen = roh.split(/\r?\n/)
+  const nummer = zeilen.findIndex((z) => TUER_MUSTER.test(z)) + 1
+  beanstandungen.push({
+    art: 'grenze',
+    datei: `${pfad}:${nummer}`,
+    text:
+      'spricht die Datenbank selbst an. Es gibt genau eine Tuer, und das ist rufe() in ' +
+      'daten/datenbank.js. Nur dort steht die Pruefung, die fremde Programme aussperrt. ' +
+      'Warum das so ist, steht in supabase/TRENNUNG.md und in daten/grenze.js.',
+  })
+}
+
+/*
+  DIE VIERZEHN TUEREN MUESSEN AN DREI ORTEN DIESELBEN SEIN.
+
+  daten/grenze.js fuehrt sie, die Wanderungen legen sie an, daten/datenbank.js
+  ruft sie. Laufen die drei auseinander, faellt das sonst erst im Betrieb auf,
+  und zwar als 404, was im Browser aussieht wie ein Netzproblem.
+
+  Gemeldet wird mit RICHTUNG und nicht als "ungleich": vergessener Eintrag,
+  Tippfehler und tote Tuer sind drei verschiedene Fehler mit drei verschiedenen
+  Handgriffen.
+
+  Der Sonderfall: 0004 zieht drei Funktionen mit "alter function ... set schema
+  kombi" aus public heraus. Die stehen danach zwar in einer Wanderung, sind aber
+  keine Tueren mehr. Sie werden hier abgezogen.
+*/
+const ausWanderungen = new Set()
+for (const name of wanderungen) {
+  const sql = ohneKommentare(fs.readFileSync(path.join(WANDERUNGEN, name), 'utf8')).toLowerCase()
+
+  /*
+    DER REIHE NACH, NICHT ERST ALLE ANLEGEN UND DANN ALLE ABZIEHEN.
+
+    Beim ersten Lauf meldete diese Regel drei Tueren als fehlend, die es
+    laengst gibt: kombi_scheine_speichern, kombi_riesenscheine_speichern und
+    kombi_bilder_speichern. Der Grund stand in 0004. Dort wird jede der drei
+    ERST mit "set schema kombi" aus public herausgezogen und dann SOFORT unter
+    demselben Namen neu angelegt, nur mit einer Unterschrift mehr (p_fassung).
+
+    Wer erst alle Anlagen sammelt und am Ende alle Wegzuege abzieht, loescht
+    damit auch die Neuanlage danach. Also wird hier in der Reihenfolge
+    gelaufen, in der es wirklich passiert.
+  */
+  const ereignisse = []
+  for (const fund of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+public\.(kombi_[a-z0-9_]+)/g)) {
+    ereignisse.push({ stelle: fund.index ?? 0, name: fund[1], was: 'anlegen' })
+  }
+  for (const fund of sql.matchAll(/alter\s+function\s+public\.(kombi_[a-z0-9_]+)\s*\([^)]*\)\s*set\s+schema/g)) {
+    ereignisse.push({ stelle: fund.index ?? 0, name: fund[1], was: 'wegziehen' })
+  }
+  ereignisse.sort((a, b) => a.stelle - b.stelle)
+
+  for (const ereignis of ereignisse) {
+    if (ereignis.was === 'anlegen') ausWanderungen.add(ereignis.name)
+    else ausWanderungen.delete(ereignis.name)
+  }
+}
+
+const datenbankText = fs.readFileSync(path.join(wurzel, 'daten/datenbank.js'), 'utf8')
+const ausAufrufen = new Set(
+  [...datenbankText.matchAll(/rufe\('(kombi_[a-z0-9_]+)'/g)].map((f) => f[1])
+)
+
+const ausGrenze = new Set(TUEREN)
+
+for (const name of ausWanderungen) {
+  if (!ausGrenze.has(name)) {
+    beanstandungen.push({
+      art: 'grenze',
+      datei: 'daten/grenze.js',
+      text: `In den Wanderungen steht public.${name}, aber TUEREN kennt den Namen nicht. Neue Tuer angelegt und nicht eingetragen?`,
+    })
+  }
+}
+for (const name of ausAufrufen) {
+  if (!ausWanderungen.has(name)) {
+    beanstandungen.push({
+      art: 'grenze',
+      datei: 'daten/datenbank.js',
+      text: `ruft ${name}, aber keine Wanderung legt es an. Tippfehler, oder die Wanderung fehlt?`,
+    })
+  }
+}
+for (const name of ausGrenze) {
+  if (!ausWanderungen.has(name)) {
+    beanstandungen.push({
+      art: 'grenze',
+      datei: 'daten/grenze.js',
+      text: `fuehrt ${name}, aber keine Wanderung legt es an.`,
+    })
+  }
+}
+
+/*
+  VIER ZEILEN, DIE IN KEINER WANDERUNG STEHEN DUERFEN.
+
+  Alle vier gehen an den bisherigen Fragen vorbei, weil sie kein einziges
+  fremdes Wort enthalten, und jede einzelne wuerde die drei Programme in einem
+  Zug vermischen oder aufschliessen:
+
+    grant ... on all ... in schema public    schliesst ALLE Funktionen und
+                                             Tabellen aller drei Programme auf
+    drop extension                           pgcrypto gehoert allen dreien
+    grant ... to public                      public ist jeder, auch nicht
+                                             angemeldet
+    alter role / alter database              wirkt auf die ganze Datenbank
+*/
+const VERBOTENE_ZEILEN = [
+  {
+    muster: /grant[\s\S]{0,80}?on\s+all\s+(?:functions|tables|sequences)\s+in\s+schema\s+public/,
+    warum:
+      'schliesst ALLE Funktionen und Tabellen in public auf, also auch die der beiden anderen ' +
+      'Programme. Immer einzeln freigeben: grant execute on function public.kombi_... .',
+  },
+  {
+    muster: /drop\s+extension/,
+    warum: 'pgcrypto in extensions gehoert allen drei Programmen gemeinsam. Es faellt niemand allein.',
+  },
+  {
+    muster: /grant[\s\S]{0,120}?\sto\s+public\b/,
+    warum:
+      '"public" ist in Postgres JEDER, auch wer sich nie angemeldet hat. Freigeben nur an anon und authenticated.',
+  },
+  {
+    muster: /alter\s+(?:role|database|system)\b/,
+    warum: 'wirkt auf die ganze Datenbank und damit auf alle drei Programme.',
+  },
+]
+
+for (const name of wanderungen) {
+  const sql = ohneKommentare(fs.readFileSync(path.join(WANDERUNGEN, name), 'utf8'))
+    .toLowerCase()
+    .replace(/'[^']*'/g, "''")
+  for (const regel of VERBOTENE_ZEILEN) {
+    if (regel.muster.test(sql)) {
+      beanstandungen.push({
+        art: 'grenze',
+        datei: `supabase/migrations/${name}`,
+        text: `${regel.warum} Warum das so ist, steht in supabase/TRENNUNG.md.`,
+      })
+    }
+  }
+}
+
+/*
+  JEDE NEUE FUNKTION BRAUCHT EINEN LEEREN SUCHPFAD.
+
+  Ohne "set search_path = ''" entscheidet der Suchpfad des Aufrufers, welche
+  Tabelle eine Funktion trifft. Bei einer Funktion mit security definer, und das
+  sind hier alle, ist das der klassische Weg, an fremde Daten zu kommen: wer den
+  Suchpfad setzt, lenkt die Funktion auf eine eigene Tabelle um.
+
+  Diese Regel laeuft auf dem Text OHNE Literalentfernung, denn sie sucht gerade
+  nach search_path = '' und das ist ein Literal.
+*/
+for (const name of wanderungen) {
+  const sql = ohneKommentare(fs.readFileSync(path.join(WANDERUNGEN, name), 'utf8')).toLowerCase()
+  const funktionen = [...sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+([a-z0-9_.]+)/g)]
+  const suchpfade = [...sql.matchAll(/set\s+search_path\s*=\s*''/g)]
+  if (funktionen.length > suchpfade.length) {
+    beanstandungen.push({
+      art: 'grenze',
+      datei: `supabase/migrations/${name}`,
+      text:
+        `legt ${funktionen.length} Funktion(en) an, aber nur ${suchpfade.length} davon setzen ` +
+        "search_path = ''. Ohne leeren Suchpfad laesst sich eine Funktion mit security definer " +
+        'auf eine fremde Tabelle umlenken. Warum das so ist, steht in supabase/TRENNUNG.md.',
+    })
+  }
+}
+
+/*
+  DAS MANIFEST MUSS AUF ETWAS ZEIGEN, DAS ES GIBT.
+
+  Ein Symbol, das fehlt, faellt erst nach der Installation auf, und dann steht
+  auf Karams Startbildschirm ein leeres Feld. Derselbe Fall wie eine tote url()
+  in stil/, nur schlechter zu finden.
+
+  Und: alle Adressen muessen relativ sein. Die Seite liegt in einem
+  Unterverzeichnis, ein fuehrender Schraegstrich zeigte auf die Wurzel des
+  ganzen Kontos. Die einzige Ausnahme ist "id", das gegen den Ursprung
+  aufgeloest wird und deshalb ausgeschrieben werden MUSS.
+*/
+try {
+  const manifest = JSON.parse(fs.readFileSync(path.join(wurzel, 'manifest.json'), 'utf8'))
+
+  for (const symbol of manifest.icons ?? []) {
+    const ziel = path.join(wurzel, String(symbol.src).replace(/^\.\//, ''))
+    if (!fs.existsSync(ziel)) {
+      beanstandungen.push({
+        art: 'manifest',
+        datei: 'manifest.json',
+        text: `zeigt auf ${symbol.src}, aber die Datei gibt es nicht. Erst "python werkzeug/symbole_bauen.py" laufen lassen.`,
+      })
+    }
+    if (!String(symbol.src).startsWith('./')) {
+      beanstandungen.push({
+        art: 'manifest',
+        datei: 'manifest.json',
+        text: `${symbol.src} ist nicht relativ. Die Seite liegt in einem Unterverzeichnis.`,
+      })
+    }
+  }
+
+  for (const feld of ['start_url', 'scope']) {
+    if (manifest[feld] !== './') {
+      beanstandungen.push({
+        art: 'manifest',
+        datei: 'manifest.json',
+        text: `${feld} steht auf "${manifest[feld]}", erwartet wird "./". Alles andere zeigt aus dem Unterverzeichnis heraus.`,
+      })
+    }
+  }
+
+  if (!String(manifest.id ?? '').startsWith('/')) {
+    beanstandungen.push({
+      art: 'manifest',
+      datei: 'manifest.json',
+      text:
+        `id steht auf "${manifest.id}". Sie ist die EINZIGE Angabe, die gegen den Ursprung ` +
+        'aufgeloest wird, und muss deshalb ausgeschrieben sein, sonst teilt sich dieses ' +
+        'Programm seine Kennung mit jeder anderen Seite dieses Kontos.',
+    })
+  }
+
+  const markenText = fs.readFileSync(path.join(wurzel, 'stil/marken.css'), 'utf8')
+  const grundTief = markenText.match(/--grund-tief:\s*(#[0-9a-fA-F]{6})/)?.[1] ?? ''
+  for (const feld of ['theme_color', 'background_color']) {
+    if (grundTief && String(manifest[feld]).toLowerCase() !== grundTief.toLowerCase()) {
+      beanstandungen.push({
+        art: 'manifest',
+        datei: 'manifest.json',
+        text: `${feld} steht auf "${manifest[feld]}", in stil/marken.css steht --grund-tief auf "${grundTief}".`,
+      })
+    }
+  }
+} catch (fehler) {
+  beanstandungen.push({
+    art: 'manifest',
+    datei: 'manifest.json',
+    text: `laesst sich nicht lesen: ${fehler instanceof Error ? fehler.message : String(fehler)}`,
+  })
+}
+
+/*
+  DER VORRAT DES DIENSTARBEITERS MUSS VOLLSTAENDIG SEIN.
+
+  Ohne diese Regel ist die haeufigste Panne programmiert: eine neue Datei
+  entsteht, niemand denkt an die Liste, und ohne Netz steht eine weisse Seite.
+  Bemerkt wuerde das erst Wochen spaeter, im Zug, wenn es zu spaet ist.
+
+  Verglichen wird gegen den ECHTEN Importgraphen, von index.html aus
+  durchgelaufen. Ausgenommen ist lib/tesseract: das liegt mit 16,2 MB bewusst
+  draussen, weil davon auf jedem Geraet nur ein Drittel gebraucht wird und
+  Tesseract sein Sprachmodell ohnehin selbst ablegt.
+*/
+const vorrat = new Set(
+  [...dienstarbeiterText.matchAll(/'\.\/([^']+)'/g)].map((f) => f[1]).filter((w) => w !== '')
+)
+
+/** @param {string} datei */
+function folgeImporten(datei, gesehen) {
+  if (gesehen.has(datei)) return gesehen
+  const voll = path.join(wurzel, datei)
+  if (!fs.existsSync(voll)) return gesehen
+  gesehen.add(datei)
+  const text = fs.readFileSync(voll, 'utf8')
+  for (const fund of text.matchAll(/(?:from|import)\s*\(?\s*['"](\.[^'"]+)['"]/g)) {
+    const ziel = path.posix.normalize(path.posix.join(path.posix.dirname(datei), fund[1]))
+    folgeImporten(ziel, gesehen)
+  }
+  return gesehen
+}
+
+const gebraucht = folgeImporten('oberflaeche/app.js', folgeImporten('stil/buehne.js', new Set()))
+
+for (const datei of gebraucht) {
+  if (datei.startsWith('lib/tesseract/')) continue
+  if (!vorrat.has(datei)) {
+    beanstandungen.push({
+      art: 'vorrat',
+      datei: 'dienstarbeiter.js',
+      text:
+        `${datei} wird vom Programm geladen, steht aber nicht im Vorrat. Ohne Netz waere das ` +
+        'eine weisse Seite. Eintragen in die Liste VORRAT.',
+    })
+  }
+}
+
+for (const eintrag of vorrat) {
+  if (eintrag === '' || eintrag.endsWith('/')) continue
+  if (!fs.existsSync(path.join(wurzel, eintrag))) {
+    beanstandungen.push({
+      art: 'vorrat',
+      datei: 'dienstarbeiter.js',
+      text: `fuehrt ${eintrag}, aber die Datei gibt es nicht. Das Einrichten ist alles oder nichts: eine fehlende Datei heisst gar kein Offlinebetrieb.`,
     })
   }
 }

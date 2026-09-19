@@ -2025,6 +2025,229 @@ li[data-schwere="info"] .hinweisart {
   color: var(--gut);
 }
 
+/* -------------------------------------------------- Bildschirm ausschneiden
+
+   Die Schicht fuer die Serie. Sie sieht aus wie der einzelne Zuschnitt, hat
+   aber eine Zeile mehr: den Streifen mit dem, was schon genommen wurde.
+
+   Karam am 18.09.2026: "dass man einfach richtig viele Screenshots macht, eine
+   Preview dafuer". Der Streifen IST diese Vorschau, und er steht zwischen Bild
+   und Knopfleiste, weil er dort im Blick liegt, ohne die Buehne zu verkleinern.
+
+   z-index 910 liegt ueber der Zuschnittschicht (900). Beide gleichzeitig gibt
+   es nicht, aber wenn doch, soll die neuere oben liegen.
+*/
+
+.schnipselschicht {
+  position: fixed;
+  inset: 0;
+  z-index: 910;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: var(--luft-3);
+  padding: var(--luft-4);
+  background: var(--grund-tief);
+}
+
+/* Beim Greifen eines neuen Bildes kurz weg, sonst fotografiert sich das
+   Programm selbst. Sichtbarkeit und nicht Anzeige: display none wuerfe das
+   Seitenlayout weg, und danach meldet die Buehne wieder drei Bildpunkte. */
+.schnipselschicht.schnipsel-weggeblendet {
+  visibility: hidden;
+}
+
+.schnipsel-titel {
+  font-size: var(--text-gross);
+  font-weight: 600;
+}
+
+.schnipsel-text {
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+  max-width: 80ch;
+}
+
+.schnipsel-tasten {
+  margin-top: var(--luft-1);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+  color: var(--schrift-leise);
+}
+
+.schnipsel-buehne {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  min-height: 0;
+  background: var(--grund);
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung-gross);
+}
+
+.schnipsel-bild {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.schnipsel-rahmen {
+  position: absolute;
+  display: none;
+  left: var(--links);
+  top: var(--oben);
+  width: var(--breit);
+  height: var(--hoch);
+  border: 2px solid var(--gut);
+  background: var(--gut-tief);
+  pointer-events: none;
+}
+
+.schnipsel-rahmen.sichtbar {
+  display: block;
+}
+
+.schnipsel-masse {
+  position: absolute;
+  display: none;
+  right: var(--luft-3);
+  bottom: var(--luft-3);
+  padding: var(--luft-1) var(--luft-2);
+  border-radius: var(--rundung);
+  background: var(--flaeche-hoch);
+  color: var(--schrift-leise);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-klein);
+}
+
+.schnipsel-masse.sichtbar {
+  display: block;
+}
+
+/* --- Die Vorschau --- */
+
+.schnipsel-sammlung {
+  display: grid;
+  gap: var(--luft-2);
+}
+
+.schnipsel-zaehler {
+  font-size: var(--text-klein);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-leise);
+}
+
+/* Waagerecht scrollend und nicht umbrechend: bei zwanzig Ausschnitten waeren
+   vier Zeilen Miniaturen hoeher als die Buehne selbst. */
+.schnipsel-streifen {
+  display: flex;
+  gap: var(--luft-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 72px;
+  padding-bottom: var(--luft-1);
+}
+
+.schnipsel-kachel {
+  position: relative;
+  flex: 0 0 auto;
+  border: 1px solid var(--linie);
+  border-radius: var(--rundung);
+  background: var(--flaeche);
+  overflow: hidden;
+}
+
+.schnipsel-mini {
+  display: block;
+  height: 64px;
+  width: auto;
+  max-width: 220px;
+  object-fit: cover;
+}
+
+.schnipsel-nummer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 0 var(--luft-1);
+  background: var(--flaeche-hoch);
+  color: var(--schrift-leise);
+  font-family: var(--schriftart-zahl);
+  font-size: var(--text-winzig);
+  border-top-right-radius: var(--rundung);
+}
+
+.schnipsel-kachelweg {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-bottom-left-radius: var(--rundung);
+  background: var(--flaeche-hoch);
+  color: var(--schrift);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.schnipsel-kachelweg:hover {
+  background: var(--schlecht-tief);
+  color: var(--schlecht);
+}
+
+/* --- Die Knopfleiste --- */
+
+.schnipsel-leiste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--luft-2);
+  justify-content: flex-end;
+}
+
+.schnipsel-leiste button {
+  padding: var(--luft-2) var(--luft-4);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rundung);
+  background: var(--flaeche-hoch);
+  color: var(--schrift);
+  font: inherit;
+  cursor: pointer;
+}
+
+.schnipsel-leiste button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.schnipsel-nehmen:not(:disabled) {
+  border-color: var(--gut);
+  background: var(--gut-tief);
+  color: var(--gut);
+}
+
+/* "Alles verwerfen" steht links von den anderen, mit Abstand: es ist der
+   einzige Knopf hier, der etwas wegnimmt, und es soll niemand aus Versehen
+   danebengreifen. */
+.schnipsel-weg {
+  margin-right: auto;
+}
+
+/* ---------------------------------------------------- Das Programm ablegen
+
+   Der Knopf in der Kopfreihe. Er steht immer, in allen drei Zustaenden.
+   Farben kommen aus den vorhandenen Marken, es entsteht hier keine neue.
+*/
+
+.installknopf-fertig {
+  border-color: var(--gut);
+  color: var(--gut);
+}
+
 /* ------------------------------------------------------------------- Ablage
 
    Der Explorer: Ordner links, Projekte rechts, darunter der Inhalt des

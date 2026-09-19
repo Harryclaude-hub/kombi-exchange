@@ -88,7 +88,35 @@ export async function starteLeser(einstellungen = {}) {
   const gruendlich = einstellungen.gruendlich !== false
   const melde = einstellungen.fortschritt ?? (() => {})
 
-  const modul = await import('../lib/tesseract/tesseract.esm.min.js')
+  /*
+    OHNE NETZ GIBT ES DIE TEXTERKENNUNG NICHT, UND DAS MUSS DASTEHEN.
+
+    Seit dem 18.09.2026 laesst sich das Programm ablegen und laeuft ohne Netz
+    weiter. lib/tesseract liegt dabei mit Absicht NICHT im Vorrat des
+    Dienstarbeiters: 16.162.819 Bytes, davon braucht jedes Geraet nur ein
+    Drittel, und das Sprachmodell legt Tesseract ohnehin selbst ab.
+
+    Die Folge ist richtig, aber sie darf nicht als rohe Browsermeldung
+    ankommen. "Failed to fetch dynamically imported module" sagt Karam nichts;
+    er wuerde denken, das Programm sei kaputt, statt zu wissen, dass ihm nur
+    gerade das Netz fehlt. Eine Luecke mit Erklaerung statt eines Raetsels
+    (Projektregel 1).
+  */
+  let modul
+  try {
+    modul = await import('../lib/tesseract/tesseract.esm.min.js')
+  } catch (fehler) {
+    const ohneNetz = typeof navigator !== 'undefined' && navigator.onLine === false
+    throw new Error(
+      ohneNetz
+        ? 'Ohne Verbindung lässt sich kein neues Bild lesen. Die Texterkennung wird beim ' +
+          'ersten Mal aus dem Netz geholt und ist bewusst nicht mit abgelegt, sie wäre ' +
+          'sechzehn Megabyte groß. Alles Vorhandene bleibt sichtbar, und Excel geht auch ohne Netz.'
+        : 'Die Texterkennung ließ sich nicht laden: ' +
+          (fehler instanceof Error ? fehler.message : String(fehler))
+    )
+  }
+
   const createWorker = modul.createWorker ?? modul.default?.createWorker
   if (typeof createWorker !== 'function') {
     throw new Error('Die Texterkennung konnte nicht geladen werden: createWorker fehlt.')

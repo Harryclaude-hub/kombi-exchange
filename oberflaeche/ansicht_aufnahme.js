@@ -31,7 +31,7 @@ import { ausBlob, zeigeZuschnitt, alsDatei } from './bildschirmfoto.js'
 // Die drei Aufnahmewege stehen seit dem 16.09.2026 an EINER Stelle, damit sie
 // auch aus den Riesenscheinen heraus aufgerufen werden koennen, ohne dass es
 // zwei Fassungen desselben Ablaufs gibt (Projektregel 8).
-import { fotoknoepfe, bildschirmfotoMachen, ausZwischenablageHolen } from './fotoknoepfe.js'
+import { fotoknoepfe, bildschirmAusschneiden, ausZwischenablageHolen } from './fotoknoepfe.js'
 
 /** Mindesthoehe einer Karte im Originalbild. */
 const MINDESTHOEHE = 40

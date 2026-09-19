@@ -40,34 +40,42 @@ globalThis.fetch = async (adresse) => {
 }
 
 const Datenbank = await import('../daten/datenbank.js')
+const Grenze = await import('../daten/grenze.js')
 
 test('die eigenen Tueren gehen auf', async () => {
-  const eigene = [
-    'kombi_code_einloesen',
-    'kombi_sitzung_pruefen',
-    'kombi_projekte_lesen',
-    'kombi_projekt_speichern',
-    'kombi_projekt_loeschen',
-    'kombi_projekt_leeren',
-    'kombi_scheine_lesen',
-    'kombi_scheine_speichern',
-    'kombi_schein_loeschen',
-    'kombi_riesenscheine_lesen',
-    'kombi_riesenscheine_speichern',
-    'kombi_bilder_lesen',
-    'kombi_bilder_speichern',
-    'kombi_code_wechseln',
-  ]
-
-  for (const name of eigene) {
+  /*
+    Die Liste wird NICHT hier abgeschrieben, sondern aus daten/grenze.js
+    geholt. Eine dritte Abschrift waere Projektregel 8, und sie waere die
+    gefaehrlichste von allen: eine Probe, die ihre eigene veraltete Liste
+    prueft, ist gruen und beweist nichts.
+  */
+  for (const name of Grenze.TUEREN) {
     const antwort = await Datenbank.rufe(name, {})
     assert.equal(antwort.art, 'leer', `${name} haette durchgehen muessen`)
   }
 
-  assert.equal(gerufen.length, 14, 'alle vierzehn sind wirklich losgeschickt worden')
+  assert.equal(gerufen.length, Grenze.TUEREN.length, 'alle sind wirklich losgeschickt worden')
+  assert.equal(Grenze.TUEREN.length, 14, 'und es sind vierzehn')
   for (const adresse of gerufen) {
     assert.match(adresse, /\/rest\/v1\/rpc\/kombi_/, adresse)
   }
+})
+
+test('ein Tippfehler kracht hier und nicht erst draussen als 404', async () => {
+  /*
+    kombi_scheine_lsen hat die richtige Form. Ohne die Liste ginge er durch die
+    Wand und stuerbe erst bei Supabase mit 404, und das sieht im Browser aus wie
+    ein Netzproblem. Man sucht dann am falschen Ende.
+  */
+  const vorher = gerufen.length
+  await assert.rejects(
+    () => Datenbank.rufe('kombi_scheine_lsen', {}),
+    (fehler) => {
+      assert.match(fehler.message, /kombi_scheine_lesen/, 'und er sagt, was gemeint war')
+      return true
+    }
+  )
+  assert.equal(gerufen.length, vorher, 'nichts davon ist im Netz gelandet')
 })
 
 test('DIE WICHTIGSTE: fremde Tueren bleiben zu', async () => {
@@ -131,8 +139,18 @@ test('auch schrages Zeug kommt nicht durch', async () => {
   assert.equal(gerufen.length, vorher, 'nichts davon ist im Netz gelandet')
 })
 
-test('die Vorsilbe steht als Wert zur Verfuegung', () => {
-  // Damit die lebende Pruefung und pruefe.mjs denselben Wert benutzen koennen
-  // und nicht jeder seinen eigenen mitbringt.
-  assert.equal(Datenbank.VORSILBE, 'kombi_')
+test('die Vorsilbe kommt aus einer einzigen Quelle', () => {
+  // Damit pruefe.mjs, die Wand und diese Probe denselben Wert benutzen und
+  // nicht jeder seinen eigenen mitbringt.
+  assert.equal(Grenze.VORSILBE, 'kombi_')
+  assert.equal(Datenbank.VORSILBE, Grenze.VORSILBE, 'datenbank.js reicht ihn nur durch')
+  assert.equal(Datenbank.TUEREN, Grenze.TUEREN, 'und dieselbe Liste, nicht eine Kopie')
+})
+
+test('jede Tuer traegt die Vorsilbe, und keine zweimal', () => {
+  for (const name of Grenze.TUEREN) {
+    assert.ok(name.startsWith(Grenze.VORSILBE), name)
+    assert.ok(Grenze.istEigeneTuer(name), name)
+  }
+  assert.equal(new Set(Grenze.TUEREN).size, Grenze.TUEREN.length, 'keine doppelt')
 })

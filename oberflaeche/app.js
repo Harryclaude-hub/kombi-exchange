@@ -19,6 +19,7 @@ import * as Reihenfolge from './reihenfolge.js'
 // nicht." Siehe oberflaeche/dialog.js.
 import * as Dialog from './dialog.js'
 import * as Anleitung from './anleitung.js'
+import * as Installieren from './installieren.js'
 import * as Datenbank from '../daten/datenbank.js'
 import { SITZUNG_SCHLUESSEL, EINSTELLUNG_SCHLUESSEL, PROGRAMM_FASSUNG } from '../daten/einstellungen.js'
 import { merkeStand, holeStand, holeBilderZuProjekt, loescheBild, loescheBilderZuProjekt } from '../daten/ablage.js'
@@ -81,6 +82,15 @@ export async function starte(ziel) {
   // Das steht ganz vorne mit Absicht: nach dem Laden von Daten neu zu laden
   // waere verschwendete Arbeit, und mitten in einer Bearbeitung waere es
   // Datenverlust.
+  /*
+    Vor dem ersten Warten horchen.
+
+    beforeinstallprompt kann jederzeit nach dem Laden kommen, auch waehrend die
+    Fassungspruefung noch auf das Netz wartet. Wer erst danach horcht, verpasst
+    es, und der Knopf koennte nie installieren.
+  */
+  Installieren.horcheAufAngebot()
+
   const aktualitaet = await sorgeFuerAktuelleDateien()
   if (aktualitaet.neugeladen) return
   if (aktualitaet.meldung && aktualitaet.art === 'veraltet') {
@@ -91,6 +101,26 @@ export async function starte(ziel) {
   // Eine Nadel aendert nur das Panel, nicht den Arbeitsstand. Deshalb ein
   // eigener Zuhoerer und kein Umweg ueber den Zustand.
   Nadeln.hoerZu(zeichnePanel)
+  /*
+    DER INSTALLIERKNOPF MELDET SICH EBENFALLS SELBST.
+
+    Das Angebot des Browsers kommt EINMAL, irgendwann nach dem Laden, und es
+    liegt in einer Modulvariablen in installieren.js. Der Kopf muss davon
+    erfahren, sonst steht dort bis zum naechsten Klick auf irgendetwas anderes
+    noch die Anleitung fuer den Fall ohne Angebot.
+  */
+  Installieren.hoerZu(zeichneKopf)
+
+  /*
+    Der Dienstarbeiter wird NACH der Fassungspruefung angemeldet und NICHT
+    abgewartet.
+
+    Nach der Pruefung, damit die ihr erstes Bild unverfaelscht vom Netz
+    bekommt. Nicht abgewartet, weil das Einrichten seines Vorrats rund 2 MB
+    laedt und Karam solange nicht vor einer leeren Seite sitzen soll.
+  */
+  Installieren.meldeDienstarbeiterAn()
+
   /*
     EIN EIGENER ZUHOERER FUER DIE ORDNER BRAUCHT ES NICHT MEHR.
 
@@ -443,6 +473,18 @@ function zeichneKopf() {
         title: 'Die Anleitung noch einmal von vorne durchgehen.',
         onclick: () => Anleitung.zeige(),
       }),
+      /*
+        Das Programm ablegen.
+
+        Karam am 18.09.2026: "Ich habe den Button, das zu downloaden. In deinem
+        Desktop oder auf mein Handy."
+
+        Der Knopf steht IMMER, in allen drei Zustaenden, und nicht nur dann,
+        wenn der Browser gerade ein Angebot geschickt hat. Ein Knopf, der mal da
+        ist und mal nicht, ist kein Knopf, sondern ein Zufall: Karam wuesste
+        nie, ob er ihn uebersehen hat oder ob es ihn heute nicht gibt.
+      */
+      Installieren.installierknopf(),
       el('span.verbindung', {
         daten: { an: String(stand.datenbankErreichbar) },
         text: stand.datenbankErreichbar ? 'verbunden' : 'nur auf diesem Geraet',
